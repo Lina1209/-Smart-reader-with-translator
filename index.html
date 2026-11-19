@@ -38,6 +38,9 @@ main{max-width:1060px;margin:0 auto;padding:42px 22px 70px}
 .pophead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.pophead b{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#b9cbb7}.popactions{display:flex;gap:6px}.popactions button{border:1px solid #526455;border-radius:8px;background:#34453a;color:#fff;padding:6px 9px;font-size:11px}.original{font-size:12px;color:#bdc8bc;line-height:1.6;border-left:2px solid #819a82;padding-left:10px;margin-bottom:12px;max-height:85px;overflow:auto}.translated{font-size:14px;line-height:1.65;overflow-wrap:anywhere}.status{font-size:10px;color:#bdc8bc;margin-top:9px}
 footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-spacing:.3px}
 @media(max-width:700px){.nav{padding:10px 14px;align-items:flex-start}.brandmark{width:38px;height:38px}.brand{font-size:13px}.controls{gap:5px}.controls .select{max-width:120px;padding:8px 6px;font-size:10px}.btn{padding:8px 9px}.top .controls .hide-mobile{display:none}main{padding:25px 12px 45px}.hero{margin:12px auto 24px}.workspace{border-radius:18px}.welcome{padding:40px 15px}.readerbar{align-items:flex-start;flex-direction:column}.readertools{justify-content:flex-start}.page{font-size:18px;min-height:60vh;padding:28px 22px}.epubbox{height:65vh;min-height:360px}.popup{right:14px;bottom:14px}}
+
+/* Панель озвучивания */
+.tts-panel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--soft) 35%,var(--paper))}.tts-label{font-size:11px;font-weight:800;color:var(--accent2)}.tts-panel select{max-width:230px;min-width:150px;border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--paper);color:var(--ink);font:11px Manrope,system-ui,sans-serif}.tts-panel input[type=range]{width:90px;accent-color:var(--accent)}.tts-control{border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);padding:8px 11px;font-size:11px;font-weight:800}.tts-control.primary{background:var(--accent);color:white;border-color:var(--accent)}.tts-status{font-size:10px;color:var(--muted);flex:1 1 100%;min-height:14px}.tts-help{font-size:10px;color:var(--muted)}@media(max-width:700px){.tts-panel{padding:12px;gap:7px}.tts-panel select{flex:1;min-width:125px;max-width:100%}.tts-panel input[type=range]{width:75px}}
 </style>
 </head>
 <body data-theme="light">
@@ -59,7 +62,7 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 <button id="demoBtn" class="btn" style="margin-top:18px">Попробовать на примере</button></div>
 <div class="reader" id="reader">
 <div class="readerbar"><div class="bookname"><strong id="bookTitle">Название книги</strong><span id="bookMeta">Готово к чтению</span></div><div class="readertools"><button class="btn iconbtn" id="fontDown" title="Меньше шрифт">A−</button><button class="btn iconbtn" id="fontUp" title="Больше шрифт">A＋</button><button class="btn" id="fullBtn">⛶ На весь экран</button><button class="btn" id="closeBook">Закрыть книгу</button></div></div>
-<div class="page" id="textViewer" tabindex="0"></div><div class="epubbox" id="epubBox" style="display:none"><div id="epubViewer"></div></div>
+<div class="tts-panel" aria-label="Настройки озвучивания"><span class="tts-label">🔊 ЧТЕНИЕ ВСЛУХ</span><select id="ttsVoice" aria-label="Голос озвучивания"><option value="">Автоматический голос</option></select><label class="tts-help" for="ttsRate">Скорость <span id="ttsRateValue">1×</span></label><input id="ttsRate" type="range" min="0.7" max="1.4" step="0.1" value="1"><button class="tts-control primary" id="ttsPlay" type="button">▶ Читать</button><button class="tts-control" id="ttsPause" type="button">Ⅱ Пауза</button><button class="tts-control" id="ttsStop" type="button">■ Стоп</button><div class="tts-status" id="ttsStatus" role="status" aria-live="polite">Голос использует системную службу озвучивания устройства или браузера.</div></div><div class="page" id="textViewer" tabindex="0"></div><div class="epubbox" id="epubBox" style="display:none"><div id="epubViewer"></div></div>
 <div class="paging" id="paging" style="display:none"><button class="btn" id="prevBtn">← Назад</button><span id="pageStatus">Страница</span><button class="btn" id="nextBtn">Вперёд →</button></div>
 </div></section>
 <section class="tool-panel" id="translatorPanel">
@@ -74,6 +77,7 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 </main>
 <div class="popup" id="translatePopup" role="status" aria-live="polite"><div class="pophead"><b>Перевод фрагмента</b><div class="popactions"><button id="speakBtn">🔊 Слушать</button><button id="copyBtn">Копировать</button><button id="closePopup">✕</button></div></div><div class="original" id="selectedOriginal"></div><div class="translated" id="translatedResult">Подготавливаем перевод…</div><div class="status" id="translateStatus">Перевод выполняется через онлайн-сервис.</div></div>
 <footer>Read & Translate · Сделано для тех, кто любит читать и открывать новое</footer>
+<script src="./tts.js"></script>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
@@ -104,7 +108,7 @@ const lang=$('targetLang').value;
 try{const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=aut|'+encodeURIComponent(lang);const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();if(id!==requestId)return;const result=data&&data.responseData&&data.responseData.translatedText;if(!result)throw Error('Empty translation');$('translatedResult').textContent=decodeHtml(result);$('translateStatus').textContent='Готово · MyMemory';}catch(err){if(id!==requestId)return;$('translatedResult').textContent='Не удалось получить перевод. Проверьте интернет-соединение и попробуйте ещё раз.';$('translateStatus').textContent='Сервис перевода временно недоступен.';console.warn(err)}}
 function decodeHtml(s){const el=document.createElement('textarea');el.innerHTML=s;return el.value}
 $('closePopup').onclick=()=>popup.classList.remove('show');
-$('speakBtn').onclick=()=>{if(!lastText)return;if(!('speechSynthesis'in window)){ $('translateStatus').textContent='Озвучивание не поддерживается этим браузером.';return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(lastText);u.lang='';speechSynthesis.speak(u)};
+$('speakBtn').onclick=()=>{if(!lastText)return;if(window.ReadAloud)window.ReadAloud.speak(lastText);else $('translateStatus').textContent='Модуль озвучивания ещё загружается.'};
 $('copyBtn').onclick=async()=>{try{await navigator.clipboard.writeText($('translatedResult').textContent);$('translateStatus').textContent='Перевод скопирован'}catch(e){$('translateStatus').textContent='Не удалось скопировать текст'}};
 $('fullBtn').onclick=async()=>{try{if(!document.fullscreenElement)await reader.requestFullscreen();else await document.exitFullscreen()}catch(e){$('bookMeta').textContent='Полноэкранный режим недоступен в этом браузере'}};
 $('demoBtn').onclick=()=>{closeExisting();showReader('Пробный текст · The Little Prince','ДЕМО');textViewer.textContent='The Little Prince — A short reading sample\n\nOnce when I was six years old I saw a magnificent picture in a book, called True Stories from Nature, about the primeval forest. It was a picture of a boa constrictor in the act of swallowing an animal.\n\nIn the book it said: “Boa constrictors swallow their prey whole, without chewing it.”\n\nI pondered deeply, then, over the adventures of the jungle. And after some work with a colored pencil I succeeded in making my first drawing.\n\nВыделите любое предложение выше, чтобы попробовать перевод.';setFont(fontSize)};
@@ -148,6 +152,22 @@ const ruToLat={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','
 $('translitInput').addEventListener('input',()=>{const value=$('translitInput').value;const result=[...value].map(ch=>{const lower=ch.toLowerCase();const mapped=ruToLat[lower];return mapped===undefined?ch:(ch!==lower?mapped.charAt(0).toUpperCase()+mapped.slice(1):mapped);}).join('');$('translitOutput').textContent=result||'Результат появится автоматически.';$('translitStatus').textContent=value?'Преобразование выполнено.':'';});
 $('translitCopy').addEventListener('click',async()=>{const value=$('translitOutput').textContent;if(!value||value==='Результат появится автоматически.')return;try{await navigator.clipboard.writeText(value);$('translitStatus').textContent='Результат скопирован.';}catch(e){$('translitStatus').textContent='Не удалось скопировать.';}});
 $('translitClear').addEventListener('click',()=>{$('translitInput').value='';$('translitOutput').textContent='Результат появится автоматически.';$('translitStatus').textContent='';});
+
+// Управление системной озвучкой книги
+window.addEventListener('DOMContentLoaded',()=>{
+ const status=document.getElementById('ttsStatus');
+ const getText=()=>{
+  const plain=document.getElementById('textViewer');
+  if(plain&&plain.style.display!=='none'&&plain.textContent.trim())return plain.innerText.trim();
+  const frame=document.querySelector('#epubViewer iframe');
+  try{return frame&&frame.contentDocument&&frame.contentDocument.body?frame.contentDocument.body.innerText.trim():''}catch(e){return ''}
+ };
+ if(!window.ReadAloud){status.textContent='Озвучивание недоступно в этом браузере.';return;}
+ window.ReadAloud.init({voiceSelect:document.getElementById('ttsVoice'),rateInput:document.getElementById('ttsRate'),rateValue:document.getElementById('ttsRateValue'),status});
+ document.getElementById('ttsPlay').addEventListener('click',()=>{const text=getText();if(!text){status.textContent='Сначала откройте книгу. Для EPUB озвучивается открытая глава.';return;}window.ReadAloud.speak(text)});
+ document.getElementById('ttsPause').addEventListener('click',()=>window.ReadAloud.pause());
+ document.getElementById('ttsStop').addEventListener('click',()=>window.ReadAloud.stop());
+});
 
 setTheme('light');
 })();
