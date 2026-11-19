@@ -41,6 +41,22 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 
 /* Панель озвучивания */
 .tts-panel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--soft) 35%,var(--paper))}.tts-label{font-size:11px;font-weight:800;color:var(--accent2)}.tts-panel select{max-width:230px;min-width:150px;border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--paper);color:var(--ink);font:11px Manrope,system-ui,sans-serif}.tts-panel input[type=range]{width:90px;accent-color:var(--accent)}.tts-control{border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);padding:8px 11px;font-size:11px;font-weight:800}.tts-control.primary{background:var(--accent);color:white;border-color:var(--accent)}.tts-status{font-size:10px;color:var(--muted);flex:1 1 100%;min-height:14px}.tts-help{font-size:10px;color:var(--muted)}@media(max-width:700px){.tts-panel{padding:12px;gap:7px}.tts-panel select{flex:1;min-width:125px;max-width:100%}.tts-panel input[type=range]{width:75px}}
+
+/* Режим работы с текстом открытой книги */
+.book-workbench{margin:22px 0 8px;padding:17px;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--soft) 30%,var(--paper))}
+.book-workbench h3{font:500 20px Literata,Georgia,serif;text-align:center;margin:0 0 5px}
+.book-workbench .book-caption{text-align:center;color:var(--muted);font-size:11px;margin:0 0 14px}
+.book-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.book-column label{display:block;font-size:11px;font-weight:800;margin:0 0 7px}
+.book-text{min-height:180px;max-height:42vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid var(--line);border-radius:12px;padding:13px;background:var(--bg);font:13px/1.75 Literata,Georgia,serif;color:var(--ink)}
+.book-text.result{background:color-mix(in srgb,var(--soft) 55%,var(--paper));font-family:Manrope,system-ui,sans-serif}
+.book-nav{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin-top:12px}
+.book-nav span{font-size:10px;color:var(--muted);min-width:100px;text-align:center}
+.book-nav button{border:1px solid var(--line);border-radius:9px;padding:8px 11px;background:var(--paper);color:var(--ink);font-size:11px;font-weight:800}
+.book-nav .book-action{background:var(--accent);color:white;border-color:var(--accent)}
+.book-empty{color:var(--muted);font-style:italic}
+@media(max-width:700px){.book-workbench{padding:12px}.book-columns{grid-template-columns:1fr}.book-text{min-height:125px;max-height:30vh}}
+
 </style>
 </head>
 <body data-theme="light">
@@ -67,11 +83,25 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 </div></section>
 <section class="tool-panel" id="translatorPanel">
 <div class="tool-intro"><div class="eyebrow">перевод без лишних шагов</div><h2>Переводчик</h2><p>Введите или вставьте текст, выберите язык — перевод появится здесь. Можно скопировать результат.</p></div>
+
+<div class="book-workbench" id="translatorBookWorkbench" hidden>
+<h3>Книга · перевод рядом</h3><p class="book-caption">Исходный текст книги и перевод синхронно по фрагментам. Листайте стрелками.</p>
+<div class="book-columns"><div class="book-column"><label>📖 Исходный текст</label><div class="book-text" id="translatorBookSource">Откройте книгу в читалке.</div></div><div class="book-column"><label>🌐 Перевод</label><div class="book-text result" id="translatorBookResult">Здесь появится перевод выбранного фрагмента.</div></div></div>
+<div class="book-nav"><button id="translatorBookPrev">← Назад</button><span id="translatorBookPage">Фрагмент 0 из 0</span><button id="translatorBookNext">Вперёд →</button><button class="book-action" id="translatorBookTranslate">Перевести этот фрагмент</button></div>
+<div class="tool-status" id="translatorBookStatus" role="status"></div></div>
+
 <div class="tool-row"><label for="standaloneTarget">Перевести на</label><select id="standaloneTarget"><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option><option value="pl">Polski</option><option value="uk">Українська</option></select><button class="btn primary" id="standaloneTranslate">Перевести →</button></div>
 <div class="tool-grid"><div class="tool-field"><label for="standaloneInput">Исходный текст</label><textarea id="standaloneInput" placeholder="Напишите или вставьте текст здесь…"></textarea></div><div class="tool-field"><label>Перевод</label><div class="tool-result" id="standaloneOutput" aria-live="polite">Здесь появится перевод.</div></div></div><div class="tool-actions"><button class="btn" id="standaloneCopy">Копировать перевод</button><button class="btn" id="standaloneClear">Очистить</button></div><div class="tool-status" id="standaloneStatus" role="status"></div><p class="tool-note">Для перевода требуется подключение к интернету. Текст отправляется в онлайн-сервис MyMemory.</p>
 </section>
 <section class="tool-panel" id="translitPanel">
 <div class="tool-intro"><div class="eyebrow">другой способ записи</div><h2>Транслитератор</h2><p>Преобразуйте русские буквы в латиницу. Удобно для имён, заметок, адресов и подготовки текста.</p></div>
+
+<div class="book-workbench" id="translitBookWorkbench" hidden>
+<h3>Книга · транслитерация рядом</h3><p class="book-caption">Русский текст книги и его запись латиницей. Перелистывайте фрагменты стрелками.</p>
+<div class="book-columns"><div class="book-column"><label>📖 Исходный текст</label><div class="book-text" id="translitBookSource">Откройте книгу в читалке.</div></div><div class="book-column"><label>🔤 Латинская запись</label><div class="book-text result" id="translitBookResult">Здесь появится транслитерация.</div></div></div>
+<div class="book-nav"><button id="translitBookPrev">← Назад</button><span id="translitBookPage">Фрагмент 0 из 0</span><button id="translitBookNext">Вперёд →</button></div>
+</div>
+
 <div class="tool-grid"><div class="tool-field"><label for="translitInput">Русский текст</label><textarea id="translitInput" placeholder="Введите текст на русском языке…"></textarea></div><div class="tool-field"><label>Латинская запись</label><div class="tool-result" id="translitOutput">Результат появится автоматически.</div></div></div><div class="tool-actions"><button class="btn" id="translitCopy">Копировать результат</button><button class="btn" id="translitClear">Очистить</button></div><div class="tool-status" id="translitStatus" role="status"></div><p class="tool-note">Используется практическая побуквенная транслитерация русского текста; это не перевод по смыслу.</p>
 </section>
 </main>
@@ -97,8 +127,8 @@ closeExisting();showReader(file.name,ext.toUpperCase());currentBookType=ext;
 try{if(ext==='epub')await openEpub(file);else await openText(file,ext)}catch(err){console.error(err);showError('Не удалось открыть файл. Проверьте, что файл не повреждён, и попробуйте ещё раз.');closeBook()}}
 function closeExisting(){if(book){try{book.destroy()}catch(e){}}book=null;rendition=null;textViewer.innerHTML='';epubBox.style.display='none';textViewer.style.display='block';$('paging').style.display='none'}
 async function openText(file,ext){let content=await file.text();if(ext==='fb2'){const xml=new DOMParser().parseFromString(content,'application/xml');if(xml.querySelector('parsererror'))throw Error('Invalid FB2 XML');const body=xml.querySelector('body');if(!body)throw Error('FB2 body missing');content=Array.from(body.querySelectorAll('p, subtitle, title, section')).map(el=>el.textContent.trim()).filter(Boolean).join('\n\n');}
-textViewer.textContent=content.trim()||'В этом файле не найден текст.';setFont(fontSize);textViewer.scrollTop=0}
-async function openEpub(file){if(typeof ePub!=='function')throw Error('EPUB library unavailable');const data=await file.arrayBuffer();book=ePub(data);textViewer.style.display='none';epubBox.style.display='block';$('paging').style.display='flex';rendition=book.renderTo('epubViewer',{width:'100%',height:'100%',spread:'none',flow:'scrolled-doc'});setTheme(theme);await rendition.display();rendition.on('selected',(cfi,contents)=>{const s=contents.window.getSelection();const value=s?s.toString().trim():'';if(value)translate(value)});rendition.on('relocated',loc=>{const p=loc.start&&loc.start.displayed?loc.start.displayed.page:0;const t=loc.start&&loc.start.displayed?loc.start.displayed.total:0;$('pageStatus').textContent=t?'Страница '+p+' из '+t:'Чтение EPUB'});}
+textViewer.textContent=content.trim()||'В этом файле не найден текст.';setFont(fontSize);textViewer.scrollTop=0;setBookSource(content.trim(),'text')}
+async function openEpub(file){if(typeof ePub!=='function')throw Error('EPUB library unavailable');const data=await file.arrayBuffer();book=ePub(data);textViewer.style.display='none';epubBox.style.display='block';$('paging').style.display='flex';rendition=book.renderTo('epubViewer',{width:'100%',height:'100%',spread:'none',flow:'scrolled-doc'});setTheme(theme);await rendition.display();rendition.on('selected',(cfi,contents)=>{const s=contents.window.getSelection();const value=s?s.toString().trim():'';if(value)translate(value)});rendition.on('rendered',()=>syncEpubBookText());rendition.on('relocated',loc=>{const p=loc.start&&loc.start.displayed?loc.start.displayed.page:0;const t=loc.start&&loc.start.displayed?loc.start.displayed.total:0;$('pageStatus').textContent=t?'Страница '+p+' из '+t:'Чтение EPUB';setTimeout(syncEpubBookText,80)});}
 $('prevBtn').onclick=()=>rendition&&rendition.prev();$('nextBtn').onclick=()=>rendition&&rendition.next();
 textViewer.addEventListener('mouseup',()=>{const s=window.getSelection();const t=s?s.toString().trim():'';if(t&&textViewer.contains(s.anchorNode))translate(t)});
 textViewer.addEventListener('touchend',()=>setTimeout(()=>{const s=window.getSelection();const t=s?s.toString().trim():'';if(t&&textViewer.contains(s.anchorNode))translate(t)},250));
@@ -168,6 +198,55 @@ window.addEventListener('DOMContentLoaded',()=>{
  document.getElementById('ttsPause').addEventListener('click',()=>window.ReadAloud.pause());
  document.getElementById('ttsStop').addEventListener('click',()=>window.ReadAloud.stop());
 });
+
+
+/* Связка открытой книги с переводчиком и транслитератором */
+let bookSourceText='', bookSourcePages=[], bookSourcePage=0, bookSourceKind='';
+function splitBookText(value,limit=1900){
+ const words=String(value||'').split(/\s+/);const pages=[];let part='';
+ for(const word of words){if(!word)continue;const next=part?part+' '+word:word;if(next.length>limit&&part){pages.push(part);part=word}else part=next;}
+ if(part)pages.push(part);return pages;
+}
+function setBookSource(value,kind){
+ bookSourceText=String(value||'').trim();bookSourceKind=kind||'';
+ bookSourcePages=splitBookText(bookSourceText);bookSourcePage=0;
+ const available=!!bookSourcePages.length;
+ $('translatorBookWorkbench').hidden=!available;$('translitBookWorkbench').hidden=!available;
+ renderBookSourcePage();
+}
+function renderBookSourcePage(){
+ const count=bookSourcePages.length, page=bookSourcePages[bookSourcePage]||'';
+ $('translatorBookSource').textContent=page||'Откройте книгу в читалке.';
+ $('translitBookSource').textContent=page||'Откройте книгу в читалке.';
+ $('translatorBookResult').textContent='Нажмите «Перевести этот фрагмент».';
+ $('translitBookResult').textContent=page?convertBookTranslit(page):'Здесь появится транслитерация.';
+ $('translatorBookPage').textContent='Фрагмент '+(count?bookSourcePage+1:0)+' из '+count;
+ $('translitBookPage').textContent='Фрагмент '+(count?bookSourcePage+1:0)+' из '+count;
+ ['translatorBookPrev','translitBookPrev'].forEach(id=>$(id).disabled=bookSourcePage<=0);
+ ['translatorBookNext','translitBookNext'].forEach(id=>$(id).disabled=bookSourcePage>=count-1);
+ $('translatorBookStatus').textContent=bookSourceKind==='epub'?'Показан текст текущей главы EPUB. Перелистывайте книгу в читалке для перехода к следующей главе.':'Текст книги разбит на удобные фрагменты.';
+}
+function moveBookSource(delta){if(!bookSourcePages.length)return;bookSourcePage=Math.max(0,Math.min(bookSourcePages.length-1,bookSourcePage+delta));renderBookSourcePage();}
+$('translatorBookPrev').onclick=$('translitBookPrev').onclick=()=>moveBookSource(-1);
+$('translatorBookNext').onclick=$('translitBookNext').onclick=()=>moveBookSource(1);
+function convertBookTranslit(value){
+ const map=ruToLat;return [...String(value||'')].map(ch=>{const lower=ch.toLowerCase(),mapped=map[lower];return mapped===undefined?ch:(ch!==lower?mapped.charAt(0).toUpperCase()+mapped.slice(1):mapped)}).join('');
+}
+$('translatorBookTranslate').addEventListener('click',async()=>{
+ const source=bookSourcePages[bookSourcePage]||'';if(!source)return;
+ const output=$('translatorBookResult'),status=$('translatorBookStatus');output.textContent='Переводим…';status.textContent='Подключаемся к сервису перевода.';
+ try{
+  const target=$('standaloneTarget').value||$('targetLang').value;
+  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(source)+'&langpair=aut|'+encodeURIComponent(target);
+  const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);
+  const data=await response.json(),translated=data&&data.responseData&&data.responseData.translatedText;
+  if(!translated)throw Error('Empty translation');
+  const box=document.createElement('textarea');box.innerHTML=translated;output.textContent=box.value;status.textContent='Готово · MyMemory';
+ }catch(error){output.textContent='Не удалось перевести этот фрагмент. Проверьте интернет и попробуйте ещё раз.';status.textContent='Сервис перевода временно недоступен.';console.warn(error);}
+});
+function syncEpubBookText(){
+ try{const frame=document.querySelector('#epubViewer iframe');const body=frame&&frame.contentDocument&&frame.contentDocument.body;const value=body?body.innerText.trim():'';if(value)setBookSource(value,'epub');}catch(e){console.warn('Не удалось прочитать текст текущей главы EPUB',e);}
+}
 
 setTheme('light');
 })();
