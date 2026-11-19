@@ -24,7 +24,7 @@ button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:foc
 .btn:hover{border-color:var(--accent);transform:translateY(-1px)}.primary{background:var(--accent);color:white;border-color:var(--accent)}.primary:hover{background:var(--accent2)}.iconbtn{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:16px}
 main{max-width:1060px;margin:0 auto;padding:42px 22px 70px}
 .hero{text-align:center;max-width:700px;margin:22px auto 36px}.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:2.6px;color:var(--accent);font-weight:800}.hero h1{font-family:Literata,Georgia,serif;font-weight:500;letter-spacing:-1.3px;font-size:clamp(34px,5vw,54px);line-height:1.12;margin:14px 0}.hero p{color:var(--muted);line-height:1.8;font-size:14px;max-width:560px;margin:0 auto}
-.workspace{background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;min-height:420px}
+.mode-btn{white-space:nowrap}.tool-panel{display:none;background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:clamp(20px,4vw,38px);margin-top:0}.tool-panel.active{display:block}.tool-intro{text-align:center;margin:0 auto 24px;max-width:620px}.tool-intro h2{font:500 29px Literata,Georgia,serif;margin:8px 0}.tool-intro p{font-size:13px;line-height:1.7;color:var(--muted)}.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.tool-field label{display:block;font-size:12px;font-weight:800;margin-bottom:8px}.tool-field textarea{width:100%;min-height:190px;resize:vertical;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);padding:15px;font:14px/1.7 Manrope,system-ui,sans-serif}.tool-field textarea:focus{outline:2px solid var(--accent);outline-offset:2px}.tool-row{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin:16px 0}.tool-row select{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);color:var(--ink)}.tool-result{white-space:pre-wrap;overflow-wrap:anywhere;min-height:190px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--soft) 55%,var(--paper));padding:15px;font:14px/1.7 Manrope,system-ui,sans-serif}.tool-status{text-align:center;color:var(--muted);font-size:11px;min-height:18px;margin-top:10px}.tool-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}.tool-note{text-align:center;color:var(--muted);font-size:11px;margin-top:18px}@media(max-width:700px){.nav{flex-wrap:wrap}.controls{justify-content:flex-start}.mode-btn{font-size:10px;padding:8px 7px}.tool-grid{grid-template-columns:1fr}.tool-field textarea,.tool-result{min-height:145px}.tool-panel{padding:18px}}.workspace{background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;min-height:420px}
 .welcome{padding:54px 24px 48px;text-align:center}.book-art{width:84px;height:84px;border-radius:28px;background:var(--soft);display:grid;place-items:center;margin:0 auto 22px;font-size:38px}.welcome h2{font:500 27px Literata,Georgia,serif;margin:0 0 10px}.welcome p{color:var(--muted);font-size:13px;line-height:1.7;max-width:490px;margin:0 auto 24px}
 .drop{max-width:510px;margin:auto;padding:20px;border:1.5px dashed var(--line);border-radius:17px;background:color-mix(in srgb,var(--soft) 45%,transparent)}.drop.drag{border-color:var(--accent);background:var(--soft)}.drop strong{display:block;font-size:13px;margin-bottom:5px}.drop span{font-size:11px;color:var(--muted);display:block;margin-bottom:15px}
 .hint{font-size:11px;color:var(--muted);margin-top:15px}
@@ -44,7 +44,8 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 <header class="top"><div class="nav">
 <div class="brand"><div class="brandmark">📖</div><div>Read & Translate<small>чтение с пониманием</small></div></div>
 <div class="controls">
-<label class="btn primary" for="fileInput">＋ Открыть книгу</label><input id="fileInput" type="file" accept=".epub,.fb2,.txt,text/plain,application/epub+zip" hidden>
+<button class="btn mode-btn primary" id="showReader" type="button">📖 Читалка</button><button class="btn mode-btn" id="showTranslator" type="button">🌐 Переводчик</button><button class="btn mode-btn" id="showTranslit" type="button">🔤 Транслитератор</button>
+<label class="btn primary" id="openBookLabel" for="fileInput">＋ Открыть книгу</label><input id="fileInput" type="file" accept=".epub,.fb2,.txt,text/plain,application/epub+zip" hidden>
 <select class="select" id="targetLang" aria-label="Язык перевода"><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option></select>
 <button class="btn iconbtn hide-mobile" id="fontMinus" title="Уменьшить шрифт">A−</button><button class="btn iconbtn hide-mobile" id="fontPlus" title="Увеличить шрифт">A＋</button>
 <button class="btn iconbtn" data-theme="sepia" title="Тёплая тема">◒</button><button class="btn iconbtn" data-theme="dark" title="Ночная тема">☾</button><button class="btn iconbtn" data-theme="light" title="Светлая тема">☼</button>
@@ -61,6 +62,15 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 <div class="page" id="textViewer" tabindex="0"></div><div class="epubbox" id="epubBox" style="display:none"><div id="epubViewer"></div></div>
 <div class="paging" id="paging" style="display:none"><button class="btn" id="prevBtn">← Назад</button><span id="pageStatus">Страница</span><button class="btn" id="nextBtn">Вперёд →</button></div>
 </div></section>
+<section class="tool-panel" id="translatorPanel">
+<div class="tool-intro"><div class="eyebrow">перевод без лишних шагов</div><h2>Переводчик</h2><p>Введите или вставьте текст, выберите язык — перевод появится здесь. Можно скопировать результат.</p></div>
+<div class="tool-row"><label for="standaloneTarget">Перевести на</label><select id="standaloneTarget"><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option><option value="pl">Polski</option><option value="uk">Українська</option></select><button class="btn primary" id="standaloneTranslate">Перевести →</button></div>
+<div class="tool-grid"><div class="tool-field"><label for="standaloneInput">Исходный текст</label><textarea id="standaloneInput" placeholder="Напишите или вставьте текст здесь…"></textarea></div><div class="tool-field"><label>Перевод</label><div class="tool-result" id="standaloneOutput" aria-live="polite">Здесь появится перевод.</div></div></div><div class="tool-actions"><button class="btn" id="standaloneCopy">Копировать перевод</button><button class="btn" id="standaloneClear">Очистить</button></div><div class="tool-status" id="standaloneStatus" role="status"></div><p class="tool-note">Для перевода требуется подключение к интернету. Текст отправляется в онлайн-сервис MyMemory.</p>
+</section>
+<section class="tool-panel" id="translitPanel">
+<div class="tool-intro"><div class="eyebrow">другой способ записи</div><h2>Транслитератор</h2><p>Преобразуйте русские буквы в латиницу. Удобно для имён, заметок, адресов и подготовки текста.</p></div>
+<div class="tool-grid"><div class="tool-field"><label for="translitInput">Русский текст</label><textarea id="translitInput" placeholder="Введите текст на русском языке…"></textarea></div><div class="tool-field"><label>Латинская запись</label><div class="tool-result" id="translitOutput">Результат появится автоматически.</div></div></div><div class="tool-actions"><button class="btn" id="translitCopy">Копировать результат</button><button class="btn" id="translitClear">Очистить</button></div><div class="tool-status" id="translitStatus" role="status"></div><p class="tool-note">Используется практическая побуквенная транслитерация русского текста; это не перевод по смыслу.</p>
+</section>
 </main>
 <div class="popup" id="translatePopup" role="status" aria-live="polite"><div class="pophead"><b>Перевод фрагмента</b><div class="popactions"><button id="speakBtn">🔊 Слушать</button><button id="copyBtn">Копировать</button><button id="closePopup">✕</button></div></div><div class="original" id="selectedOriginal"></div><div class="translated" id="translatedResult">Подготавливаем перевод…</div><div class="status" id="translateStatus">Перевод выполняется через онлайн-сервис.</div></div>
 <footer>Read & Translate · Сделано для тех, кто любит читать и открывать новое</footer>
@@ -100,6 +110,45 @@ $('fullBtn').onclick=async()=>{try{if(!document.fullscreenElement)await reader.r
 $('demoBtn').onclick=()=>{closeExisting();showReader('Пробный текст · The Little Prince','ДЕМО');textViewer.textContent='The Little Prince — A short reading sample\n\nOnce when I was six years old I saw a magnificent picture in a book, called True Stories from Nature, about the primeval forest. It was a picture of a boa constrictor in the act of swallowing an animal.\n\nIn the book it said: “Boa constrictors swallow their prey whole, without chewing it.”\n\nI pondered deeply, then, over the adventures of the jungle. And after some work with a colored pencil I succeeded in making my first drawing.\n\nВыделите любое предложение выше, чтобы попробовать перевод.';setFont(fontSize)};
 const drop=$('dropZone');['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>{const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)openFile(f)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')popup.classList.remove('show');if((e.ctrlKey||e.metaKey)&&e.key==='+' ){e.preventDefault();setFont(fontSize+2)}if((e.ctrlKey||e.metaKey)&&e.key==='-'){e.preventDefault();setFont(fontSize-2)}});
+
+// Переключение между тремя самостоятельными инструментами
+const workspace=document.querySelector('.workspace'), translatorPanel=$('translatorPanel'), translitPanel=$('translitPanel'), heroTitle=document.querySelector('.hero h1'), heroText=document.querySelector('.hero p');
+const defaultHero=heroTitle.innerHTML, defaultDesc=heroText.textContent;
+function activateTool(mode){
+  const isReader=mode==='reader', isTranslator=mode==='translator', isTranslit=mode==='translit';
+  workspace.style.display=isReader?'':'none';
+  translatorPanel.classList.toggle('active',isTranslator);
+  translitPanel.classList.toggle('active',isTranslit);
+  $('showReader').classList.toggle('primary',isReader);
+  $('showTranslator').classList.toggle('primary',isTranslator);
+  $('showTranslit').classList.toggle('primary',isTranslit);
+  $('openBookLabel').style.display=isReader?'':'none';
+  document.querySelector('.hero').style.display=isReader?'':'none';
+  if(isReader){heroTitle.innerHTML=defaultHero;heroText.textContent=defaultDesc;}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('showReader').addEventListener('click',()=>activateTool('reader'));
+$('showTranslator').addEventListener('click',()=>activateTool('translator'));
+$('showTranslit').addEventListener('click',()=>activateTool('translit'));
+$('standaloneTranslate').addEventListener('click',async()=>{
+ const source=$('standaloneInput').value.trim(), target=$('standaloneTarget').value, status=$('standaloneStatus'), output=$('standaloneOutput');
+ if(!source){status.textContent='Сначала введите текст для перевода.';return;}
+ if(source.length>4500){status.textContent='Слишком длинный текст. Разделите его на части до 4500 символов.';return;}
+ status.textContent='Переводим…';output.textContent='Выполняется перевод…';
+ try{const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(source)+'&langpair=aut|'+encodeURIComponent(target);
+ const response=await fetch(url);if(!response.ok)throw new Error('HTTP '+response.status);
+ const data=await response.json();const translated=data&&data.responseData&&data.responseData.translatedText;
+ if(!translated)throw new Error('Empty translation');
+ const box=document.createElement('textarea');box.innerHTML=translated;output.textContent=box.value;status.textContent='Готово · MyMemory';
+ }catch(error){output.textContent='';status.textContent='Не удалось получить перевод. Проверьте интернет и попробуйте ещё раз.';console.warn('Standalone translation:',error);}
+});
+$('standaloneCopy').addEventListener('click',async()=>{const value=$('standaloneOutput').textContent;if(!value||value==='Здесь появится перевод.')return;try{await navigator.clipboard.writeText(value);$('standaloneStatus').textContent='Перевод скопирован.';}catch(e){$('standaloneStatus').textContent='Не удалось скопировать. Проверьте разрешения браузера.';}});
+$('standaloneClear').addEventListener('click',()=>{$('standaloneInput').value='';$('standaloneOutput').textContent='Здесь появится перевод.';$('standaloneStatus').textContent='';});
+const ruToLat={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+$('translitInput').addEventListener('input',()=>{const value=$('translitInput').value;const result=[...value].map(ch=>{const lower=ch.toLowerCase();const mapped=ruToLat[lower];return mapped===undefined?ch:(ch!==lower?mapped.charAt(0).toUpperCase()+mapped.slice(1):mapped);}).join('');$('translitOutput').textContent=result||'Результат появится автоматически.';$('translitStatus').textContent=value?'Преобразование выполнено.':'';});
+$('translitCopy').addEventListener('click',async()=>{const value=$('translitOutput').textContent;if(!value||value==='Результат появится автоматически.')return;try{await navigator.clipboard.writeText(value);$('translitStatus').textContent='Результат скопирован.';}catch(e){$('translitStatus').textContent='Не удалось скопировать.';}});
+$('translitClear').addEventListener('click',()=>{$('translitInput').value='';$('translitOutput').textContent='Результат появится автоматически.';$('translitStatus').textContent='';});
+
 setTheme('light');
 })();
 </script>
