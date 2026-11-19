@@ -66,6 +66,7 @@ footer{text-align:center;padding:25px 16px 28px;color:var(--muted);font-size:11p
 <div class="controls">
 <button class="btn mode-btn primary" id="showReader" type="button">📖 Читалка</button><button class="btn mode-btn" id="showTranslator" type="button">🌐 Переводчик</button><button class="btn mode-btn" id="showTranslit" type="button">🔤 Транслитератор</button>
 <label class="btn primary" id="openBookLabel" for="fileInput">＋ Открыть книгу</label><input id="fileInput" type="file" accept=".epub,.fb2,.txt,application/epub+zip,application/x-fictionbook+xml,application/xml,text/xml,text/plain,application/octet-stream,*/*" hidden>
+<select class="select" id="sourceLang" aria-label="Исходный язык"><option value="auto">Определить язык</option><option value="en">English</option><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="uk">Українська</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option><option value="pl">Polski</option></select>
 <select class="select" id="targetLang" aria-label="Язык перевода"><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option></select>
 <button class="btn iconbtn hide-mobile" id="fontMinus" title="Уменьшить шрифт">A−</button><button class="btn iconbtn hide-mobile" id="fontPlus" title="Увеличить шрифт">A＋</button>
 <button class="btn iconbtn" data-theme="sepia" title="Тёплая тема">◒</button><button class="btn iconbtn" data-theme="dark" title="Ночная тема">☾</button><button class="btn iconbtn" data-theme="light" title="Светлая тема">☼</button>
@@ -151,10 +152,18 @@ async function openEpub(file){const epubFactory=await ensureEpubLibrary();const 
 $('prevBtn').onclick=()=>rendition&&rendition.prev();$('nextBtn').onclick=()=>rendition&&rendition.next();
 textViewer.addEventListener('mouseup',()=>{const s=window.getSelection();const t=s?s.toString().trim():'';if(t&&textViewer.contains(s.anchorNode))translate(t)});
 textViewer.addEventListener('touchend',()=>setTimeout(()=>{const s=window.getSelection();const t=s?s.toString().trim():'';if(t&&textViewer.contains(s.anchorNode))translate(t)},250));
+function getSourceLanguage(text,target){
+ const selected=$('sourceLang')?.value||'auto';if(selected!=='auto')return selected;
+ const value=String(text||'');
+ if(/[ієїґ]/i.test(value))return 'uk';
+ if(/[әғқңөұүһ]/i.test(value))return 'kk';
+ if(/[а-яё]/i.test(value))return 'ru';
+ return target==='en'?'ru':'en';
+}
 async function translate(text){text=text.trim();if(!text)return;if(text.length>4500){$('selectedOriginal').textContent=text.slice(0,4500)+'…';$('translatedResult').textContent='Выделенный фрагмент слишком длинный. Выберите до 4500 символов.';popup.classList.add('show');return}
 lastText=text;const id=++requestId;$('selectedOriginal').textContent=text;$('translatedResult').textContent='Переводим…';$('translateStatus').textContent='Подключаемся к сервису перевода';popup.classList.add('show');
 const lang=$('targetLang').value;
-try{const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=aut|'+encodeURIComponent(lang);const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();if(id!==requestId)return;const result=data&&data.responseData&&data.responseData.translatedText;if(!result)throw Error('Empty translation');$('translatedResult').textContent=decodeHtml(result);$('translateStatus').textContent='Готово · MyMemory';}catch(err){if(id!==requestId)return;$('translatedResult').textContent='Не удалось получить перевод. Проверьте интернет-соединение и попробуйте ещё раз.';$('translateStatus').textContent='Сервис перевода временно недоступен.';console.warn(err)}}
+try{const sourceLang=getSourceLanguage(text,lang);if(sourceLang===lang){$('translatedResult').textContent=text;$('translateStatus').textContent='Исходный и целевой языки совпадают.';return;}const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair='+encodeURIComponent(sourceLang)+'|'+encodeURIComponent(lang);const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();if(id!==requestId)return;const result=data&&data.responseData&&data.responseData.translatedText;if(!result)throw Error('Empty translation');$('translatedResult').textContent=decodeHtml(result);$('translateStatus').textContent='Готово · MyMemory';}catch(err){if(id!==requestId)return;$('translatedResult').textContent='Не удалось получить перевод. Проверьте интернет-соединение и попробуйте ещё раз.';$('translateStatus').textContent='Сервис перевода временно недоступен.';console.warn(err)}}
 function decodeHtml(s){const el=document.createElement('textarea');el.innerHTML=s;return el.value}
 $('closePopup').onclick=()=>popup.classList.remove('show');
 $('speakBtn').onclick=()=>{if(!lastText)return;if(window.ReadAloud)window.ReadAloud.speak(lastText);else $('translateStatus').textContent='Модуль озвучивания ещё загружается.'};
@@ -226,7 +235,7 @@ async function translateLongText(source,target){
  const results=[];
  for(let i=0;i<chunks.length;i++){
   $('standaloneStatus').textContent=chunks.length>1?'Переводим фрагмент '+(i+1)+' из '+chunks.length+'…':'Переводим…';
-  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(chunks[i])+'&langpair=aut|'+encodeURIComponent(target);
+  const sourceLang=getSourceLanguage(chunks[i],target);if(sourceLang===target){results.push(chunks[i]);continue;}const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(chunks[i])+'&langpair='+encodeURIComponent(sourceLang)+'|'+encodeURIComponent(target);
   const response=await fetch(url);if(!response.ok)throw new Error('HTTP '+response.status);
   const data=await response.json(),translated=data&&data.responseData&&data.responseData.translatedText;
   if(!translated)throw new Error('Не удалось перевести фрагмент '+(i+1));
@@ -309,7 +318,7 @@ $('translatorBookTranslate').addEventListener('click',async()=>{
  const output=$('translatorBookResult'),status=$('translatorBookStatus');output.textContent='Переводим…';status.textContent='Подключаемся к сервису перевода.';
  try{
   const target=$('standaloneTarget').value||$('targetLang').value;
-  const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(source)+'&langpair=aut|'+encodeURIComponent(target);
+  const sourceLang=getSourceLanguage(source,target);if(sourceLang===target){output.textContent=source;status.textContent='Исходный и целевой языки совпадают.';return;}const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(source)+'&langpair='+encodeURIComponent(sourceLang)+'|'+encodeURIComponent(target);
   const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);
   const data=await response.json(),translated=data&&data.responseData&&data.responseData.translatedText;
   if(!translated)throw Error('Empty translation');
