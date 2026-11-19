@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
 <style>
 :root{color-scheme:light;--bg:#f3f0e8;--paper:#fffdf7;--ink:#28342d;--muted:#788078;--line:#e4dfd2;--accent:#526c58;--accent2:#3e5745;--soft:#e8ede5;--shadow:0 18px 55px #28372f12}
@@ -64,7 +65,7 @@ footer{text-align:center;padding:25px 16px 28px;color:var(--muted);font-size:11p
 <div class="brand"><div class="brandmark">📖</div><div>Read & Translate<small>чтение с пониманием</small></div></div>
 <div class="controls">
 <button class="btn mode-btn primary" id="showReader" type="button">📖 Читалка</button><button class="btn mode-btn" id="showTranslator" type="button">🌐 Переводчик</button><button class="btn mode-btn" id="showTranslit" type="button">🔤 Транслитератор</button>
-<label class="btn primary" id="openBookLabel" for="fileInput">＋ Открыть книгу</label><input id="fileInput" type="file" accept=".epub,.fb2,.txt,text/plain,application/epub+zip" hidden>
+<label class="btn primary" id="openBookLabel" for="fileInput">＋ Открыть книгу</label><input id="fileInput" type="file" accept=".epub,.fb2,.txt,application/epub+zip,application/x-fictionbook+xml,application/xml,text/xml,text/plain,application/octet-stream,*/*" hidden>
 <select class="select" id="targetLang" aria-label="Язык перевода"><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option></select>
 <button class="btn iconbtn hide-mobile" id="fontMinus" title="Уменьшить шрифт">A−</button><button class="btn iconbtn hide-mobile" id="fontPlus" title="Увеличить шрифт">A＋</button>
 <button class="btn iconbtn" data-theme="sepia" title="Тёплая тема">◒</button><button class="btn iconbtn" data-theme="dark" title="Ночная тема">☾</button><button class="btn iconbtn" data-theme="light" title="Светлая тема">☼</button>
@@ -143,7 +144,8 @@ function readFileText(file){return new Promise((resolve,reject)=>{if(file&&typeo
 function readFileBuffer(file){if(file&&typeof file.arrayBuffer==='function')return file.arrayBuffer();return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error||Error('Не удалось прочитать файл'));reader.readAsArrayBuffer(file);});}
 async function openText(file,ext){let content=await readFileText(file);content=content.replace(/^\uFEFF/,'');if(ext==='fb2'){const xml=new DOMParser().parseFromString(content,'application/xml');if(xml.getElementsByTagName('parsererror').length)throw Error('Файл FB2 содержит некорректный XML');let body=xml.getElementsByTagNameNS('*','body')[0]||xml.getElementsByTagName('body')[0];if(!body)throw Error('В FB2 не найден раздел body');const blocks=Array.from(body.getElementsByTagName('*')).filter(el=>['p','subtitle','title'].includes((el.localName||el.tagName||'').toLowerCase()));content=blocks.map(el=>(el.textContent||'').trim()).filter(Boolean).join('\n\n');if(!content.trim())content=(body.textContent||'').trim();}
 textViewer.textContent=content.trim()||'В этом файле не найден текст.';setFont(fontSize);textViewer.scrollTop=0;setBookSource(content.trim(),'text')}
-async function ensureEpubLibrary(){if(typeof window.ePub==='function')return window.ePub;const urls=['https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js','https://unpkg.com/epubjs@0.3.93/dist/epub.min.js'];for(const src of urls){try{await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(Error('Не удалось загрузить EPUB.js: '+src));document.head.appendChild(script)});if(typeof window.ePub==='function')return window.ePub;}catch(err){console.warn(err)}}throw Error('Не загрузилась библиотека EPUB. Проверьте подключение к интернету и обновите страницу.')}
+async function ensureZipLibrary(){if(window.JSZip)return window.JSZip;const urls=['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'];for(const src of urls){try{await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(Error('Не удалось загрузить JSZip: '+src));document.head.appendChild(script)});if(window.JSZip)return window.JSZip;}catch(err){console.warn(err)}}throw Error('Не удалось загрузить JSZip — библиотеку распаковки EPUB. Проверьте интернет или откройте сайт в Chrome.');}
+async function ensureEpubLibrary(){await ensureZipLibrary();if(typeof window.ePub==='function')return window.ePub;const urls=['https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js','https://unpkg.com/epubjs@0.3.93/dist/epub.min.js'];for(const src of urls){try{await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(Error('Не удалось загрузить EPUB.js: '+src));document.head.appendChild(script)});if(typeof window.ePub==='function')return window.ePub;}catch(err){console.warn(err)}}throw Error('Не загрузилась библиотека EPUB. Проверьте подключение к интернету и обновите страницу.')}
 async function openEpub(file){const epubFactory=await ensureEpubLibrary();const data=await readFileBuffer(file);if(!data||data.byteLength<100)throw Error('Файл EPUB пустой или повреждён');if(book){try{book.destroy()}catch(e){}}$('epubViewer').innerHTML='';book=epubFactory(data);textViewer.style.display='none';epubBox.style.display='block';$('paging').style.display='flex';rendition=book.renderTo('epubViewer',{width:'100%',height:'100%',spread:'none',flow:'scrolled-doc'});setTheme(theme);await rendition.display();rendition.on('selected',(cfi,contents)=>{const s=contents.window.getSelection();const value=s?s.toString().trim():'';if(value)translate(value)});rendition.on('rendered',()=>syncEpubBookText());rendition.on('relocated',loc=>{const p=loc.start&&loc.start.displayed?loc.start.displayed.page:0;const t=loc.start&&loc.start.displayed?loc.start.displayed.total:0;$('pageStatus').textContent=t?'Страница '+p+' из '+t:'Чтение EPUB';setTimeout(syncEpubBookText,80)});}
 $('prevBtn').onclick=()=>rendition&&rendition.prev();$('nextBtn').onclick=()=>rendition&&rendition.next();
 textViewer.addEventListener('mouseup',()=>{const s=window.getSelection();const t=s?s.toString().trim():'';if(t&&textViewer.contains(s.anchorNode))translate(t)});
@@ -249,7 +251,7 @@ $('translitClear').addEventListener('click',()=>{$('translitInput').value='';$('
 $('translitFileRemove').addEventListener('click',()=>{$('translitInput').value='';$('translitOutput').textContent='Латинская запись появится автоматически.';$('translitFileName').textContent='Файл удалён. Можно загрузить другую книгу.';$('translitFileInput').value='';$('translitStatus').textContent='Исходный текст и результат очищены.';});
 
 // Управление системной озвучкой книги
-window.addEventListener('DOMContentLoaded',()=>{
+function initBookTTS(){
  const status=document.getElementById('ttsStatus');
  const getText=()=>{
   const plain=document.getElementById('textViewer');
@@ -264,8 +266,8 @@ window.addEventListener('DOMContentLoaded',()=>{
  document.getElementById('ttsStop').addEventListener('click',()=>window.ReadAloud.stop());
  document.getElementById('ttsTest').addEventListener('click',()=>window.ReadAloud.speak('Проверка звука. Если вы слышите эту фразу, озвучивание работает.'));
  document.getElementById('ttsRefresh').addEventListener('click',()=>{window.ReadAloud.refreshVoices();status.textContent='Обновляю список голосов…';setTimeout(()=>window.ReadAloud.refreshVoices(),500);});
-});
-
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initBookTTS,{once:true});else initBookTTS();
 
 /* Связка открытой книги с переводчиком и транслитератором */
 let bookSourceText='', bookSourcePages=[], bookSourcePage=0, bookSourceKind='';
