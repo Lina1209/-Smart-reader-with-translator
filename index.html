@@ -87,6 +87,7 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 <div class="book-workbench" id="translatorBookWorkbench" hidden>
 <h3>Книга · перевод рядом</h3><p class="book-caption">Исходный текст книги и перевод синхронно по фрагментам. Листайте стрелками.</p>
 <div class="book-columns"><div class="book-column"><label>📖 Исходный текст</label><div class="book-text" id="translatorBookSource">Откройте книгу в читалке.</div></div><div class="book-column"><label>🌐 Перевод</label><div class="book-text result" id="translatorBookResult">Здесь появится перевод выбранного фрагмента.</div></div></div>
+<div class="book-nav"><button id="translatorCopySource">Копировать оригинал</button><button id="translatorCopyResult">Копировать перевод</button><button id="translatorShareSource">Поделиться оригиналом</button><button id="translatorShareResult">Поделиться переводом</button><button id="translatorSaveSource">Скачать оригинал .txt</button><button id="translatorSaveResult">Скачать перевод .txt</button></div>
 <div class="book-nav"><button id="translatorBookPrev">← Назад</button><span id="translatorBookPage">Фрагмент 0 из 0</span><button id="translatorBookNext">Вперёд →</button><button class="book-action" id="translatorBookTranslate">Перевести этот фрагмент</button></div>
 <div class="tool-status" id="translatorBookStatus" role="status"></div></div>
 
@@ -99,6 +100,7 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 <div class="book-workbench" id="translitBookWorkbench" hidden>
 <h3>Книга · транслитерация рядом</h3><p class="book-caption">Русский текст книги и его запись латиницей. Перелистывайте фрагменты стрелками.</p>
 <div class="book-columns"><div class="book-column"><label>📖 Исходный текст</label><div class="book-text" id="translitBookSource">Откройте книгу в читалке.</div></div><div class="book-column"><label>🔤 Латинская запись</label><div class="book-text result" id="translitBookResult">Здесь появится транслитерация.</div></div></div>
+<div class="book-nav"><button id="translitCopySource">Копировать оригинал</button><button id="translitCopyResult">Копировать латиницу</button><button id="translitShareSource">Поделиться оригиналом</button><button id="translitShareResult">Поделиться латиницей</button><button id="translitSaveSource">Скачать оригинал .txt</button><button id="translitSaveResult">Скачать латиницу .txt</button></div>
 <div class="book-nav"><button id="translitBookPrev">← Назад</button><span id="translitBookPage">Фрагмент 0 из 0</span><button id="translitBookNext">Вперёд →</button></div>
 </div>
 
@@ -246,6 +248,36 @@ $('translatorBookTranslate').addEventListener('click',async()=>{
   const box=document.createElement('textarea');box.innerHTML=translated;output.textContent=box.value;status.textContent='Готово · MyMemory';
  }catch(error){output.textContent='Не удалось перевести этот фрагмент. Проверьте интернет и попробуйте ещё раз.';status.textContent='Сервис перевода временно недоступен.';console.warn(error);}
 });
+
+/* Копирование, системное меню «Поделиться» и экспорт TXT */
+async function copyBookText(value,statusId){
+ if(!value){$(statusId).textContent='Пока нечего копировать.';return;}
+ try{await navigator.clipboard.writeText(value);$(statusId).textContent='Текст скопирован.';}
+ catch(e){$(statusId).textContent='Браузер не разрешил копирование. Попробуйте выделить текст вручную.';}
+}
+async function shareBookText(value,title,statusId){
+ if(!value){$(statusId).textContent='Пока нечем поделиться.';return;}
+ try{
+  if(navigator.share){await navigator.share({title,text:value});$(statusId).textContent='Открыто меню отправки.';}
+  else{await copyBookText(value,statusId);$(statusId).textContent='Меню отправки недоступно — текст скопирован. Вставьте его в нужное приложение.';}
+ }catch(e){if(e&&e.name==='AbortError')$(statusId).textContent='Отправка отменена.';else $(statusId).textContent='Не удалось открыть меню отправки.';}
+}
+function saveBookText(value,filename,statusId){
+ if(!value){$(statusId).textContent='Пока нечего сохранять.';return;}
+ const blob=new Blob(['\\ufeff',value],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);$(statusId).textContent='Текстовый файл подготовлен к скачиванию.';
+}
+function wireBookExport(prefix,getSource,getResult,statusId,baseName){
+ const actions=[
+  ['CopySource',()=>copyBookText(getSource(),statusId)],['CopyResult',()=>copyBookText(getResult(),statusId)],
+  ['ShareSource',()=>shareBookText(getSource(),baseName+' — оригинал',statusId)],['ShareResult',()=>shareBookText(getResult(),baseName+' — результат',statusId)],
+  ['SaveSource',()=>saveBookText(getSource(),baseName+'-original.txt',statusId)],['SaveResult',()=>saveBookText(getResult(),baseName+'-result.txt',statusId)]
+ ];
+ actions.forEach(([suffix,fn])=>{const el=$(prefix+suffix);if(el)el.addEventListener('click',fn)});
+}
+wireBookExport('translator',()=>$('translatorBookSource').textContent,()=>$('translatorBookResult').textContent,'translatorBookStatus','book-translation');
+wireBookExport('translit',()=>$('translitBookSource').textContent,()=>$('translitBookResult').textContent,'translatorBookStatus','book-transliteration');
+
 function syncEpubBookText(){
  try{const frame=document.querySelector('#epubViewer iframe');const body=frame&&frame.contentDocument&&frame.contentDocument.body;const value=body?body.innerText.trim():'';if(value)setBookSource(value,'epub');}catch(e){console.warn('Не удалось прочитать текст текущей главы EPUB',e);}
 }
