@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Read & Translate — Читалка книг с переводчиком</title>
+  <script src="https://tailwindcss.com"></script>
+  <!-- Библиотеки для чтения EPUB книг прямо в браузере -->
+  <script src="https://cloudflare.com"></script>
+  <script src="https://jsdelivr.net"></script>
+</head>
+<body class="bg-stone-100 text-stone-900 min-h-screen flex flex-col font-sans transition-colors duration-200" id="appBody">
+
+  <!-- Верхняя панель управления -->
+  <header id="topBar" class="bg-white/90 backdrop-blur border-b border-stone-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Логотип и загрузка файла -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
+          📖
+        </div>
+        <span class="font-bold text-lg tracking-tight hidden sm:inline">ReadTranslate</span>
+
+        <label class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg cursor-pointer transition shadow-sm">
+          + Открыть книгу (.epub, .txt, .fb2)
+          <input id="fileInput" type="file" accept=".epub,.txt,.fb2" class="hidden" />
+        </label>
+      </div>
+
+      <!-- Настройки чтения и языка -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Язык перевода -->
+        <select id="targetLang" title="Переводить на язык"
+          class="bg-stone-100 border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-medium outline-none">
+          <option value="ru">Перевод: Русский</option>
+          <option value="kk">Перевод: Қазақша</option>
+          <option value="en">Перевод: English</option>
+          <option value="de">Перевод: Deutsch</option>
+          <option value="es">Перевод: Español</option>
+        </select>
+
+        <!-- Размер шрифта -->
+        <div class="flex items-center bg-stone-100 border border-stone-300 rounded-lg overflow-hidden">
+          <button id="fontMinus" class="px-2.5 py-1 text-xs font-bold hover:bg-stone-200">A-</button>
+          <span id="fontSizeLabel" class="px-1.5 text-xs text-stone-500">18px</span>
+          <button id="fontPlus" class="px-2.5 py-1 text-xs font-bold hover:bg-stone-200">A+</button>
+        </div>
+
+        <!-- Темы оформления -->
+        <div class="flex items-center gap-1 ml-1">
+          <button data-theme="light" class="theme-btn w-6 h-6 rounded-full bg-white border border-stone-400" title="Светлая"></button>
+          <button data-theme="sepia" class="theme-btn w-6 h-6 rounded-full bg-[#f4ecd8] border border-amber-400" title="Сепия"></button>
+          <button data-theme="dark" class="theme-btn w-6 h-6 rounded-full bg-slate-900 border border-slate-600" title="Ночная"></button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Основная зона чтения -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 flex flex-col">
+
+    <!-- Приветственный экран (пока не выбрана книга) -->
+    <div id="welcomeScreen" class="flex-1 flex flex-col items-center justify-center text-center py-12">
+      <div class="text-5xl mb-4">📚</div>
+      <h1 class="text-2xl font-bold mb-2">Ваша личная читалка с переводчиком</h1>
+      <p class="text-sm opacity-75 max-w-md mb-6">
+        Загрузите любую книгу в формате <b>EPUB</b>, <b>FB2</b> или <b>TXT</b>. Выделите любое незнакомое слово или абзац в тексте — и перевод сразу появится на экране.
+      </p>
+      <button id="loadDemoBtn" class="text-xs bg-stone-200 hover:bg-stone-300 text-stone-800 font-medium px-4 py-2.5 rounded-xl transition">
+        Открыть тестовый рассказ на английском
+      </button>
+    </div>
+
+    <!-- Контейнер для EPUB -->
+    <div id="epubWrapper" class="hidden flex-1 flex flex-col">
+      <div id="epubViewer" class="flex-1 min-h-[70vh] rounded-2xl shadow-sm border border-black/10 overflow-hidden bg-white"></div>
+      <div class="flex items-center justify-between mt-4">
+        <button id="prevPageBtn" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 transition">
+          ← Предыдущая страница
+        </button>
+        <span id="bookTitleLabel" class="text-xs opacity-60 truncate max-w-xs"></span>
+        <button id="nextPageBtn" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-500 transition">
+          Следующая страница →
+        </button>
+      </div>
+    </div>
+
+    <!-- Контейнер для TXT и FB2 -->
+    <div id="textViewer" class="hidden flex-1 rounded-2xl shadow-sm border border-black/10 p-6 sm:p-10 leading-relaxed whitespace-pre-wrap select-text"></div>
+
+  </main>
+
+  <!-- Всплывающая карточка перевода -->
+  <div id="translatePopup" class="hidden fixed bottom-6 right-6 left-6 sm:left-auto sm:w-96 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 p-4 z-50 transition-all">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-[11px] uppercase tracking-wider text-blue-400 font-bold">Перевод фрагмента</span>
+      <div class="flex items-center gap-2">
+        <button id="speakBtn" title="Озвучить оригинал" class="text-xs bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg">
+          🔊 Слушать
+        </button>
+        <button id="closePopupBtn" class="text-slate-400 hover:text-white text-sm px-1">✕</button>
+      </div>
+    </div>
+
+    <div id="selectedOriginal" class="text-xs text-slate-400 italic mb-2 line-clamp-2 border-l-2 border-slate-600 pl-2"></div>
+    <div id="translatedResult" class="text-sm font-medium text-white leading-snug">Перевожу...</div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const epubWrapper = document.getElementById('epubWrapper');
+    const epubViewer = document.getElementById('epubViewer');
+    const textViewer = document.getElementById('textViewer');
+    const bookTitleLabel = document.getElementById('bookTitleLabel');
+
+    const translatePopup = document.getElementById('translatePopup');
+    const selectedOriginal = document.getElementById('selectedOriginal');
+    const translatedResult = document.getElementById('translatedResult');
+    const targetLang = document.getElementById('targetLang');
+
+    let currentFontSize = 18;
+    let currentTheme = 'light';
+    let book = null;
+    let rendition = null;
+    let lastSelectedText = '';
+
+    // Загрузка файла пользователем
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files;
+      if (!file) return;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      bookTitleLabel.textContent = file.name;
+
+      if (ext === 'epub') {
+        openEpubFile(file);
+      } else if (ext === 'txt' || ext === 'fb2') {
+        openTextOrFb2File(file, ext);
+      } else {
+        alert('Пожалуйста, выберите файл .epub, .fb2 или .txt');
+      }
+    });
+
+    // Открытие EPUB книги
+    function openEpubFile(file) {
+      welcomeScreen.classList.add('hidden');
+      textViewer.classList.add('hidden');
+      epubWrapper.classList.remove('hidden');
+      epubViewer.innerHTML = '';
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        book = ePub(e.target.result);
+        rendition = book.renderTo('epubViewer', {
+          width: '100%',
+          height: '70vh',
+          spread: 'none'
+        });
+
+        rendition.display();
+        applyStylesToEpub();
+
+        // Отслеживание выделения текста внутри EPUB iframe
+        rendition.on('selected', (cfiRange, contents) => {
+          const selection = contents.window.getSelection();
+          const text = selection.toString().trim();
+          if (text) {
+            handleTextSelection(text);
+          }
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Открытие TXT и FB2 книг
+    function openTextOrFb2File(file, ext) {
+      welcomeScreen.classList.add('hidden');
+      epubWrapper.classList.add('hidden');
+      textViewer.classList.remove('hidden');
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        let content = e.target.result;
+        if (ext === 'fb2') {
+          // Извлекаем чистый текст из XML-тегов FB2
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(content, 'text/xml');
+          const body = xmlDoc.querySelector('body');
+          content = body ? body.textContent : content.replace(/<[^>]*>/g, ' ');
+        }
+        textViewer.textContent = content;
+        applyThemeAndFont();
+      };
+      reader.readAsText(file);
+    }
+
+    // Кнопки перелистывания для EPUB
+    document.getElementById('prevPageBtn').onclick = () => rendition && rendition.prev();
+    document.getElementById('nextPageBtn').onclick = () => rendition && rendition.next();
+
+    // Отслеживание выделения в обычном тексте (TXT / FB2)
+    textViewer.addEventListener('mouseup', () => {
+      const text = window.getSelection().toString().trim();
+      if (text) handleTextSelection(text);
+    });
+    textViewer.addEventListener('touchend', () => {
+      setTimeout(() => {
+        const text = window.getSelection().toString().trim();
+        if (text) handleTextSelection(text);
+      }, 200);
+    });
+
+    // Перевод выделенного текста через бесплатный API MyMemory / Google
+    async function handleTextSelection(text) {
+      if (text.length > 1000) {
+        text = text.slice(0, 1000) + '...';
+      }
+      lastSelectedText = text;
+      selectedOriginal.textContent = text;
+      translatedResult.textContent = 'Перевожу...';
+      translatePopup.classList.remove('hidden');
+
+      const lang = targetLang.value;
+      try {
