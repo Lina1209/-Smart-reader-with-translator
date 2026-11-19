@@ -87,7 +87,7 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 <div class="book-workbench" id="translatorBookWorkbench" hidden>
 <h3>Книга · перевод рядом</h3><p class="book-caption">Исходный текст книги и перевод синхронно по фрагментам. Листайте стрелками.</p>
 <div class="book-columns"><div class="book-column"><label>📖 Исходный текст</label><div class="book-text" id="translatorBookSource">Откройте книгу в читалке.</div></div><div class="book-column"><label>🌐 Перевод</label><div class="book-text result" id="translatorBookResult">Здесь появится перевод выбранного фрагмента.</div></div></div>
-<div class="book-nav"><button id="translatorCopySource">Копировать оригинал</button><button id="translatorCopyResult">Копировать перевод</button><button id="translatorShareSource">Поделиться оригиналом</button><button id="translatorShareResult">Поделиться переводом</button><button id="translatorSaveSource">Скачать оригинал .txt</button><button id="translatorSaveResult">Скачать перевод .txt</button></div>
+<div class="book-nav"><button id="translatorCopySource">Копировать оригинал</button><button id="translatorCopyResult">Копировать перевод</button><button id="translatorShareSource">Поделиться оригиналом</button><button id="translatorShareResult">Поделиться переводом</button><button id="translatorFileSource">Отправить оригинал файлом</button><button id="translatorFileResult">Отправить перевод файлом</button><button id="translatorSaveSource">Скачать оригинал .txt</button><button id="translatorSaveResult">Скачать перевод .txt</button></div>
 <div class="book-nav"><button id="translatorBookPrev">← Назад</button><span id="translatorBookPage">Фрагмент 0 из 0</span><button id="translatorBookNext">Вперёд →</button><button class="book-action" id="translatorBookTranslate">Перевести этот фрагмент</button></div>
 <div class="tool-status" id="translatorBookStatus" role="status"></div></div>
 
@@ -100,7 +100,7 @@ footer{text-align:center;padding:22px;color:var(--muted);font-size:10px;letter-s
 <div class="book-workbench" id="translitBookWorkbench" hidden>
 <h3>Книга · транслитерация рядом</h3><p class="book-caption">Русский текст книги и его запись латиницей. Перелистывайте фрагменты стрелками.</p>
 <div class="book-columns"><div class="book-column"><label>📖 Исходный текст</label><div class="book-text" id="translitBookSource">Откройте книгу в читалке.</div></div><div class="book-column"><label>🔤 Латинская запись</label><div class="book-text result" id="translitBookResult">Здесь появится транслитерация.</div></div></div>
-<div class="book-nav"><button id="translitCopySource">Копировать оригинал</button><button id="translitCopyResult">Копировать латиницу</button><button id="translitShareSource">Поделиться оригиналом</button><button id="translitShareResult">Поделиться латиницей</button><button id="translitSaveSource">Скачать оригинал .txt</button><button id="translitSaveResult">Скачать латиницу .txt</button></div>
+<div class="book-nav"><button id="translitCopySource">Копировать оригинал</button><button id="translitCopyResult">Копировать латиницу</button><button id="translitShareSource">Поделиться оригиналом</button><button id="translitShareResult">Поделиться латиницей</button><button id="translitFileSource">Отправить оригинал файлом</button><button id="translitFileResult">Отправить латиницу файлом</button><button id="translitSaveSource">Скачать оригинал .txt</button><button id="translitSaveResult">Скачать латиницу .txt</button></div>
 <div class="book-nav"><button id="translitBookPrev">← Назад</button><span id="translitBookPage">Фрагмент 0 из 0</span><button id="translitBookNext">Вперёд →</button></div>
 </div>
 
@@ -267,10 +267,25 @@ function saveBookText(value,filename,statusId){
  const blob=new Blob(['\\ufeff',value],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);$(statusId).textContent='Текстовый файл подготовлен к скачиванию.';
 }
+
+async function shareBookFile(value,filename,title,statusId){
+ if(!value){$(statusId).textContent='Пока нечего отправлять.';return;}
+ try{
+  const file=new File(['\\ufeff',value],filename,{type:'text/plain;charset=utf-8'});
+  if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+   await navigator.share({title, text:title, files:[file]});$(statusId).textContent='Файл передан в меню отправки.';
+  }else{
+   saveBookText(value,filename,statusId);
+   $(statusId).textContent='Этот браузер не поддерживает отправку файлов напрямую. Файл скачан — прикрепите его к письму или сообщению.';
+  }
+ }catch(e){if(e&&e.name==='AbortError')$(statusId).textContent='Отправка отменена.';else $(statusId).textContent='Не удалось отправить файл. Можно скачать его кнопкой ниже.';}
+}
+
 function wireBookExport(prefix,getSource,getResult,statusId,baseName){
  const actions=[
   ['CopySource',()=>copyBookText(getSource(),statusId)],['CopyResult',()=>copyBookText(getResult(),statusId)],
   ['ShareSource',()=>shareBookText(getSource(),baseName+' — оригинал',statusId)],['ShareResult',()=>shareBookText(getResult(),baseName+' — результат',statusId)],
+  ['FileSource',()=>shareBookFile(getSource(),baseName+'-original.txt',baseName+' — оригинал',statusId)],['FileResult',()=>shareBookFile(getResult(),baseName+'-result.txt',baseName+' — результат',statusId)],
   ['SaveSource',()=>saveBookText(getSource(),baseName+'-original.txt',statusId)],['SaveResult',()=>saveBookText(getResult(),baseName+'-result.txt',statusId)]
  ];
  actions.forEach(([suffix,fn])=>{const el=$(prefix+suffix);if(el)el.addEventListener('click',fn)});
