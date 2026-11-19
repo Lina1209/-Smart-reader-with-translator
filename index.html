@@ -184,7 +184,7 @@ async function extractDocumentText(file){
   const raw=await file.text(), xml=new DOMParser().parseFromString(raw,'application/xml');
   if(xml.querySelector('parsererror'))throw new Error('Не удалось прочитать FB2-файл.');
   const body=xml.querySelector('body');if(!body)throw new Error('В FB2 не найден текст книги.');
-  return Array.from(body.querySelectorAll('p, subtitle, title')).map(el=>el.textContent.trim()).filter(Boolean).join('\\n\\n')||body.textContent.trim();
+  return Array.from(body.querySelectorAll('p, subtitle, title')).map(el=>el.textContent.trim()).filter(Boolean).join('\n\n')||body.textContent.trim();
  }
  if(name.endsWith('.epub')){
   if(typeof ePub!=='function')throw new Error('Модуль чтения EPUB ещё не загружен.');
@@ -195,7 +195,7 @@ async function extractDocumentText(file){
    catch(err){console.warn('Пропущен раздел EPUB:',item.href,err);}
   }
   if(!sections.length)throw new Error('Не удалось извлечь текст из EPUB.');
-  return sections.join('\\n\\n');
+  return sections.join('\n\n');
  }
  throw new Error('Поддерживаются только FB2 и EPUB.');
 }
@@ -226,7 +226,7 @@ async function translateLongText(source,target){
   if(!translated)throw new Error('Не удалось перевести фрагмент '+(i+1));
   const box=document.createElement('textarea');box.innerHTML=translated;results.push(box.value);
  }
- return results.join('\\n\\n');
+ return results.join('\n\n');
 }
 $('standaloneTranslate').addEventListener('click',async()=>{
  const source=$('standaloneInput').value.trim(),target=$('standaloneTarget').value,output=$('standaloneOutput');
@@ -236,12 +236,14 @@ $('standaloneTranslate').addEventListener('click',async()=>{
  catch(error){output.textContent='Не удалось завершить перевод. Проверьте интернет и попробуйте ещё раз.';$('standaloneStatus').textContent=error.message||'Сервис перевода временно недоступен.';console.warn('Standalone translation:',error);}
 });
 $('standaloneCopy').addEventListener('click',async()=>{const value=$('standaloneOutput').textContent;if(!value||value==='Здесь появится перевод.')return;try{await navigator.clipboard.writeText(value);$('standaloneStatus').textContent='Перевод скопирован.';}catch(e){$('standaloneStatus').textContent='Не удалось скопировать. Проверьте разрешения браузера.';}});
-$('standaloneClear').addEventListener('click',()=>{$('standaloneInput').value='';$('standaloneOutput').textContent='Здесь появится перевод загруженного текста.';$('translatorFileName').textContent='Можно также вставить текст вручную.';$('standaloneStatus').textContent='';$('translatorFileInput').value='';});\n$('translatorFileRemove').addEventListener('click',()=>{$('standaloneInput').value='';$('standaloneOutput').textContent='Здесь появится перевод загруженного текста.';$('translatorFileName').textContent='Файл удалён. Можно загрузить другую книгу.';$('translatorFileInput').value='';$('standaloneStatus').textContent='Исходный текст и перевод очищены.';});
+$('standaloneClear').addEventListener('click',()=>{$('standaloneInput').value='';$('standaloneOutput').textContent='Здесь появится перевод загруженного текста.';$('translatorFileName').textContent='Можно также вставить текст вручную.';$('standaloneStatus').textContent='';$('translatorFileInput').value='';});
+$('translatorFileRemove').addEventListener('click',()=>{$('standaloneInput').value='';$('standaloneOutput').textContent='Здесь появится перевод загруженного текста.';$('translatorFileName').textContent='Файл удалён. Можно загрузить другую книгу.';$('translatorFileInput').value='';$('standaloneStatus').textContent='Исходный текст и перевод очищены.';});
 const ruToLat={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'shch','ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
 function updateTransliteration(){const value=$('translitInput').value;const result=[...value].map(ch=>{const lower=ch.toLowerCase();const mapped=ruToLat[lower];return mapped===undefined?ch:(ch!==lower?mapped.charAt(0).toUpperCase()+mapped.slice(1):mapped);}).join('');$('translitOutput').textContent=result||'Латинская запись появится автоматически.';$('translitStatus').textContent=value?'Преобразование выполнено.':'';}
 $('translitInput').addEventListener('input',updateTransliteration);
 $('translitCopy').addEventListener('click',async()=>{const value=$('translitOutput').textContent;if(!value||value==='Результат появится автоматически.')return;try{await navigator.clipboard.writeText(value);$('translitStatus').textContent='Результат скопирован.';}catch(e){$('translitStatus').textContent='Не удалось скопировать.';}});
-$('translitClear').addEventListener('click',()=>{$('translitInput').value='';$('translitOutput').textContent='Латинская запись появится автоматически.';$('translitFileName').textContent='Можно также ввести или вставить текст вручную.';$('translitFileInput').value='';$('translitStatus').textContent='';});\n$('translitFileRemove').addEventListener('click',()=>{$('translitInput').value='';$('translitOutput').textContent='Латинская запись появится автоматически.';$('translitFileName').textContent='Файл удалён. Можно загрузить другую книгу.';$('translitFileInput').value='';$('translitStatus').textContent='Исходный текст и результат очищены.';});
+$('translitClear').addEventListener('click',()=>{$('translitInput').value='';$('translitOutput').textContent='Латинская запись появится автоматически.';$('translitFileName').textContent='Можно также ввести или вставить текст вручную.';$('translitFileInput').value='';$('translitStatus').textContent='';});
+$('translitFileRemove').addEventListener('click',()=>{$('translitInput').value='';$('translitOutput').textContent='Латинская запись появится автоматически.';$('translitFileName').textContent='Файл удалён. Можно загрузить другую книгу.';$('translitFileInput').value='';$('translitStatus').textContent='Исходный текст и результат очищены.';});
 
 // Управление системной озвучкой книги
 window.addEventListener('DOMContentLoaded',()=>{
@@ -324,14 +326,14 @@ async function shareBookText(value,title,statusId){
 }
 function saveBookText(value,filename,statusId){
  if(!value){$(statusId).textContent='Пока нечего сохранять.';return;}
- const blob=new Blob(['\\ufeff',value],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ const blob=new Blob(['\ufeff',value],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);$(statusId).textContent='Текстовый файл подготовлен к скачиванию.';
 }
 
 async function shareBookFile(value,filename,title,statusId){
  if(!value){$(statusId).textContent='Пока нечего отправлять.';return;}
  try{
-  const file=new File(['\\ufeff',value],filename,{type:'text/plain;charset=utf-8'});
+  const file=new File(['\ufeff',value],filename,{type:'text/plain;charset=utf-8'});
   if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
    await navigator.share({title, text:title, files:[file]});$(statusId).textContent='Файл передан в меню отправки.';
   }else{
