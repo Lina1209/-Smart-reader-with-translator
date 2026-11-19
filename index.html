@@ -181,7 +181,7 @@ async function extractDocumentText(file){
   const raw=await file.text(), xml=new DOMParser().parseFromString(raw,'application/xml');
   if(xml.querySelector('parsererror'))throw new Error('Не удалось прочитать FB2-файл.');
   const body=xml.querySelector('body');if(!body)throw new Error('В FB2 не найден текст книги.');
-  return Array.from(body.querySelectorAll('p, subtitle, title, section')).map(el=>el.textContent.trim()).filter(Boolean).join('\\n\\n')||body.textContent.trim();
+  return Array.from(body.querySelectorAll('p, subtitle, title')).map(el=>el.textContent.trim()).filter(Boolean).join('\\n\\n')||body.textContent.trim();
  }
  if(name.endsWith('.epub')){
   if(typeof ePub!=='function')throw new Error('Модуль чтения EPUB ещё не загружен.');
