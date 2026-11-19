@@ -4,7 +4,7 @@
  let voices=[],select=null,rateInput=null,rateValue=null,status=null,queue=[],index=0,paused=false,started=false;
  const say=(message)=>{if(status)status.textContent=message};
  function refreshVoices(){
-  if(!supported)return;
+  if(!supported){say('Озвучивание не поддерживается этим браузером. Откройте сайт в актуальном Chrome и проверьте системный движок TTS.');return;}
   const found=window.speechSynthesis.getVoices()||[];
   if(found.length)voices=found;
   if(select){
