@@ -158,7 +158,7 @@ function getSourceLanguage(text,target){
  if(/[ієїґ]/i.test(value))return 'uk';
  if(/[әғқңөұүһ]/i.test(value))return 'kk';
  if(/[а-яё]/i.test(value))return 'ru';
- return target==='en'?'ru':'en';
+ return 'en';
 }
 async function translate(text){text=text.trim();if(!text)return;if(text.length>4500){$('selectedOriginal').textContent=text.slice(0,4500)+'…';$('translatedResult').textContent='Выделенный фрагмент слишком длинный. Выберите до 4500 символов.';popup.classList.add('show');return}
 lastText=text;const id=++requestId;$('selectedOriginal').textContent=text;$('translatedResult').textContent='Переводим…';$('translateStatus').textContent='Подключаемся к сервису перевода';popup.classList.add('show');
