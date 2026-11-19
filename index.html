@@ -232,6 +232,8 @@ $('translatorBookNext').onclick=$('translitBookNext').onclick=()=>moveBookSource
 function convertBookTranslit(value){
  const map=ruToLat;return [...String(value||'')].map(ch=>{const lower=ch.toLowerCase(),mapped=map[lower];return mapped===undefined?ch:(ch!==lower?mapped.charAt(0).toUpperCase()+mapped.slice(1):mapped)}).join('');
 }
+$('standaloneTarget').addEventListener('change',()=>{$('targetLang').value=$('standaloneTarget').value;});
+$('targetLang').addEventListener('change',()=>{$('standaloneTarget').value=$('targetLang').value;});
 $('translatorBookTranslate').addEventListener('click',async()=>{
  const source=bookSourcePages[bookSourcePage]||'';if(!source)return;
  const output=$('translatorBookResult'),status=$('translatorBookStatus');output.textContent='Переводим…';status.textContent='Подключаемся к сервису перевода.';
