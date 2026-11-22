@@ -273,18 +273,7 @@ function convertBookTranslit(value){
 }
 $('standaloneTarget').addEventListener('change',()=>{$('targetLang').value=$('standaloneTarget').value;});
 $('targetLang').addEventListener('change',()=>{$('standaloneTarget').value=$('targetLang').value;});
-$('translatorBookTranslate').addEventListener('click',async()=>{
- const source=bookSourcePages[bookSourcePage]||'';if(!source)return;
- const output=$('translatorBookResult'),status=$('translatorBookStatus');output.textContent='Переводим…';status.textContent='Подключаемся к сервису перевода.';
- try{
-  const target=$('standaloneTarget').value||$('targetLang').value;
-  const sourceLang=getSourceLanguage(source,target);if(sourceLang===target){output.textContent=source;status.textContent='Исходный и целевой языки совпадают.';return;}const url='https://api.mymemory.translated.net/get?q='+encodeURIComponent(source)+'&langpair='+encodeURIComponent(sourceLang)+'|'+encodeURIComponent(target);
-  const response=await fetch(url);if(!response.ok)throw Error('HTTP '+response.status);
-  const data=await response.json(),translated=data&&data.responseData&&data.responseData.translatedText;
-  if(!translated)throw Error('Empty translation');
-  const box=document.createElement('textarea');box.innerHTML=translated;output.textContent=box.value;status.textContent='Готово · MyMemory';
- }catch(error){output.textContent='Не удалось перевести этот фрагмент. Проверьте интернет и попробуйте ещё раз.';status.textContent='Сервис перевода временно недоступен.';console.warn(error);}
-});
+$('translatorBookTranslate').addEventListener('click',async()=>{const source=bookSourcePages[bookSourcePage]||'';if(!source)return;const output=$('translatorBookResult'),status=$('translatorBookStatus'),target=$('standaloneTarget').value||$('targetLang').value;output.textContent='Переводим…';status.textContent='Подключаемся к сервису перевода.';try{const from=getSourceLanguage(source,target);if(!from)throw new Error('Для латинского текста выберите исходный язык в верхнем списке.');if(from===target){output.textContent=source;status.textContent='Исходный и целевой языки совпадают.';return;}output.textContent=await translateLongText(source,target,from,'translatorBookStatus');status.textContent='Готово · MyMemory';}catch(error){output.textContent='Не удалось перевести этот фрагмент.';status.textContent=error.message||'Сервис перевода временно недоступен.';console.warn(error);}});
 
 /* Копирование, системное меню «Поделиться» и экспорт TXT */
 async function copyBookText(value,statusId){
