@@ -79,9 +79,42 @@ footer{text-align:center;padding:25px 16px 28px;color:var(--muted);font-size:11p
  .mode-switch .mode-btn{flex:1 1 0;min-width:0;text-align:center;font-size:10px;padding:9px 5px}
  .nav-menu{left:10px;top:calc(100% + 6px)}
 }
+
+/* Mirror Studio visual identity — shared midnight violet palette */
+body[data-theme=dark]{
+ color-scheme:dark;
+ --bg:#0b0a16;--paper:#151326;--ink:#f5f2ff;--muted:#a29db8;
+ --line:rgba(190,177,255,.13);--accent:#9b7bff;--accent2:#b69cff;
+ --soft:#1b1930;--shadow:0 18px 55px #0006;
+ background-color:var(--bg);
+ background-image:radial-gradient(rgba(190,177,255,.055) .8px,transparent .8px);
+}
+body[data-theme=dark] .top{background:rgba(13,12,25,.88);border-color:var(--line);box-shadow:0 5px 24px #0003}
+body[data-theme=dark] .brandmark{background:linear-gradient(140deg,#9d7cff,#5e67e8);box-shadow:0 7px 24px #7d5cff44}
+body[data-theme=dark] .menu-toggle,body[data-theme=dark] .btn,body[data-theme=dark] .select,
+body[data-theme=dark] .tts-control,body[data-theme=dark] .book-nav button{
+ background:#171529;color:var(--ink);border-color:var(--line)
+}
+body[data-theme=dark] .btn.primary,body[data-theme=dark] .primary,body[data-theme=dark] .tts-control.primary,
+body[data-theme=dark] .book-nav .book-action{background:linear-gradient(105deg,#8865ed,#6379e9);color:#fff;border-color:transparent;box-shadow:0 8px 22px #7554d944}
+body[data-theme=dark] .btn:hover,body[data-theme=dark] .menu-toggle:hover,
+body[data-theme=dark] .book-nav button:hover{border-color:#a68aff80}
+body[data-theme=dark] button:focus-visible,body[data-theme=dark] select:focus-visible,
+body[data-theme=dark] input:focus-visible{outline-color:#a68aff}
+body[data-theme=dark] .popup{background:#151326;color:#f5f2ff;border-color:rgba(190,177,255,.24);box-shadow:0 20px 65px #0008}
+body[data-theme=dark] .pophead b{color:#c5b4ff}
+body[data-theme=dark] .popactions button{background:#211e36;color:#f5f2ff;border-color:var(--line)}
+body[data-theme=dark] .original{color:#c2bad8;border-left-color:#9b7bff}
+body[data-theme=dark] .translated{color:#f5f2ff}
+body[data-theme=dark] .status{color:#a29db8}
+body[data-theme=dark] .mirror-mark{border-color:#9b7bff;color:#b69cff}
+body[data-theme=dark] .mirror-kicker,body[data-theme=dark] .site-footer a{color:#b69cff}
+body[data-theme=dark] .footer-author strong{color:#f5f2ff}
+body[data-theme=dark] ::selection{background:#7656c9;color:#fff}
+
 </style>
 </head>
-<body data-theme="light">
+<body data-theme="dark">
 <header class="top"><div class="nav">
 <button class="menu-toggle" id="navMenuToggle" type="button" aria-label="Открыть меню переходов" aria-controls="navMenu" aria-expanded="false"><span></span><span></span><span></span></button>
 <div class="brand"><div class="brandmark">📖</div><div>Read & Translate<small>чтение с пониманием</small></div></div>
@@ -151,8 +184,8 @@ footer{text-align:center;padding:25px 16px 28px;color:var(--muted);font-size:11p
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const fileInput=$('fileInput'),welcome=$('welcomeScreen'),reader=$('reader'),textViewer=$('textViewer'),epubBox=$('epubBox'),popup=$('translatePopup');
-let fontSize=19,theme='light',book=null,rendition=null,lastText='',requestId=0,currentBookType='';
-function setTheme(value){theme=value;document.body.dataset.theme=value;const bg=value==='dark'?'#222c25':value==='sepia'?'#f8f0df':'#fffdf7',ink=value==='dark'?'#e8e9df':value==='sepia'?'#493d2c':'#28342d';if(rendition){try{rendition.themes.default({'body':{background:bg+' !important',color:ink+' !important','font-family':'Literata, Georgia, serif !important','line-height':'1.9 !important'}});rendition.themes.fontSize(fontSize+'px')}catch(e){}}}
+let fontSize=19,theme='dark',book=null,rendition=null,lastText='',requestId=0,currentBookType='';
+function setTheme(value){theme=value;document.body.dataset.theme=value;const bg=value==='dark'?'#151326':value==='sepia'?'#f8f0df':'#fffdf7',ink=value==='dark'?'#f5f2ff':value==='sepia'?'#493d2c':'#28342d';if(rendition){try{rendition.themes.default({'body':{background:bg+' !important',color:ink+' !important','font-family':'Literata, Georgia, serif !important','line-height':'1.9 !important'}});rendition.themes.fontSize(fontSize+'px')}catch(e){}}}
 document.querySelectorAll('[data-theme]').forEach(b=>b.addEventListener('click',()=>setTheme(b.dataset.theme)));
 function setFont(n){fontSize=Math.max(13,Math.min(34,n));textViewer.style.fontSize=fontSize+'px';if(rendition)try{rendition.themes.fontSize(fontSize+'px')}catch(e){}}
 $('fontPlus').onclick=$('fontUp').onclick=()=>setFont(fontSize+2);$('fontMinus').onclick=$('fontDown').onclick=()=>setFont(fontSize-2);
