@@ -309,7 +309,7 @@ $('standaloneTranslate').addEventListener('click',async()=>{
  const source=$('standaloneInput').value.trim(),target=$('standaloneTarget').value,output=$('standaloneOutput');
  if(!source){$('standaloneStatus').textContent='Сначала загрузите FB2 / EPUB или введите текст.';return;}
  const button=$('standaloneTranslate');button.disabled=true;output.textContent='Выполняется перевод…';
- try{const from=getSourceLanguage(source,target,'standaloneSource');output.textContent=await translateLongText(source,target,from,'standaloneStatus');$('standaloneStatus').textContent='Перевод готов · '+source.length.toLocaleString('ru-RU')+' символов';}
+ try{const from=getSourceLanguage(source,target,'standaloneSource');output.textContent=await translateLongText(source,target,from,'standaloneStatus');$('standaloneStatus').textContent='Перевод готов · '+lastTranslationProvider+' · '+source.length.toLocaleString('ru-RU')+' символов';}
  catch(error){output.textContent=error.partialResult||'Перевод не получен.';$('standaloneStatus').textContent=error.message||'Сервис перевода временно недоступен.';console.warn('Standalone translation:',error);}
  finally{button.disabled=false;}
 });
