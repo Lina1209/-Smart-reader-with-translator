@@ -63,3 +63,7 @@ HTML, CSS, JavaScript, [epub.js](https://github.com/futurepress/epub.js), PDF.js
 ---
 
 **Read & Translate** — когда книга, перевод и нужная запись текста собраны в одном месте.
+
+## Дополнительные сервисы перевода
+
+В проект добавлен шлюз для подключения Google Cloud Translation, Microsoft Azure Translator, DeepL и LibreTranslate через Cloudflare Worker. MyMemory сохранён как резервный сервис: если Worker не настроен или дополнительные движки недоступны, приложение продолжает перевод через MyMemory. Ключи API хранятся только в Cloudflare Secrets. Инструкция и код Worker находятся в папке `cloudflare-worker/`.
