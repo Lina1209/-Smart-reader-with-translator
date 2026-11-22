@@ -27,8 +27,7 @@ jobs:
                   self.current = []
               def handle_starttag(self, tag, attrs):
                   if tag == "script":
-                      attrs = dict(attrs)
-                      self.capture = "src" not in attrs
+                      self.capture = "src" not in dict(attrs)
                       self.current = []
               def handle_data(self, data):
                   if self.capture:
@@ -54,9 +53,9 @@ jobs:
           from collections import Counter
           from pathlib import Path
           html = Path("index.html").read_text(encoding="utf-8")
-          ids = re.findall(r'\\bid=["\\']([^"\\']+)["\\']', html)
+          ids = re.findall(r'\bid="([^"]+)"', html)
           duplicates = [key for key, count in Counter(ids).items() if count > 1]
-          refs = set(re.findall(r"\\$\\(['\\"]([^'\\"]+)['\\"]\\)", html))
+          refs = set(re.findall(r"""\$\(['"]([^'"]+)['"]\)""", html))
           missing = sorted(refs - set(ids))
           if duplicates:
               raise SystemExit("Duplicate HTML IDs: " + ", ".join(duplicates))
