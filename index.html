@@ -277,9 +277,10 @@ async function translateLongText(source,target,fromOverride,statusId='standalone
 $('standaloneTranslate').addEventListener('click',async()=>{
  const source=$('standaloneInput').value.trim(),target=$('standaloneTarget').value,output=$('standaloneOutput');
  if(!source){$('standaloneStatus').textContent='Сначала загрузите FB2 / EPUB или введите текст.';return;}
- output.textContent='Выполняется перевод…';
+ const button=$('standaloneTranslate');button.disabled=true;output.textContent='Выполняется перевод…';
  try{const from=getSourceLanguage(source,target,'standaloneSource');output.textContent=await translateLongText(source,target,from,'standaloneStatus');$('standaloneStatus').textContent='Перевод готов · '+source.length.toLocaleString('ru-RU')+' символов';}
- catch(error){if(error.partialResult)output.textContent=error.partialResult;$('standaloneStatus').textContent=error.message||'Сервис перевода временно недоступен.';console.warn('Standalone translation:',error);}
+ catch(error){output.textContent=error.partialResult||'Перевод не получен.';$('standaloneStatus').textContent=error.message||'Сервис перевода временно недоступен.';console.warn('Standalone translation:',error);}
+ finally{button.disabled=false;}
 });
 $('standaloneCopy').addEventListener('click',async()=>{const value=$('standaloneOutput').textContent;if(!value||value==='Здесь появится перевод.')return;try{await navigator.clipboard.writeText(value);$('standaloneStatus').textContent='Перевод скопирован.';}catch(e){$('standaloneStatus').textContent='Не удалось скопировать. Проверьте разрешения браузера.';}});
 $('standaloneClear').addEventListener('click',()=>{$('standaloneInput').value='';$('standaloneOutput').textContent='Здесь появится перевод загруженного текста.';$('translatorFileName').textContent='Можно также вставить текст вручную.';$('standaloneStatus').textContent='';$('translatorFileInput').value='';});
@@ -344,7 +345,7 @@ function convertBookTranslit(value){
 }
 $('standaloneTarget').addEventListener('change',()=>{$('targetLang').value=$('standaloneTarget').value;});
 $('targetLang').addEventListener('change',()=>{$('standaloneTarget').value=$('targetLang').value;});
-$('translatorBookTranslate').addEventListener('click',async()=>{const source=bookSourcePages[bookSourcePage]||'';if(!source)return;const output=$('translatorBookResult'),status=$('translatorBookStatus'),target=$('standaloneTarget').value||$('targetLang').value;output.textContent='Переводим…';status.textContent='Подключаемся к сервису перевода.';try{const from=getSourceLanguage(source,target,'standaloneSource');if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');if(from===target){output.textContent=source;status.textContent='Исходный и целевой языки совпадают.';return;}output.textContent=await translateLongText(source,target,from,'translatorBookStatus');status.textContent='Готово · MyMemory';}catch(error){if(error.partialResult)output.textContent=error.partialResult;status.textContent=error.message||'Сервис перевода временно недоступен.';console.warn(error);}});
+$('translatorBookTranslate').addEventListener('click',async()=>{const source=bookSourcePages[bookSourcePage]||'';if(!source)return;const button=$('translatorBookTranslate'),output=$('translatorBookResult'),status=$('translatorBookStatus'),target=$('standaloneTarget').value||$('targetLang').value;button.disabled=true;output.textContent='Переводим…';status.textContent='Подключаемся к сервису перевода.';try{const from=getSourceLanguage(source,target,'standaloneSource');if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');if(from===target){output.textContent=source;status.textContent='Исходный и целевой языки совпадают.';return;}output.textContent=await translateLongText(source,target,from,'translatorBookStatus');status.textContent='Готово · MyMemory';}catch(error){output.textContent=error.partialResult||'Перевод не получен.';status.textContent=error.message||'Сервис перевода временно недоступен.';console.warn(error);}finally{button.disabled=false;}});
 
 /* Копирование, системное меню «Поделиться» и экспорт TXT */
 async function copyBookText(value,statusId){
