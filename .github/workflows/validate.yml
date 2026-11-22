@@ -2,7 +2,7 @@ name: Validate Read & Translate
 
 on:
   push:
-    branches: ["main", "fix/**"]
+    branches: ["main", "fix/**", "feature/**"]
   pull_request:
     branches: ["main"]
 
@@ -46,6 +46,7 @@ jobs:
           PY
           for file in /tmp/readtranslate-*.js; do node --check "$file"; done
           node --check tts.js
+          node --input-type=module --check < cloudflare-worker/worker.js
       - name: Check HTML IDs and referenced elements
         run: |
           python3 - <<'PY'
