@@ -31,8 +31,8 @@ async function readJson(response) {
 }
 async function google(text, source, target, env) {
   if (!env.GOOGLE_TRANSLATE_API_KEY) throw new Error("Google key not configured");
-  const url = "https://translation.googleapis.com/language/translate/v2?key=" + encodeURIComponent(env.GOOGLE_TRANSLATE_API_KEY);
-  const response = await fetch(url, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q:text,source:languageCode(source),target:languageCode(target),format:"text"})});
+  const url = "https://translation.googleapis.com/language/translate/v2";
+  const response = await fetch(url, {method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":env.GOOGLE_TRANSLATE_API_KEY},body:JSON.stringify({q:text,source:languageCode(source),target:languageCode(target),format:"text"})});
   const data = await readJson(response);
   const result = data.data?.translations?.[0]?.translatedText;
   if (!result) throw new Error("Google returned an empty translation");
