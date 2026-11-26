@@ -82,6 +82,8 @@ jobs:
         run: node tests/open-file-cancellation.test.cjs
       - name: Test PDF OCR text extraction separators
         run: node tests/pdf-text-extraction-separators.test.cjs
+      - name: Test mixed scanned and text PDF classification
+        run: node tests/pdf-mixed-page-classification.test.cjs
       - name: Test EPUB extraction integrity
         run: node tests/epub-extraction-integrity.test.cjs
       - name: Test fixed-page reader pagination and long-token wrapping
