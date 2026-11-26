@@ -699,16 +699,16 @@ const pptxExtractor=html.slice(pptxExtractorStart,pptxExtractorEnd);
 for(const guard of ['await ensureZipLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await JSZip.loadAsync(buffer);ensureCurrent()','for(let i=0;i<slides.length;i++){ensureCurrent();', "await entry.async('text');ensureCurrent()", 'ensureCurrent();return out.join'])if(!pptxExtractor.includes(guard))throw new Error('PPTX cancellation boundary missing: '+guard);
 
 const cancellationDocumentExtractorStart=html.indexOf('async function extractDocumentText(file,progressId,openToken){');
-const cancellationDocumentExtractorEnd=html.indexOf('\nfunction bindDocumentUpload(',documentExtractorStart);
+const cancellationDocumentExtractorEnd=html.indexOf('\nfunction bindDocumentUpload(',cancellationDocumentExtractorStart);
 if(cancellationDocumentExtractorStart<0||cancellationDocumentExtractorEnd<0)throw new Error('Document extraction dispatcher missing');
 const cancellationDocumentExtractor=html.slice(cancellationDocumentExtractorStart,cancellationDocumentExtractorEnd);
 const cancellationDocxStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.docx')||type.includes('wordprocessingml')){");
-const cancellationDocxEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.odt')",docxStart);
+const cancellationDocxEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.odt')",cancellationDocxStart);
 if(cancellationDocxStart<0||cancellationDocxEnd<0)throw new Error('DOCX extraction branch missing');
 const cancellationDocxBranch=cancellationDocumentExtractor.slice(cancellationDocxStart,cancellationDocxEnd);
 for(const guard of ['await ensureMammothLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await mammoth.extractRawText({arrayBuffer:buffer});ensureCurrent()'])if(!cancellationDocxBranch.includes(guard))throw new Error('DOCX cancellation boundary missing: '+guard);
 const cancellationEpubStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.epub')||type.includes('epub')){");
-const cancellationEpubEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.png')",epubStart);
+const cancellationEpubEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.png')",cancellationEpubStart);
 if(cancellationEpubStart<0||cancellationEpubEnd<0)throw new Error('EPUB extraction branch missing');
 const cancellationEpubBranch=cancellationDocumentExtractor.slice(cancellationEpubStart,cancellationEpubEnd);
 for(const guard of ['await ensureEpubLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await epub.ready;ensureCurrent()','for(const item of epub.spine.items){ensureCurrent();','await epub.load(item.href);ensureCurrent()','if(!isCurrent())throw err','ensureCurrent();if(!sections.length)'])if(!cancellationEpubBranch.includes(guard))throw new Error('EPUB cancellation boundary missing: '+guard);
@@ -716,7 +716,7 @@ for(const guard of ['await ensureEpubLibrary();ensureCurrent()','await readFileB
 const cancellationPlainTextBranch=cancellationDocumentExtractor.slice(cancellationDocumentExtractor.indexOf("if(name.endsWith('.rtf')"),cancellationDocumentExtractor.indexOf("if(name.endsWith('.fb2')"));
 for(const guard of ['await readFileText(file);ensureCurrent()','const html=await readFileText(file);ensureCurrent()'])if(!cancellationPlainTextBranch.includes(guard))throw new Error('Text document cancellation boundary missing: '+guard);
 const cancellationImageBranchStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.png')||name.endsWith('.jpg')");
-const cancellationImageBranchEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.xml')",imageBranchStart);
+const cancellationImageBranchEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.xml')",cancellationImageBranchStart);
 if(cancellationImageBranchStart<0||cancellationImageBranchEnd<0)throw new Error('Image OCR extraction branch missing');
 const cancellationImageBranch=cancellationDocumentExtractor.slice(cancellationImageBranchStart,cancellationImageBranchEnd);
 for(const guard of ['await imageFileToCanvas(file);ensureCurrent()','null,isCurrent);ensureCurrent()','finally{canvas.width=canvas.height=0;}'])if(!cancellationImageBranch.includes(guard))throw new Error('Image OCR cancellation or cleanup missing: '+guard);
