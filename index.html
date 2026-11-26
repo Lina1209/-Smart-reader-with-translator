@@ -332,8 +332,12 @@ function mapPageHomography(matrix,point){
 }
 function createPageRectificationPlan(points,maxPixels=16000000,maxSide=4096){
  if(!Array.isArray(points)||points.length!==4||!Number.isFinite(maxPixels)||maxPixels<1||!Number.isFinite(maxSide)||maxSide<2)return{accepted:false,reason:'invalid-input'};
- const p=points.map(q=>({x:Number(q?.x??q?.[0]),y:Number(q?.y??q?.[1])}));
+ let p=points.map(q=>({x:Number(q?.x??q?.[0]),y:Number(q?.y??q?.[1])}));
  if(p.some(q=>!Number.isFinite(q.x)||!Number.isFinite(q.y)))return{accepted:false,reason:'invalid-corners'};
+ const center=p.reduce((sum,q)=>({x:sum.x+q.x/4,y:sum.y+q.y/4}),{x:0,y:0});
+ p.sort((a,b)=>Math.atan2(a.y-center.y,a.x-center.x)-Math.atan2(b.y-center.y,b.x-center.x));
+ let first=0;for(let i=1;i<4;i++)if(p[i].x+p[i].y<p[first].x+p[first].y)first=i;
+ p=p.slice(first).concat(p.slice(0,first));
  const cross=p.reduce((sum,q,i)=>sum+q.x*p[(i+1)%4].y-p[(i+1)%4].x*q.y,0);
  if(Math.abs(cross)<100)return{accepted:false,reason:'degenerate-quad'};
  const edges=p.map((q,i)=>Math.hypot(p[(i+1)%4].x-q.x,p[(i+1)%4].y-q.y));
