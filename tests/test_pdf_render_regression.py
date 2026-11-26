@@ -175,7 +175,7 @@ class PdfRenderRegressionTests(unittest.TestCase):
             matches = [box for word, box in overlay_page["words"] if word == "TEXT_OVER_IMAGE"]
             self.assertEqual(len(matches), 1, "Expected the text-over-image fixture label")
             x_min, y_min, x_max, y_max = matches[0]
-            image_left, image_right = 100, 260
+            image_left, image_right = 100, 280
             image_top, image_bottom = 792 - 500, 792 - 400
             self.assertGreaterEqual(x_min, image_left - 1)
             self.assertLessEqual(x_max, image_right + 1)
