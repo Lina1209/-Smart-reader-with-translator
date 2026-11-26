@@ -467,8 +467,9 @@ const mixedPage=classifyPdfPageContent({items:[{str:'Caption'}]},{fnArray:[1,2]}
 if(mixedPage.kind!=='mixed'||mixedPage.imageOps!==1)throw new Error('Mixed text-and-image PDF page was not classified correctly');
 const emptyPage=classifyPdfPageContent({items:[]},{fnArray:[]},mockOps);
 if(emptyPage.kind!=='graphic-or-empty')throw new Error('Graphic or empty PDF page classification failed');
-if(!html.includes('текущий режим реконструкции всё равно растеризует страницу'))throw new Error('Native PDF text-layer loss must be explicitly reported');
-if(!html.includes('текущий режим OCR-реконструкции растеризует страницу целиком'))throw new Error('Mixed PDF page rasterization must be explicitly reported');
+if(!html.includes('исходная PDF-страница сохранена без растеризации'))throw new Error('Native PDF pages must report that their original content is preserved');
+if(!html.includes('текст не переведён, чтобы не повредить шрифты, графику и текстовый слой'))throw new Error('Preserved native PDF pages must disclose untranslated content');
+if(!html.includes('для предотвращения потери содержимого применена растровая реконструкция'))throw new Error('PDF fallback must disclose when safe page copying is unavailable');
 
 const preserveStart=html.indexOf('function shouldPreserveOriginalPdfPage('),preserveEnd=html.indexOf('function createSafePdfViewport(',preserveStart);
 if(preserveStart<0||preserveEnd<0)throw new Error('PDF original-page preservation decision helper not found');
