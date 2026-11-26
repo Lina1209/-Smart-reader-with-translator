@@ -1209,7 +1209,15 @@ wireBookExport('translator',()=>$('translatorBookSource').textContent,()=>{const
 wireBookExport('translit',()=>$('translitBookSource').textContent,()=>$('translitBookResult').textContent,'translitBookStatus','book-transliteration');
 
 function syncEpubBookText(){
- try{const frame=document.querySelector('#epubViewer iframe');const body=frame&&frame.contentDocument&&frame.contentDocument.body;const value=body?body.innerText:'';if(value.trim())setBookSource(value,'epub');}catch(e){console.warn('Не удалось прочитать текст текущей главы EPUB',e);}
+ try{
+  if(!rendition)return;
+  const contents=rendition.getContents()||[];
+  const value=contents.map(item=>{
+   const body=item&&item.document&&item.document.body;
+   return body?(body.innerText||body.textContent||''):'';
+  }).filter(text=>String(text).trim()).join('\n\n');
+  if(value.trim())setBookSource(value,'epub');
+ }catch(e){console.warn('Не удалось прочитать текст текущей главы EPUB',e);}
 }
 
 setTheme('light');
