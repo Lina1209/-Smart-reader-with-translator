@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8');
 const start=html.indexOf('function epubPositionKey(file){');
-const end=html.indexOf('\\nlet epubPositionStorageKey',start);
+const end=html.indexOf('\nlet epubPositionStorageKey',start);
 assert.ok(start>=0&&end>start,'EPUB position persistence helpers must exist');
 const source=html.slice(start,end);
 function makeContext(storage){
