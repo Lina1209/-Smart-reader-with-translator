@@ -50,13 +50,14 @@ GitHub Actions generates temporary PDF files with ReportLab and inspects them wi
 - a predefined Type0/CID page using `UniJIS-UCS2-H`;
 - a hand-built Type0/CIDFontType2 page using `Identity-H`, an embedded TrueType font, a `ToUnicode` CMap, explicit widths and a binary `CIDToGIDMap`;
 - a page combining selectable table text, vector rules and a rotated text run;
-- a separate text page with a `TJ` kerning array and non-default character spacing, word spacing, horizontal scaling and text rise.
+- a separate text page with a `TJ` kerning array and non-default character spacing, word spacing, horizontal scaling and text rise;
+- nested Form XObjects with independent resource dictionaries, nested `Do` invocations, per-form matrices and clipping paths.
 
-The tests inspect the font resources actually selected by each page's `Tf` operators, embedded font programs, the explicit Kazakh Unicode mappings, Type0 descendant fonts, CID widths, CID-to-glyph mapping bytes, `TJ` array members and text-state operators, extracted text and content-stream operators. This avoids treating unused font entries in a shared ReportLab resource dictionary as fonts used by a page.
+The tests inspect the font resources actually selected by each page's `Tf` operators, embedded font programs, the explicit Kazakh Unicode mappings, Type0 descendant fonts, CID widths, CID-to-glyph mapping bytes, `TJ` array members and text-state operators, nested Form XObject resource references, form matrices, `Do` invocations, clipping operators and extracted text. This avoids treating unused font entries in a shared ReportLab resource dictionary as fonts used by a page.
 
 The ReportLab Type0 fixture uses a predefined Japanese Unicode CMap and a CIDFontType0 descendant with explicit widths. A second hand-built PDF fixture exercises Identity-H, an embedded CIDFontType2 TrueType program, a ToUnicode mapping and a binary CIDToGIDMap stream. The latter validates one known CID-to-glyph mapping; it is not a broad font-shaping or rendering test.
 
-The PDF files are generated during CI and are not committed as binary fixtures. This is a real-PDF parsing and fixture-validation step, not a text-rewrite test. It does not yet use PDF.js, replace text operators, or prove visual equivalence after translation. No production PDF pipeline is connected to this prototype.
+The PDF files are generated during CI and are not committed as binary fixtures. The nested-form fixture validates the object graph and the presence of transform and clipping instructions; it does not calculate a complete device-space clip region or compare rendered pixels. A production walker still needs to resolve inherited resources, recursive Form XObjects, graphics-state save/restore, matrix composition and clipping intersections with recursion and resource limits. This is a real-PDF parsing and fixture-validation step, not a text-rewrite test. It does not yet use PDF.js, replace text operators, or prove visual equivalence after translation. No production PDF pipeline is connected to this prototype.
 
 ## PDF.js text geometry adapter
 
