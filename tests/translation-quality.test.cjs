@@ -133,5 +133,6 @@ for(let row=0;row<4;row++){table.push(makeLine('cell A'+row,10,10+row*24,90,21+r
 if(!layoutSummary({lines:table}).tableLike)throw new Error('OCR layout diagnostics failed to flag a synthetic aligned table-like layout');
 if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<lines.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
 if(!html.includes('вероятная многоколоночная структура')||!html.includes('вероятная табличная структура'))throw new Error('Complex OCR layout warnings are not surfaced');
+if(!html.includes('safeToTranslate&&i<lines.length')||!html.includes('Изображение сохранено без замены текста'))throw new Error('Low-confidence image scans are not kept unchanged');
 
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
