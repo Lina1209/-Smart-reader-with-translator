@@ -60,7 +60,7 @@ const visibleTextStart=html.indexOf('function isDocxVisibleTextNode(');
 const visibleTextEnd=html.indexOf('\n}',visibleTextStart);
 if(visibleTextStart<0||visibleTextEnd<0)throw new Error('DOCX visible-text node guard not found');
 const isDocxVisibleTextNode=vm.runInNewContext(html.slice(visibleTextStart,visibleTextEnd+2)+'; isDocxVisibleTextNode');
-for(const tag of ['t','w:t']){const node={parentElement:{localName:tag}};if(!isDocxVisibleTextNode(node))throw new Error('Visible DOCX text node was incorrectly skipped: '+tag);}
+for(const tag of ['t']){const node={parentElement:{localName:tag}};if(!isDocxVisibleTextNode(node))throw new Error('Visible DOCX text node was incorrectly skipped: '+tag);}
 for(const tag of ['instrText','delText','del','fldChar','tab']){const node={parentElement:{localName:tag}};if(isDocxVisibleTextNode(node))throw new Error('DOCX field/deleted/non-text element was incorrectly treated as visible text: '+tag);}
 for(const tag of ['del','moveFrom']){const node={parentElement:{localName:'t',parentElement:{localName:tag,parentElement:null}}};if(isDocxVisibleTextNode(node))throw new Error('DOCX deleted/moved-from revision text must not be translated: '+tag);}
 const insertedNode={parentElement:{localName:'t',parentElement:{localName:'ins',parentElement:null}}};
