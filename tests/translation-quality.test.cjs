@@ -399,6 +399,7 @@ if(!html.includes('readerPageOffsets=[]')||!html.includes('readerPageOffsets=res
 if(!html.includes("epubPageState.page<=1")||!html.includes("epubPageState.page>=epubPageState.total"))throw new Error('EPUB navigation buttons must reflect first and last page');
 if(!html.includes('epubNavigationBusy')||!html.includes('updateEpubNavigationButtons()')||!html.includes("Не удалось перелистнуть EPUB"))throw new Error('EPUB navigation must serialize rapid page turns and recover button state after failures');
 if(!html.includes('epubPageState={page:p,total:t}')||!html.includes('epubNavigationBusy||!epubPageState.total'))throw new Error('EPUB relocated state must drive the disabled state of navigation controls');
+if(!html.includes("$('epubTocSelect').disabled=epubNavigationBusy")||!html.includes('!href||!rendition||epubNavigationBusy'))throw new Error('EPUB TOC navigation must be serialized with page turns');
 if(!html.includes('async function moveReaderPage(delta)')||!html.includes('await (delta<0?rendition.prev():rendition.next())')||!html.includes("Не удалось перелистнуть EPUB")||!html.includes('finally{epubNavigationBusy=false;updateEpubNavigationButtons();}'))throw new Error('EPUB page turns must catch synchronous and asynchronous failures and always restore navigation controls');
 if(!html.includes('rendition.getContents()')||!html.includes('doc.__readerSwipeBound'))throw new Error('EPUB iframe touch gestures must be bound inside its document');
 const epubGestureStart=html.indexOf('function bindEpubPageGestures()');
