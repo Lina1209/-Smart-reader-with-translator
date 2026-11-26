@@ -86,6 +86,8 @@ jobs:
         run: node tests/pdf-mixed-page-classification.test.cjs
       - name: Test EPUB extraction integrity
         run: node tests/epub-extraction-integrity.test.cjs
+      - name: Test EPUB nested table of contents navigation
+        run: node tests/epub-navigation-toc.test.cjs
       - name: Test fixed-page reader pagination and long-token wrapping
         run: node tests/reader-pagination.test.cjs
       - name: Test glossary protection and retry classification
