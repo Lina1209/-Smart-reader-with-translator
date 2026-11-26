@@ -71,6 +71,13 @@ const wordText={parentElement:{localName:'t',namespaceURI:'http://schemas.openxm
 if(!isDocxVisibleTextNode(wordText))throw new Error('Visible WordprocessingML text must remain translatable');
 const unrelatedText={parentElement:{localName:'t',namespaceURI:'urn:unrelated:test',parentElement:null}};
 if(isDocxVisibleTextNode(unrelatedText))throw new Error('Unrelated XML text nodes must not be translated as DOCX content');
+const preserveEntryStart=html.indexOf('async function translatePreservingFile(');
+const preserveEntryEnd=html.indexOf("if(['docx','epub','odt','xlsx','xlsm','pptx'].includes(ext))",preserveEntryStart);
+if(preserveEntryStart<0||preserveEntryEnd<0)throw new Error('Document-preservation entry point not found');
+const preserveEntry=html.slice(preserveEntryStart,preserveEntryEnd);
+if(!preserveEntry.includes('file.size>100*1024*1024'))throw new Error('Preserving translation must reject files above the browser memory safety limit');
+if(!(preserveEntry.indexOf('file.size>100*1024*1024')<preserveEntry.indexOf('readFileBuffer(file)')))throw new Error('Oversized files must be rejected before allocating their ArrayBuffer');
+if(!(preserveEntry.indexOf("if(ext==='pdf')")<preserveEntry.indexOf('readFileBuffer(file)'))||!(preserveEntry.indexOf("includes(ext)){return await translateImagePreservingFile")<preserveEntry.indexOf('readFileBuffer(file)')))throw new Error('PDF and image translation must not allocate an unused duplicate file buffer');
 const docxBranch=html.slice(html.indexOf("if(ext==='docx'){"),html.indexOf("}else if(ext==='odt'){") );
 if(!docxBranch.includes('75/paths.length,true'))throw new Error('DOCX translation must limit extraction to visible w:t text nodes');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']"))throw new Error('EPUB block coverage missing for div-based, semantic and table content');
