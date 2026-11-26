@@ -140,6 +140,7 @@ for(const [angle,expected] of expectedBoxes){
  if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('OCR box rotation '+angle+'° incorrect: '+JSON.stringify(actual));
 }
 if(!html.includes('image\\/(png|jpeg|webp|gif)')||!html.includes("file.type==='image/gif'?'image/png'"))throw new Error('GIF first-frame OCR and PNG output support missing');
+if(!html.includes("['png','jpg','jpeg','webp','gif'].includes(ext)"))throw new Error('GIF files must be routed through the image translation pipeline and exported as PNG');
 const tokenStart=html.indexOf('function translationLayoutTokens(');
 const tokenEnd=html.indexOf('\n',tokenStart);
 if(tokenStart<0||tokenEnd<0)throw new Error('CJK layout tokenizer not found');
