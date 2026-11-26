@@ -14,6 +14,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PDF fixture test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core poppler-utils
+          python -m pip install --disable-pip-version-check reportlab pypdf pillow fonttools
+      - name: Generate and inspect real PDF fixtures
+        run: python -m unittest discover -s tests -p 'test_pdf_real_fixtures.py' -v
+      - name: Audit PDF text-state operators
+        run: python -m unittest discover -s tests -p 'test_pdf_content_stream_audit.py' -v
+      - name: Audit PDF font resource mappings
+        run: python -m unittest discover -s tests -p 'test_pdf_font_resource_audit.py' -v
+      - name: Audit PDF Encoding CMaps
+        run: python -m unittest discover -s tests -p 'test_pdf_encoding_cmap.py' -v
+      - name: Inspect embedded TrueType glyph outlines
+        run: python -m unittest discover -s tests -p 'test_pdf_truetype_glyph_audit.py' -v
+      - name: Test joined PDF character mapping chain
+        run: python -m unittest discover -s tests -p 'test_pdf_character_mapping_audit.py' -v
+      - name: Check PDF text and obstacle rectangle intersections
+        run: python -m unittest discover -s tests -p 'test_pdf_layout_overlap.py' -v
+      - name: Traverse nested PDF Form XObjects and extract image placements
+        run: python -m unittest discover -s tests -p 'test_pdf_image_placement.py' -v
+      - name: Compare PDF text geometry with image placements
+        run: python -m unittest discover -s tests -p 'test_pdf_text_image_overlap.py' -v
+      - name: Audit PDF text grouping and reading-order heuristics
+        run: python -m unittest discover -s tests -p 'test_pdf_reading_order_audit.py' -v
+      - name: Render PDF fixtures and compare no-op round-trip pixels
+        run: python -m unittest discover -s tests -p 'test_pdf_render_regression.py' -v
       - name: Check JavaScript syntax
         run: |
           python3 - <<'PY'
@@ -46,6 +76,20 @@ jobs:
           PY
           for file in /tmp/readtranslate-*.js; do node --check "$file"; done
           node --check tts.js
+      - name: Test translation chunk boundaries and Unicode preservation
+        run: node tests/translation-chunks.test.cjs
+      - name: Test fixed-page reader pagination and long-token wrapping
+        run: node tests/reader-pagination.test.cjs
+      - name: Test glossary protection and retry classification
+        run: node tests/translation-quality.test.cjs
+      - name: Test PDF rewrite preflight safety gate
+        run: node tests/pdf-rewrite-preflight.test.cjs
+      - name: Test PDF.js text geometry
+        run: node tests/pdf-text-geometry.test.cjs
+      - name: Test PDF page navigation concurrency and cleanup
+        run: node tests/pdf-page-navigation.test.cjs
+      - name: Test PDF preview resource cleanup lifecycle
+        run: node tests/pdf-preview-lifecycle.test.cjs
       - name: Check HTML IDs and referenced elements
         run: |
           python3 - <<'PY'
