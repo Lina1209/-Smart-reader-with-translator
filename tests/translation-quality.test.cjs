@@ -410,7 +410,7 @@ if(!epubGestureSource.includes('Math.abs(dx)>55')||!epubGestureSource.includes('
 if(!epubGestureSource.includes("moveReaderPage(dx<0?1:-1)"))throw new Error('EPUB swipe direction must map to next and previous pages');
 if(!html.includes("rendition.on('rendered',()=>{syncEpubBookText();bindEpubPageGestures();})"))throw new Error('EPUB iframe gestures must be rebound when a new page document is rendered');
 const epubSyncStart=html.indexOf('function syncEpubBookText()');
-const epubSyncEnd=html.indexOf('\\n}',epubSyncStart);
+const epubSyncEnd=html.indexOf('\n}',epubSyncStart);
 if(epubSyncStart<0||epubSyncEnd<0)throw new Error('EPUB text synchronization function missing');
 const epubSyncSource=html.slice(epubSyncStart,epubSyncEnd);
 if(!epubSyncSource.includes('rendition.getContents()')||!epubSyncSource.includes('item.document.body'))throw new Error('EPUB translation source must be read from active EPUB.js content documents');
