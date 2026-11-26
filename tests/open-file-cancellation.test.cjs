@@ -50,5 +50,9 @@ function makeContext(openText){
  await successful.context.runOpenFile({name:'notes.txt',type:'text/plain',size:5});
  assert.equal(successful.context.readerOpenPending,false,'successful open must clear the pending flag');
  assert.equal(successful.calls.bookMeta,'TXT · файл открыт');
- console.log('Reader open cancellation tests passed: unsupported selection cancels stale work without closing an existing book, and success clears pending state.');
+ const oversized=makeContext(async()=>{});
+ await oversized.context.runOpenFile({name:'large-scan.pdf',type:'application/pdf',size:100*1024*1024+1});
+ assert.equal(oversized.calls.close,0,'an oversized file must not close an already-open reader when no load is pending');
+ assert.match(oversized.calls.errors[0],/больше 100 МБ/,'PDF/image preview paths must enforce the browser file-size limit before allocating resources');
+ console.log('Reader open cancellation and file-size tests passed: stale requests are cancelled, existing books remain open on rejected selections, and oversized PDF/image files are rejected early.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
