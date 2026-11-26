@@ -2,7 +2,7 @@ name: Validate Read & Translate
 
 on:
   push:
-    branches: ["main", "fix/**"]
+    branches: ["main", "fix/**", "audit/**"]
   pull_request:
     branches: ["main"]
 
