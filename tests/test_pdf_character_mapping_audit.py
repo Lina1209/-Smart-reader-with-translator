@@ -16,7 +16,7 @@ class PdfCharacterMappingAuditTests(unittest.TestCase):
 
     def test_joins_source_code_unicode_cid_and_explicit_gid(self):
         report = resolve_type0_character_code(
-            "01", self.encoding, self.unicode, bytes([0, 0, 0, 36, 0, 91])
+            "01", self.encoding, self.unicode, bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36])
         )
         self.assertEqual(report["status"], "mapped")
         self.assertEqual(report["unicode"], "A")
