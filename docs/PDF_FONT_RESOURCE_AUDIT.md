@@ -71,3 +71,10 @@ tests/pdf_encoding_cmap.py parses embedded Encoding CMap sections:
 The parser preserves source codes as byte-hex keys, checks codespace membership when codespaces are declared, rejects duplicate mappings and invalid ranges, and caps expansion at 4,096 entries per range by default (100,000 mappings overall). Predefined named CMaps such as Identity-H are intentionally reported as unsupported rather than guessed.
 
 CID is not a glyph ID. This module does not resolve UseCMap inheritance, predefined CMaps, CIDToGIDMap streams, embedded subset glyphs or glyph outlines. It is diagnostic only and is not integrated into PDF rewriting. CI runs seven focused tests for codespace lengths, cidchar, cidrange, mismatches, duplicates, malformed ranges and expansion limits.
+
+
+## CIDToGIDMap lookup (read-only)
+
+The font audit module now includes lookup_cid_to_gid(mapping, cid, descendant_subtype). For CIDFontType2 it distinguishes the PDF default identity mapping (when /CIDToGIDMap is absent), explicit /Identity, and a two-byte big-endian stream. It rejects negative or over-16-bit CIDs, odd-length streams, unreadable/empty streams and CIDs beyond the stream's available entries. CIDFontType0 is reported as not applicable rather than interpreted using the Type2 rule.
+
+Tests cover identity/default, explicit GID extraction, multiple entries, odd stream length, out-of-range CID, invalid CID and non-Type2 descendants. This only resolves one CID-to-GID lookup. It does not inspect the embedded font's glyph table or prove that the GID has a usable outline, nor does it prove that the translated character can be shaped or encoded in the font.
