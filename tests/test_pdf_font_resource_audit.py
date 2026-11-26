@@ -80,6 +80,10 @@ class PdfFontResourceAuditTests(unittest.TestCase):
             "status": "default", "width": 600.0, "source": "/DW"
         })
         self.assertEqual(lookup_cid_width(descendant, -1)["status"], "invalid-cid")
+        mapping_stream = descendant["/CIDToGIDMap"].get_object()
+        self.assertEqual(lookup_cid_to_gid(mapping_stream, 1), {
+            "status": "explicit", "gid": 36, "source": "CIDToGIDMap stream"
+        })
 
     def test_cid_width_array_and_range_forms_are_both_resolved(self):
         descendant = DictionaryObject({
