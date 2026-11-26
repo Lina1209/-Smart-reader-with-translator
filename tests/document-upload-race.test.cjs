@@ -36,7 +36,7 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
  assert.equal(guards.get('second.docx')(),true,'the latest upload must remain current');
  first.resolve('STALE FIRST DOCUMENT');
  await firstRun;
- assert.equal(elements.get('text').value,undefined,'a stale first upload must not write into the target text area');
+ assert.equal(elements.get('text').value,'','a stale first upload must not write into the target text area');
  assert.equal(input.value,'second.docx','a stale upload must not clear the newer file selection');
  second.resolve('CURRENT SECOND DOCUMENT');
  await secondRun;
