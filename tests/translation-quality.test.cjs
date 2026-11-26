@@ -117,4 +117,21 @@ const fit=draw(mockContext,'OK',0,0,100,30,'en');
 if(!fit||fit.overflow!==false)throw new Error('OCR translation helper incorrectly flagged a text that fits its source box');
 if(!html.includes('ВНИМАНИЕ ВЁРСТКА:')||!html.includes('layoutWarnings.push'))throw new Error('OCR layout-overflow warnings are not surfaced to users');
 
+
+const layoutStart=html.indexOf('function ocrLayoutSummary(');
+const layoutEnd=html.indexOf('\nfunction ocrQualitySummary',layoutStart);
+if(layoutStart<0||layoutEnd<0)throw new Error('OCR layout diagnostics helper not found');
+const layoutSummary=vm.runInNewContext(html.slice(layoutStart,layoutEnd)+'; ocrLayoutSummary',{
+ ocrLines:data=>(data.lines||[]).filter(line=>String(line.text||'').trim()&&line.confidence>=15&&line.bbox&&line.bbox.x1>line.bbox.x0&&line.bbox.y1>line.bbox.y0).map(line=>({text:line.text,box:line.bbox,confidence:line.confidence}))
+});
+const makeLine=(text,x0,y0,x1,y1)=>({text,confidence:95,bbox:{x0,y0,x1,y1}});
+const twoColumns=[];
+for(let row=0;row<6;row++){twoColumns.push(makeLine('left '+row,10,10+row*20,110,22+row*20));twoColumns.push(makeLine('right '+row,260,10+row*20,360,22+row*20));}
+if(!layoutSummary({lines:twoColumns}).multiColumn)throw new Error('OCR layout diagnostics failed to flag a synthetic two-column page');
+const table=[];
+for(let row=0;row<4;row++){table.push(makeLine('cell A'+row,10,10+row*24,90,21+row*24));table.push(makeLine('cell B'+row,130,10+row*24,210,21+row*24));}
+if(!layoutSummary({lines:table}).tableLike)throw new Error('OCR layout diagnostics failed to flag a synthetic aligned table-like layout');
+if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<lines.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
+if(!html.includes('вероятная многоколоночная структура')||!html.includes('вероятная табличная структура'))throw new Error('Complex OCR layout warnings are not surfaced');
+
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
