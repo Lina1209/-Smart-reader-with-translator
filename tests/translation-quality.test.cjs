@@ -181,5 +181,13 @@ const fineAngleRestored=deskewHelpers.restoreDeskewBox(fineAngleRotatedBox,3,200
 if(Math.abs(fineAngleRestored.x0-fineAngleOriginalBox.x0)>2||Math.abs(fineAngleRestored.y0-fineAngleOriginalBox.y0)>2||Math.abs(fineAngleRestored.x1-fineAngleOriginalBox.x1)>2||Math.abs(fineAngleRestored.y1-fineAngleOriginalBox.y1)>2)throw new Error('Deskew bounding-box coordinates were not restored to the source image');
 if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
 
+if(!html.includes('function createThresholdOcrCanvas(')||!html.includes('createThresholdOcrCanvas(canvas,1.5)'))throw new Error('Adaptive threshold OCR fallback is missing');
+const scaleStart=html.indexOf('function safeOcrScale('),scaleEnd=html.indexOf('\nfunction createEnhancedOcrCanvas',scaleStart);
+if(scaleStart<0||scaleEnd<0)throw new Error('Safe OCR scaling helper not found');
+const safeScale=vm.runInNewContext(html.slice(scaleStart,scaleEnd)+'; safeOcrScale');
+if(safeScale({width:1000,height:1000},1.5,16000000)!==1.5)throw new Error('Safe OCR scale changed ordinary image dimensions unnecessarily');
+if(safeScale({width:10000,height:10000},1.5,16000000)>0.400001)throw new Error('Safe OCR scale exceeded its pixel budget');
+
+
 
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
