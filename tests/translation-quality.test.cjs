@@ -99,4 +99,22 @@ const quality=qualitySummary({lines:[
 ]});
 if(quality.detected!==3||quality.valid!==2||quality.accepted!==1||quality.rejected!==2||quality.averageConfidence!==90)throw new Error('OCR quality summary does not report rejected or invalid text correctly');
 if(!html.includes('Страница '+"'+pageNo+'"+': распознано'))throw new Error('PDF OCR warning for low-confidence pages is missing');
+
+const drawStart=html.indexOf('function drawTranslationInBox(');
+const drawEnd=html.indexOf('\nfunction ocrQualitySummary',drawStart);
+if(drawStart<0||drawEnd<0)throw new Error('OCR translated-text layout helper not found');
+const draw=vm.runInNewContext(html.slice(drawStart,drawEnd)+'; drawTranslationInBox',{
+ translationLayoutTokens:value=>Array.from(String(value)),
+});
+const mockContext={
+ font:'10px Arial',save(){},restore(){},beginPath(){},rect(){},clip(){},
+ measureText:value=>({width:String(value).length*5}),
+ fillText(){},translate(){},scale(){}
+};
+const overflow=draw(mockContext,'abcdefghijklmnopqrst',0,0,10,5,'en');
+if(!overflow||overflow.overflow!==true||overflow.lineCount<2)throw new Error('OCR translation overflow was not detected for a box that cannot contain the translated text');
+const fit=draw(mockContext,'OK',0,0,100,30,'en');
+if(!fit||fit.overflow!==false)throw new Error('OCR translation helper incorrectly flagged a text that fits its source box');
+if(!html.includes('ВНИМАНИЕ ВЁРСТКА:')||!html.includes('layoutWarnings.push'))throw new Error('OCR layout-overflow warnings are not surfaced to users');
+
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
