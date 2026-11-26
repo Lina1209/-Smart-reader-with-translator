@@ -109,6 +109,31 @@ end"""
     return Path(path)
 
 
+def add_tj_spacing_fixture(path):
+    """Build a PDF page with a TJ array and non-default text-state operators."""
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+    font = DictionaryObject({
+        NameObject("/Type"): NameObject("/Font"),
+        NameObject("/Subtype"): NameObject("/Type1"),
+        NameObject("/BaseFont"): NameObject("/Helvetica"),
+        NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
+    })
+    font_ref = writer._add_object(font)
+    page[NameObject("/Resources")] = DictionaryObject({
+        NameObject("/Font"): DictionaryObject({NameObject("/F1"): font_ref}),
+    })
+    content = DecodedStreamObject()
+    content.set_data(
+        b"BT /F1 18 Tf 0.8 Tc 2 Tw 95 Tz 3 Ts "
+        b"1 0 0 1 60 700 Tm [(A) -120 (V)] TJ ET"
+    )
+    page[NameObject("/Contents")] = writer._add_object(content)
+    with Path(path).open("wb") as output:
+        writer.write(output)
+    return Path(path)
+
+
 def used_page_fonts(page):
     """Resolve only font resources actually selected by Tf in this page's stream."""
     resources = page_fonts(page)
@@ -130,6 +155,8 @@ class RealPdfFixtureTests(unittest.TestCase):
             Path(cls.temp_dir.name) / "identity-h-cidfonttype2.pdf"
         )
         cls.identity_h_reader = PdfReader(str(cls.identity_h_path))
+        cls.tj_path = add_tj_spacing_fixture(Path(cls.temp_dir.name) / "tj-spacing.pdf")
+        cls.tj_reader = PdfReader(str(cls.tj_path))
 
     @classmethod
     def tearDownClass(cls):
@@ -191,6 +218,16 @@ class RealPdfFixtureTests(unittest.TestCase):
         descriptor = dereference(descendant["/FontDescriptor"])
         self.assertTrue(descriptor.get("/FontFile2"), "Expected embedded TrueType font data")
         self.assertTrue(descendant.get("/W"), "Expected explicit CID width data")
+
+    def test_tj_array_and_text_spacing_operators_are_preserved_as_distinct_tokens(self):
+        page = self.tj_reader.pages[0]
+        self.assertEqual(page.extract_text(), "AV")
+        operations = page.get_contents().operations
+        by_operator = {operator: operands for operands, operator in operations}
+        self.assertIn(b"TJ", by_operator)
+        self.assertEqual(by_operator[b"TJ"][0], ["A", -120, "V"])
+        for operator in (b"Tc", b"Tw", b"Tz", b"Ts", b"Tm"):
+            self.assertIn(operator, by_operator, f"Expected text-state operator {operator.decode()}")
 
     def test_table_text_and_vector_rules_coexist(self):
         page = self.reader.pages[3]
