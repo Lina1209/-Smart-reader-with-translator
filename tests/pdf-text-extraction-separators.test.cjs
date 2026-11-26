@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const start=html.indexOf('async function extractDocumentText(');
+const end=html.indexOf('\nfunction restoreGlossaryTerms',start);
+assert.ok(start>=0&&end>start,'document extraction workflow must exist');
+const source=html.slice(start,end);
+assert.ok(source.includes("pages.push(ocrLines(recognized).map(line=>line.text).join('\\n'))"),'OCR lines within a PDF page must be separated by actual newline characters');
+assert.ok(source.includes("return pages.join('\\n\\n')"),'PDF pages must be separated by actual blank lines');
+assert.ok(!source.includes("join('\\\\n')"),'PDF extraction must not insert literal backslash-n sequences between OCR lines');
+assert.ok(!source.includes("pages.join('\\\\n\\\\n')"),'PDF extraction must not insert literal backslash-n sequences between pages');
+console.log('PDF text extraction separator tests passed: OCR lines and pages use real newline characters.');
