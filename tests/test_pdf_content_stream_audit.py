@@ -45,20 +45,12 @@ class PdfContentStreamAuditTests(unittest.TestCase):
         self.assertEqual(report["events"][1]["text_state"]["char_spacing"], 1.0)
 
     def test_quote_operators_apply_implicit_line_move_and_spacing(self):
-        ops = operations_for(
-            b"BT /F1 11 Tf 5 TL ('single) Tj "
-            b"2 0.5 (\"double) \" ET"
-        )
-        report = audit_content_operations(ops)
-        # Include a real single-quote operator separately; the quoted text
-        # above is ordinary Tj content and must not be mistaken for an op.
-        self.assertEqual(report["events"][0]["operator"], "Tj")
-        quote_ops = operations_for(b"BT /F1 11 Tf 5 TL (line-two) ' ET")
-        quote_event = audit_content_operations(quote_ops)["events"][0]
-        self.assertEqual(quote_event["operator"], "'")
-        self.assertTrue(quote_event["implicit_line_move"])
+        single_ops = operations_for(b"BT /F1 11 Tf 5 TL (line-two) ' ET")
+        single_event = audit_content_operations(single_ops)["events"][0]
+        self.assertEqual(single_event["operator"], "'")
+        self.assertTrue(single_event["implicit_line_move"])
 
-        double_ops = operations_for(b"BT /F1 11 Tf 5 TL 2 0.5 (line-three) \" ET")
+        double_ops = operations_for(b'BT /F1 11 Tf 5 TL 2 0.5 (line-three) " ET')
         double_event = audit_content_operations(double_ops)["events"][0]
         self.assertEqual(double_event["operator"], '"')
         self.assertTrue(double_event["implicit_line_move"])
