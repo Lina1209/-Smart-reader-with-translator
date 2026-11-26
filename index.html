@@ -329,8 +329,8 @@ function splitTranslationChunks(value,maxBytes=450){
    if(/\s/u.test(ch)){
     lastWhitespace=scan;
     const before=text.slice(cursor,scan-ch.length).trimEnd();
-    if(/[.!?…。！？][\"'»”’)}\\]]*$/u.test(before))lastSentence=scan;
-    if(/(?:\\r?\\n){2,}$/u.test(text.slice(cursor,scan)))lastParagraph=scan;
+    if(/[.!?…。！？]["'»”’)}\]]*$/u.test(before))lastSentence=scan;
+    if(/(?:\r?\n){2,}$/u.test(text.slice(cursor,scan)))lastParagraph=scan;
    }
   }
   if(scan===cursor){const cp=String.fromCodePoint(text.codePointAt(cursor));scan=cursor+cp.length;}
