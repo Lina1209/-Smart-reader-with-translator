@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+assert.match(html,/id="readerPageSlider"[^>]*type="range"/,'reader must expose a page range slider');
+assert.match(html,/function syncReaderPageSlider\(current,total\)/,'page slider must receive the current and total page count');
+assert.match(html,/slider\.max=String\(Math\.max\(1,count\)\)/,'slider maximum must track the full page count');
+assert.match(html,/syncReaderPageSlider\(readerPageIndex\+1,readerPages\.length\)/,'text reader must display its actual paginated page count');
+assert.match(html,/syncReaderPageSlider\(pageNo,state\.pageCount\)/,'scanned PDF preview must display the source PDF page count');
+assert.match(html,/readerPageSlider'\)\.addEventListener\('change'/,'dragging should not launch a PDF render for every intermediate slider tick');
+assert.match(html,/if\(pdf\.numPages>2000\)throw Error\('В PDF больше 2000 страниц/,'PDF page limit must be explicit instead of silently truncating');
+assert.match(html,/for\(let i=1;i<=pdf\.numPages;i\+\+\)/,'PDF text extraction must iterate through every source page within the documented limit');
+console.log('Reader page slider and PDF page-count checks passed.');
