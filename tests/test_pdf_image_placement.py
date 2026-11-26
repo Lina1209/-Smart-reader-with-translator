@@ -86,5 +86,86 @@ class PdfImagePlacementTests(unittest.TestCase):
         self.assertEqual(report["unknown"][0]["reason"], "non-image-xobject-not-recursed")
 
 
+    def _nested_form_image_fixture(self, path, clipped=False):
+        writer = PdfWriter()
+        page = writer.add_blank_page(width=500, height=500)
+        image = DecodedStreamObject()
+        image.set_data(bytes([0]))
+        image.update({
+            NameObject("/Type"): NameObject("/XObject"),
+            NameObject("/Subtype"): NameObject("/Image"),
+            NameObject("/Width"): NumberObject(1),
+            NameObject("/Height"): NumberObject(1),
+            NameObject("/ColorSpace"): NameObject("/DeviceGray"),
+            NameObject("/BitsPerComponent"): NumberObject(8),
+        })
+        image_ref = writer._add_object(image)
+        inner_resources = DictionaryObject({
+            NameObject("/XObject"): DictionaryObject({NameObject("/Im"): image_ref})
+        })
+        clip_ops = b"0 0 10 10 re W n " if clipped else b""
+        inner = DecodedStreamObject()
+        inner.set_data(clip_ops + b"q 50 0 0 30 2 3 cm /Im Do Q")
+        inner.update({
+            NameObject("/Type"): NameObject("/XObject"),
+            NameObject("/Subtype"): NameObject("/Form"),
+            NameObject("/BBox"): ArrayObject([NumberObject(0), NumberObject(0), NumberObject(80), NumberObject(60)]),
+            NameObject("/Matrix"): ArrayObject([NumberObject(1), NumberObject(0), NumberObject(0), NumberObject(1), NumberObject(10), NumberObject(20)]),
+            NameObject("/Resources"): inner_resources,
+        })
+        inner_ref = writer._add_object(inner)
+        outer_resources = DictionaryObject({
+            NameObject("/XObject"): DictionaryObject({NameObject("/Inner"): inner_ref})
+        })
+        outer = DecodedStreamObject()
+        outer.set_data(b"/Inner Do")
+        outer.update({
+            NameObject("/Type"): NameObject("/XObject"),
+            NameObject("/Subtype"): NameObject("/Form"),
+            NameObject("/BBox"): ArrayObject([NumberObject(0), NumberObject(0), NumberObject(100), NumberObject(80)]),
+            NameObject("/Matrix"): ArrayObject([NumberObject(2), NumberObject(0), NumberObject(0), NumberObject(2), NumberObject(100), NumberObject(200)]),
+            NameObject("/Resources"): outer_resources,
+        })
+        outer_ref = writer._add_object(outer)
+        page[NameObject("/Resources")] = DictionaryObject({
+            NameObject("/XObject"): DictionaryObject({NameObject("/Outer"): outer_ref})
+        })
+        content = DecodedStreamObject()
+        content.set_data(b"/Outer Do")
+        page[NameObject("/Contents")] = writer._add_object(content)
+        with Path(path).open("wb") as output:
+            writer.write(output)
+        return Path(path)
+
+    def test_recurses_nested_forms_and_composes_form_and_image_matrices(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._nested_form_image_fixture(Path(temp) / "nested-image.pdf")
+            report = inspect_page_image_placements(PdfReader(str(path)).pages[0])
+        self.assertEqual(report["status"], "ok")
+        self.assertEqual(report["counts"]["forms_visited"], 2)
+        self.assertEqual(len(report["placements"]), 1)
+        image = report["placements"][0]
+        self.assertEqual(image["form_path"], ["/Outer", "/Inner"])
+        self.assertEqual(image["bbox"], (124.0, 246.0, 224.0, 306.0))
+        self.assertEqual(len(image["form_bbox_clips"]), 2)
+
+    def test_nested_arbitrary_clipping_is_reported_as_incomplete(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._nested_form_image_fixture(Path(temp) / "nested-clipped.pdf", clipped=True)
+            report = inspect_page_image_placements(PdfReader(str(path)).pages[0])
+        self.assertEqual(report["status"], "incomplete")
+        self.assertEqual(len(report["placements"]), 1)
+        self.assertTrue(report["placements"][0]["arbitrary_clip_unresolved"])
+        self.assertTrue(any(item["reason"] == "arbitrary-clipping-path-not-evaluated" for item in report["unknown"]))
+
+    def test_form_depth_limit_fails_closed(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._nested_form_image_fixture(Path(temp) / "depth.pdf")
+            report = inspect_page_image_placements(PdfReader(str(path)).pages[0], max_depth=1)
+        self.assertEqual(report["status"], "incomplete")
+        self.assertEqual(report["placements"], [])
+        self.assertTrue(any(item["reason"] == "form-depth-limit" for item in report["unknown"]))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
