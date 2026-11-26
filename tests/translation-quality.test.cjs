@@ -159,7 +159,7 @@ if(!imageLoop.includes('recognizeImageCanvas(ocrInput')||!imageLoop.includes('ma
 if(!imageLoop.includes('if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}'))throw new Error('Temporary rectified image canvas must be released on success and failure');
 if(!imageLoop.includes('canvas.toBlob(resolve,mime'))throw new Error('Image output must be encoded from the original-size source canvas, not the rectified OCR canvas');
 for(const [name,source] of [['PDF',pdfLoop],['image',imageLoop]]){
- const preflight=source.indexOf('paint:false'),background=source.indexOf('estimateSafeBackgroundFill'),paint=source.indexOf('paint:true');
+ const preflight=source.indexOf('paint:false'),background=source.indexOf('estimateSafeBackgroundFill'),paint=source.indexOf('paintTranslationInOcrBox(');
  if(preflight<0||background<0||paint<0||!(preflight<background&&background<paint))throw new Error(name+' OCR replacement must preflight fit before clearing the original background');
  if(!source.includes('исходный текст сохранён без перезаписи'))throw new Error(name+' OCR overflow must preserve original source text and warn the user');
 }
