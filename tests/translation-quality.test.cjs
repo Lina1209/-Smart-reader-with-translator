@@ -227,3 +227,17 @@ const mockTesseract={createWorker:async language=>{attempts.push(language);if(la
  if(!html.includes('let tesseractLoadingPromise=null')||!html.includes('return tesseractLoadingPromise'))throw new Error('Tesseract loader is not protected against concurrent duplicate script injection');
  console.log('OCR worker availability tests passed: model fallback, explicit-language error and shared loader.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+const quadStart=html.indexOf('function validatePageQuad('),quadEnd=html.indexOf('\\nasync function recognizeImageCanvas',quadStart);
+if(quadStart<0||quadEnd<0)throw new Error('Page-quadrilateral validation helper not found');
+const validateQuad=vm.runInNewContext(html.slice(quadStart,quadEnd)+'; validatePageQuad');
+const rectangle=validateQuad([[100,80],[900,80],[900,920],[100,920]],1000,1000);
+if(!rectangle.accepted||rectangle.confidence<55)throw new Error('A clear page quadrilateral should pass geometric validation');
+const skewed=validateQuad([[180,90],[900,150],[820,930],[90,820]],1000,1000);
+if(!skewed.accepted)throw new Error('A plausible perspective-skewed page should pass geometric validation');
+const concave=validateQuad([[100,100],[900,100],[400,400],[100,900]],1000,1000);
+if(concave.accepted||concave.reason!=='non-convex-or-degenerate')throw new Error('A concave text-like contour must be rejected');
+const outside=validateQuad([[-10,20],[900,20],[900,900],[20,900]],1000,1000);
+if(outside.accepted||outside.reason!=='corner-outside-image')throw new Error('Corners outside the image must be rejected');
+const tiny=validateQuad([[490,490],[510,490],[510,510],[490,510]],1000,1000);
+if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text block must not be accepted as a page');
