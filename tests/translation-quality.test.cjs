@@ -141,6 +141,7 @@ for(const [angle,expected] of expectedBoxes){
 }
 if(!html.includes('image\\/(png|jpeg|webp|gif)')||!html.includes("file.type==='image/gif'?'image/png'"))throw new Error('GIF first-frame OCR and PNG output support missing');
 if(!html.includes("['png','jpg','jpeg','webp','gif'].includes(ext)"))throw new Error('GIF files must be routed through the image translation pipeline and exported as PNG');
+const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
 if(!imageLoop.includes("String(file.name||'image').replace(/\\.[^.]+$/i,'')||'image'")||!imageLoop.includes('filename=baseName+ext'))throw new Error('Image exports without a filename extension must receive the correct output extension');
 const tokenStart=html.indexOf('function translationLayoutTokens(');
 const tokenEnd=html.indexOf('\n',tokenStart);
@@ -203,7 +204,6 @@ if(!pdfLoop.includes("catch(error){try{page.cleanup();}catch(cleanupError){}thro
 if(!pdfLoop.includes("let viewport=null,canvas=null,rectifiedCanvas=null;\n   try{\n    viewport=createSafePdfViewport(page,2.0,16000000);canvas=document.createElement('canvas');"))throw new Error('PDF page resources must be protected if viewport creation or canvas allocation fails');
 if(!pdfLoop.includes("if(canvas){canvas.width=canvas.height=0;}"))throw new Error('PDF page canvas cleanup must tolerate viewport or allocation failures');
 if(!pdfLoop.includes("}finally{try{page.cleanup();}catch(cleanupError){}}"))throw new Error('Copied native PDF pages must be released even when page copying fails');
-const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
 if(!imageLoop.includes('detectPageQuadFromCanvas(canvas)')||!imageLoop.includes('rectifyPageCanvas(canvas,detected.points,6000000,3000)'))throw new Error('Photographed document images must attempt bounded perspective rectification before OCR');
 if(!imageLoop.includes('recognizeImageCanvas(ocrInput')||!imageLoop.includes('mapRectifiedOcrDataToSource(ocr,rectification.outputToSource)'))throw new Error('Rectified image OCR boxes must be mapped back to original image coordinates before replacement');
 if(!imageLoop.includes('if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}'))throw new Error('Temporary rectified image canvas must be released on success and failure');
