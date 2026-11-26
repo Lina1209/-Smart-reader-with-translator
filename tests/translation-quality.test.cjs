@@ -544,6 +544,7 @@ if(!html.includes("const pdfBuffer=await readFileBuffer(file);ensureCurrent();")
 if(!html.includes("const data=await page.getTextContent();ensureCurrent();"))throw new Error('PDF extraction must stop after asynchronous text-layer reads when a newer book is opened');
 if(!html.includes("page.render({canvasContext:context,viewport,background:'#ffffff'}).promise;ensureCurrent();"))throw new Error('PDF OCR rendering must stop when its reader request becomes stale');
 if(!html.includes("recognized=await recognizeImageCanvas(canvas," )||!html.includes(";ensureCurrent();\n     pages.push"))throw new Error('PDF OCR must not append results after its reader request is cancelled');
+if(!html.includes("async function recognizeImageCanvas(canvas,report,language='eng+rus',sharedWorker=null,isCurrent=()=>true)")||!html.includes("recognized=await recognizeImageCanvas(canvas," )||!html.includes("null,isCurrent);ensureCurrent();"))throw new Error('PDF OCR must check cancellation between recognition passes');
 if(!html.includes("if(progressId&&isCurrent())setProgress(progressId,p,label,detail)"))throw new Error('Stale document extraction must not overwrite the active reader progress');
 if(!html.includes("if(pdf)try{await pdf.cleanup();}catch(e){}try{await loading.destroy();}catch(e){}"))throw new Error('Failed PDF document loading must still destroy the PDF loading task');
 if(!html.includes("const task=pdfjs.getDocument({data});let pdf=null;try{pdf=await task.promise;"))throw new Error('Scanned PDF preview must protect loading-task cleanup if PDF parsing fails');
