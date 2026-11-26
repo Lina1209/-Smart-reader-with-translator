@@ -76,6 +76,8 @@ jobs:
           PY
           for file in /tmp/readtranslate-*.js; do node --check "$file"; done
           node --check tts.js
+      - name: Test TTS pause and stale-session timer safety
+        run: node tests/tts-cancellation.test.cjs
       - name: Test translation chunk boundaries and Unicode preservation
         run: node tests/translation-chunks.test.cjs
       - name: Test reader file-open cancellation and stale requests
