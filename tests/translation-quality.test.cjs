@@ -329,3 +329,18 @@ if(!html.includes('let ocrInput=canvas,rectification=null')||!html.includes('ocr
 if(!html.includes('mapRectifiedOcrDataToSource(ocr,rectification.outputToSource)'))throw new Error('Rectified OCR boxes must be mapped back to original PDF render coordinates before replacement');
 if(!html.includes('rectifiedCanvas.width=rectifiedCanvas.height=0'))throw new Error('Temporary rectified OCR canvases must be released after each PDF page');
 if(!html.includes('OCR выполнен по выправленному предпросмотру'))throw new Error('PDF translation must report when perspective correction was used for OCR');
+
+const safeFillStart=html.indexOf('function estimateSafeBackgroundFill('),safeFillEnd=html.indexOf('function translationLayoutTokens(',safeFillStart);
+if(safeFillStart<0||safeFillEnd<0)throw new Error('Conservative background restoration helper not found');
+const safeFill=vm.runInNewContext(html.slice(safeFillStart,safeFillEnd)+';estimateSafeBackgroundFill');
+function mockBackgroundContext(lineY=null){
+ const canvas={width:60,height:60};
+ return{canvas,getImageData(left,top,width,height){const data=new Uint8ClampedArray(width*height*4);for(let py=0;py<height;py++)for(let px=0;px<width;px++){const gx=left+px,gy=top+py,k=(py*width+px)*4,line=lineY!==null&&gy===lineY;data[k]=data[k+1]=data[k+2]=line?25:245;data[k+3]=255;}return{data};}};
+}
+const uniformFill=safeFill(mockBackgroundContext(),10,10,25,20,4);
+if(!uniformFill.safe||uniformFill.color!=='rgb(245,245,245)')throw new Error('Uniform page background should be safe to restore');
+const tableLineFill=safeFill(mockBackgroundContext(9),10,10,25,20,4);
+if(tableLineFill.safe)throw new Error('A table/rule line beside the OCR box must prevent destructive solid fill');
+const invalidFill=safeFill(mockBackgroundContext(),10,10,0,20,4);
+if(invalidFill.safe)throw new Error('Invalid OCR boxes must never be cleared with a solid background');
+if(!html.includes('исходная область оставлена без перезаписи'))throw new Error('Unsafe background regions must be preserved and reported');
