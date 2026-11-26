@@ -513,7 +513,7 @@ function drawTranslationInBox(ctx,text,x,y,w,h,targetCode){
    const pieces=splitLongToken(token);
    for(const piece of pieces){
     const candidate=row?(noSpace?'': ' ')+piece:piece;
-    if(row&&ctx.measureText(row+candidate.slice(piece.length+(noSpace?0:1))).width>w){lines.push(row);row=piece;}
+    if(row&&ctx.measureText(row+candidate).width>w){lines.push(row);row=piece;}
     else if(!row&&ctx.measureText(piece).width>w){lines.push(piece);row='';}
     else row+=candidate;
    }
