@@ -655,6 +655,7 @@ function classifyPdfPageContent(textContent,operatorList,ops){
  const kind=hasText&&hasImages?'mixed':hasText?'text':hasImages?'scan':'graphic-or-empty';
  return{kind,hasText,hasImages,chars,textItems:items.length,imageOps,vectorOps};
 }
+function shouldPreserveOriginalPdfPage(pageKind){return !!pageKind&&pageKind.kind!=='scan';}
 function createSafePdfViewport(page,preferredScale=1.4,maxPixels=16000000){const base=page.getViewport({scale:1}),area=Math.max(1,Number(base.width)*Number(base.height)),scale=Math.min(preferredScale,Math.sqrt(maxPixels/area));return page.getViewport({scale:Math.max(.01,scale)});}
 function ocrQualitySummary(data){const all=(data.lines||[]).filter(line=>String(line.text||'').trim()),valid=all.filter(line=>isValidOcrBox(line.bbox)),accepted=valid.filter(line=>Number(line.confidence)>=15),average=accepted.length?accepted.reduce((sum,line)=>sum+(Number(line.confidence)||0),0)/accepted.length:0;return{detected:all.length,valid:valid.length,accepted:accepted.length,rejected:all.length-accepted.length,averageConfidence:Math.round(average)};}
 function ocrLines(data){return (data.lines||[]).filter(line=>String(line.text||'').trim()&&line.confidence>=15&&isValidOcrBox(line.bbox)).map(line=>({text:String(line.text).trim(),box:line.bbox,confidence:line.confidence}));}
@@ -686,7 +687,7 @@ function ocrLines(data){return (data.lines||[]).filter(line=>String(line.text||'
  function ocrLinesForReplacement(data,minConfidence=35){return ocrLines(data).filter(line=>Number.isFinite(Number(line.confidence))&&Number(line.confidence)>=minConfidence);}
 async function ensurePdfLib(){if(window.PDFLib)return window.PDFLib;return new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';script.onload=()=>window.PDFLib?resolve(window.PDFLib):reject(Error('PDF-сборщик не загрузился'));script.onerror=()=>reject(Error('Не удалось загрузить библиотеку PDF-сборки.'));document.head.appendChild(script);});}
 async function translatePdfPreservingFile(file,from,target,progressId){
- const pdfjs=await ensurePdfLibrary(),PDFLib=await ensurePdfLib(),loading=pdfjs.getDocument({data:await readFileBuffer(file)}),sourcePdf=await loading.promise,outPdf=await PDFLib.PDFDocument.create();
+ const pdfjs=await ensurePdfLibrary(),PDFLib=await ensurePdfLib(),pdfBytes=await readFileBuffer(file),loading=pdfjs.getDocument({data:pdfBytes}),sourcePdf=await loading.promise,outPdf=await PDFLib.PDFDocument.create();let sourcePdfForCopy=null;try{sourcePdfForCopy=await PDFLib.PDFDocument.load(pdfBytes);}catch(error){/* Keep the OCR route available when the source PDF cannot be copied safely. */}
  let ocrWorker=null,activePage=1;const pageWarnings=[],layoutWarnings=[];
  try{
   if(sourcePdf.numPages>80)throw Error('PDF больше 80 страниц. Реконструкция страниц с OCR пока ограничена 80 страницами для стабильной работы браузера.');
@@ -696,9 +697,14 @@ async function translatePdfPreservingFile(file,from,target,progressId){
    activePage=pageNo;setProgress(progressId,100*(pageNo-1)/sourcePdf.numPages,'Обрабатываем PDF-страницу',pageNo+' из '+sourcePdf.numPages);
    const page=await sourcePdf.getPage(pageNo);
    const pageText=await page.getTextContent(),pageOperators=await page.getOperatorList(),pageKind=classifyPdfPageContent(pageText,pageOperators,pdfjs.OPS);
-   if(pageKind.kind==='text')pageWarnings.push('Страница '+pageNo+': обнаружен текстовый слой ('+pageKind.chars+' символов); текущий режим реконструкции всё равно растеризует страницу и удаляет возможность поиска/выделения текста.');
-   else if(pageKind.kind==='mixed')pageWarnings.push('Страница '+pageNo+': смешанное содержимое — текстовый слой и изображения; текущий режим OCR-реконструкции растеризует страницу целиком.');
-   else if(pageKind.kind==='graphic-or-empty')pageWarnings.push('Страница '+pageNo+': текстовый слой и растровые изображения не обнаружены; проверьте графические элементы или пустую страницу.');
+   if(shouldPreserveOriginalPdfPage(pageKind)){
+    if(sourcePdfForCopy){
+     const copiedPages=await outPdf.copyPages(sourcePdfForCopy,[pageNo-1]);outPdf.addPage(copiedPages[0]);
+     pageWarnings.push('Страница '+pageNo+': исходная PDF-страница сохранена без растеризации ('+pageKind.kind+'); текст не переведён, чтобы не повредить шрифты, графику и текстовый слой.');
+     page.cleanup();setProgress(progressId,100*pageNo/sourcePdf.numPages,'Сохраняем исходную PDF-страницу',pageNo+' из '+sourcePdf.numPages);continue;
+    }
+    pageWarnings.push('Страница '+pageNo+': обнаружено содержимое '+pageKind.kind+', но исходную страницу нельзя безопасно скопировать; для предотвращения потери содержимого применена растровая реконструкция.');
+   }
    const viewport=createSafePdfViewport(page,2.0,16000000),canvas=document.createElement('canvas');
    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);let rectifiedCanvas=null;
    try{
