@@ -438,6 +438,7 @@ if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;backg
 if(!html.includes('overflow-wrap:anywhere'))throw new Error('Long unbroken words must wrap inside the fixed book-page frame');
 if(!html.includes('function paginateReaderText(')||!html.includes('function moveReaderPage(')||!html.includes("e.key==='ArrowRight'"))throw new Error('Text reader pagination and keyboard navigation are missing');
 if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'))throw new Error('Touch swipe page turning is missing');
+if(!html.includes("addEventListener('touchcancel'")||!html.includes('e.touches.length!==1')||!html.includes('selection&&!selection.isCollapsed'))throw new Error('Reader swipe handling must ignore multi-touch, cancelled gestures and text selection');
 if(!html.includes("window.addEventListener('resize'")||!html.includes('const previousOffset=readerPageOffsets[readerPageIndex]??0')||!html.includes('findPageIndexForOffset(readerPageOffsets,previousOffset)'))throw new Error('Reader pagination must adapt to screen rotation/resize while retaining the same text position');
 if(!html.includes('readerPageOffsets=[]')||!html.includes('readerPageOffsets=result.offsets')||!html.includes('window.ReaderPagination.paginateByHeight'))throw new Error('Measured text-reader pagination must track page offsets and reset safely');
 if(!html.includes("epubPageState.page<=1")||!html.includes("epubPageState.page>=epubPageState.total"))throw new Error('EPUB navigation buttons must reflect first and last page');
@@ -451,6 +452,7 @@ const epubGestureEnd=html.indexOf('bindReaderPageGestures();',epubGestureStart);
 if(epubGestureStart<0||epubGestureEnd<0)throw new Error('EPUB gesture binding function missing');
 const epubGestureSource=html.slice(epubGestureStart,epubGestureEnd);
 if(!epubGestureSource.includes("doc.addEventListener('touchstart'")||!epubGestureSource.includes("doc.addEventListener('touchend'"))throw new Error('EPUB iframe must listen for both swipe start and end');
+if(!epubGestureSource.includes("doc.addEventListener('touchcancel'")||!epubGestureSource.includes('event.touches.length!==1')||!epubGestureSource.includes('selection&&!selection.isCollapsed'))throw new Error('EPUB swipe handling must ignore multi-touch, cancelled gestures and text selection');
 if(!epubGestureSource.includes('Math.abs(dx)>55')||!epubGestureSource.includes('Math.abs(dx)>Math.abs(dy)*1.25'))throw new Error('EPUB swipe must require a deliberate horizontal gesture and ignore vertical scrolling');
 if(!epubGestureSource.includes("moveReaderPage(dx<0?1:-1)"))throw new Error('EPUB swipe direction must map to next and previous pages');
 if(!html.includes("rendition.on('rendered',()=>{if(openToken!==requestId||book!==openedBook||rendition!==openedRendition)return;syncEpubBookText();bindEpubPageGestures();})"))throw new Error('EPUB iframe gestures must be rebound only for the current book when a new page document is rendered');
