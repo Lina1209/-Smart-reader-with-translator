@@ -5,7 +5,7 @@ from pathlib import Path
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import ArrayObject, DecodedStreamObject, DictionaryObject, FloatObject, NameObject, NumberObject
 
-from pdf_image_placement import inspect_page_image_placements, multiply_matrices
+from pdf_image_placement import inspect_page_image_placements, multiply_matrices, _clip_convex_polygon, _polygon_area
 from test_pdf_real_fixtures import add_transparency_image_overlay_fixture
 
 
@@ -88,7 +88,7 @@ class PdfImagePlacementTests(unittest.TestCase):
         self.assertEqual(report["counts"]["forms_visited"], 1)
 
 
-    def _nested_form_image_fixture(self, path, clipped=False):
+    def _nested_form_image_fixture(self, path, clipped=False, image_x=2):
         writer = PdfWriter()
         page = writer.add_blank_page(width=500, height=500)
         image = DecodedStreamObject()
@@ -107,7 +107,7 @@ class PdfImagePlacementTests(unittest.TestCase):
         })
         clip_ops = b"0 0 10 10 re W n " if clipped else b""
         inner = DecodedStreamObject()
-        inner.set_data(clip_ops + b"q 50 0 0 30 2 3 cm /Im Do Q")
+        inner.set_data(clip_ops + f"q 50 0 0 30 {image_x} 3 cm /Im Do Q".encode("ascii"))
         inner.update({
             NameObject("/Type"): NameObject("/XObject"),
             NameObject("/Subtype"): NameObject("/Form"),
@@ -168,6 +168,31 @@ class PdfImagePlacementTests(unittest.TestCase):
         self.assertEqual(report["placements"], [])
         self.assertTrue(any(item["reason"] == "form-depth-limit" for item in report["unknown"]))
 
+    def test_nested_form_bboxes_are_intersected_with_image_placement(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._nested_form_image_fixture(Path(temp) / "nested-clipped-by-bbox.pdf", image_x=70)
+            report = inspect_page_image_placements(PdfReader(str(path)).pages[0])
+        self.assertEqual(report["status"], "ok")
+        placement = report["placements"][0]
+        self.assertEqual(placement["bbox"], (260.0, 246.0, 360.0, 306.0))
+        self.assertEqual(placement["form_clip_intersection_bbox"], (260.0, 246.0, 300.0, 306.0))
+        self.assertEqual(placement["form_clip_intersection_area"], 2400.0)
+        self.assertFalse(placement["fully_clipped_by_form_bboxes"])
+
+    def test_nested_form_bboxes_can_fully_clip_an_image(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self._nested_form_image_fixture(Path(temp) / "fully-clipped.pdf", image_x=150)
+            report = inspect_page_image_placements(PdfReader(str(path)).pages[0])
+        placement = report["placements"][0]
+        self.assertEqual(placement["form_clip_intersection_area"], 0.0)
+        self.assertTrue(placement["fully_clipped_by_form_bboxes"])
+
+    def test_convex_polygon_intersection_handles_rotated_clip_polygon(self):
+        subject = [(0, 0), (10, 0), (10, 10), (0, 10)]
+        clipper = [(5, -5), (15, 5), (5, 15), (-5, 5)]
+        result = _clip_convex_polygon(subject, clipper)
+        self.assertGreaterEqual(len(result), 4)
+        self.assertAlmostEqual(_polygon_area(result), 100.0)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
