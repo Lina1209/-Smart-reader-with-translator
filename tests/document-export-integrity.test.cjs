@@ -15,6 +15,10 @@ const epubPrepStart=html.indexOf('async function prepareEpubArchiveMimetype(zip)
 const epubPrepEnd=html.indexOf('function documentArchiveMimeType(ext){',epubPrepStart);
 assert.ok(epubPrepStart>=0&&epubPrepEnd>epubPrepStart,'EPUB mimetype preparation helper must exist');
 const epubPrepSource=html.slice(epubPrepStart,epubPrepEnd);
+const pptxPathsStart=html.indexOf('function getPptxTranslatableContentPaths(filePaths){');
+const pptxPathsEnd=html.indexOf('async function translatePreservingFile(file,from,target,statusId){',pptxPathsStart);
+assert.ok(pptxPathsStart>=0&&pptxPathsEnd>pptxPathsStart,'PPTX content path helper must exist');
+const pptxPathsSource=html.slice(pptxPathsStart,pptxPathsEnd);
 const pdfStart=html.indexOf('function createValidatedPdfBlob(bytes){');
 const pdfEnd=html.indexOf('async function translatePdfPreservingFile(file,from,target,progressId){',pdfStart);
 assert.ok(pdfStart>=0&&pdfEnd>pdfStart,'PDF output validation helper must exist');
@@ -26,6 +30,7 @@ vm.runInContext(source+';globalThis.mimeFor=documentArchiveMimeType;globalThis.v
 vm.runInContext(odtPrepSource+';globalThis.prepareOdt=prepareOdtArchiveMimetype;',context);
 vm.runInContext(epubPrepSource+';globalThis.prepareEpub=prepareEpubArchiveMimetype;',context);
 vm.runInContext(pdfSource+';globalThis.validatePdf=createValidatedPdfBlob;',context);
+vm.runInContext(pptxPathsSource+';globalThis.pptxPaths=getPptxTranslatableContentPaths;',context);
 function makeArchive(paths,mimetype,compressionMagic){
  const files={};
  for(const path of paths)files[path]={dir:false};
@@ -53,6 +58,17 @@ const cases=[
  }
  assert.equal(context.mimeFor('docx'),cases[0][2]);
  assert.equal(context.mimeFor('pptx'),cases[5][2]);
+ const pptxPaths=context.pptxPaths([
+  'ppt/slides/slide2.xml','ppt/slides/slide1.xml',
+  'ppt/notesSlides/notesSlide1.xml','ppt/charts/chart1.xml',
+  'ppt/diagrams/drawing1.xml','ppt/diagrams/data1.xml',
+  'ppt/media/image1.png','ppt/slideLayouts/slideLayout1.xml'
+ ]);
+ assert.deepEqual(Array.from(pptxPaths),[
+  'ppt/slides/slide1.xml','ppt/slides/slide2.xml',
+  'ppt/charts/chart1.xml','ppt/diagrams/data1.xml',
+  'ppt/diagrams/drawing1.xml','ppt/notesSlides/notesSlide1.xml'
+ ],'PPTX translation must include slide notes, chart paragraphs and SmartArt data, but ignore unrelated binary/layout parts');
  let prepared=null;
  const prepZip={file(path,value,options){if(arguments.length===1)return{async:async()=> 'application/epub+zip'};prepared={path,value,options};return this;}};
  let odtPrepared=null;
