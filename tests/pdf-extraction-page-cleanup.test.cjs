@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const start=html.indexOf("const pages=[];let pdf=null;try{pdf=await loading.promise;ensureCurrent();readerSourcePageCount=pdf.numPages;");
+assert.ok(start>=0,'PDF text extraction loop must exist');
+const end=html.indexOf("if(name.endsWith('.pptx')",start);
+assert.ok(end>start,'PDF extraction block must have a following format handler');
+const source=html.slice(start,end);
+const pageStart=source.indexOf('const page=await pdf.getPage(i);');
+const tryStart=source.indexOf('try{',pageStart);
+const ensureStart=source.indexOf('ensureCurrent();',pageStart);
+const cleanup=source.indexOf('try{page.cleanup();}catch(e){}',pageStart);
+assert.ok(pageStart>=0&&tryStart>pageStart,'each resolved PDF page must immediately enter a cleanup-protected block');
+assert.ok(ensureStart>tryStart,'cancellation must be checked only after the page cleanup handler is active');
+assert.ok(cleanup>ensureStart,'the page cleanup must run in the finally path after cancellation or extraction errors');
+console.log('PDF extraction cancellation cleanup test passed: resolved pages are released even when the request becomes stale immediately.');
