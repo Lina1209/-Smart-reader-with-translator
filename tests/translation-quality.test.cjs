@@ -199,6 +199,20 @@ if(safeOcrScaleUnderTest({width:10000,height:10000},1.5,16000000)>0.400001)throw
 
 
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
+ 
+ const replacementHelperStart=html.indexOf('function ocrLines(data){'),replacementHelperEnd=html.indexOf('async function ensurePdfLib',replacementHelperStart);
+ if(replacementHelperStart<0||replacementHelperEnd<0)throw new Error('OCR replacement confidence helper not found');
+ const replacementHelpers=vm.runInNewContext(html.slice(replacementHelperStart,replacementHelperEnd)+'; ({ocrLines,ocrLinesForReplacement})');
+ const confidenceSample={lines:[
+  {text:'Reliable heading',confidence:96,bbox:{x0:10,y0:10,x1:200,y1:40}},
+  {text:'Uncertain word',confidence:34,bbox:{x0:10,y0:50,x1:100,y1:80}},
+  {text:'Very uncertain',confidence:14,bbox:{x0:10,y0:90,x1:100,y1:120}},
+  {text:'Invalid box',confidence:99,bbox:{x0:10,y0:140,x1:10,y1:160}}
+ ]};
+ const acceptedReplacementLines=replacementHelpers.ocrLinesForReplacement(confidenceSample,35);
+ if(acceptedReplacementLines.length!==2||acceptedReplacementLines[0].text!=='Reliable heading'||acceptedReplacementLines[1].text!=='Invalid box')throw new Error('OCR reconstruction confidence filter did not preserve its configured threshold and valid-box rules');
+ if(!html.includes('replacementLines=ocrLinesForReplacement(ocr,35)')||!html.includes('for(let lineNo=0;safeToTranslate&&lineNo<replacementLines.length;lineNo++)')||!html.includes('for(let i=0;safeToTranslate&&i<replacementLines.length;i++)'))throw new Error('PDF/image reconstruction does not consistently skip low-confidence OCR lines');
+
 
 const boundedStart=html.indexOf('function createBoundedOcrCanvas('),boundedEnd=html.indexOf('async function recognizeImageCanvas(',boundedStart);
 if(boundedStart<0||boundedEnd<0)throw new Error('Bounded OCR input helper not found');
