@@ -2,14 +2,15 @@
 const assert=require('node:assert/strict');
 const {paginateByHeight}=require('../lib/reader-pagination');
 const height=(text)=>Math.ceil(Array.from(text).length/8);
-const result=paginateByHeight('Intro abcdefghijklmnopqrstuvwxyz tail',height,2);
+const source='Intro abcdefghijklmnopqrstuvwxyz tail';
+const result=paginateByHeight(source,height,2);
 assert.ok(result.pages.length>1,'long unbroken token should span multiple pages');
 assert.ok(result.pages.every(page=>height(page)<=2),'no page may exceed the measured height');
-assert.equal(result.pages.join(''),'Introabcdefghijklmnopqrstuvwxyz tail'.replace('Intro','Intro '),'content should remain in order across page breaks');
+assert.equal(result.pages.join(''),source,'all original characters must be preserved in order');
 const unicode='Начало супердлинноесловобезпробелов😀😀 конец';
 const unicodeResult=paginateByHeight(unicode,height,2);
 assert.ok(unicodeResult.pages.every(page=>height(page)<=2));
-assert.equal(unicodeResult.pages.join(''),unicode);
+assert.equal(unicodeResult.pages.join(''),unicode,'Unicode and whitespace must be preserved');
 assert.deepEqual(paginateByHeight('   ',height,2),{pages:[],offsets:[]});
 assert.throws(()=>paginateByHeight('x',height,0),TypeError);
 console.log('Reader pagination long-token tests passed');
