@@ -257,6 +257,13 @@ const tiny=validateQuad([[490,490],[510,490],[510,510],[490,510]],1000,1000);
 if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text block must not be accepted as a page');
 
 
+
+if(!html.includes("flow:'paginated'")||html.includes("flow:'scrolled-doc'"))throw new Error('EPUB reader must use fixed paginated flow, not endless scrolling');
+if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;background:var(--paper)'))throw new Error('Reader page must keep a bounded book-page frame');
+if(!html.includes('function paginateReaderText(')||!html.includes('function moveReaderPage(')||!html.includes("e.key==='ArrowRight'"))throw new Error('Text reader pagination and keyboard navigation are missing');
+if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'))throw new Error('Touch swipe page turning is missing');
+if(!html.includes('readerPageIndex=0;textViewer.style.display=\'block\';paginateReaderText(normalized)'))throw new Error('Text documents are not rendered as discrete reader pages');
+
 const rectificationStart=html.indexOf('function solvePageHomography('),rectificationEnd=html.indexOf('function detectPageQuadFromEdges',rectificationStart);
 if(rectificationStart<0||rectificationEnd<0)throw new Error('Perspective rectification helpers not found');
 const rectification=vm.runInNewContext(html.slice(rectificationStart,rectificationEnd)+'; ({solvePageHomography,mapPageHomography,createPageRectificationPlan,mapRectifiedOcrBox})');
