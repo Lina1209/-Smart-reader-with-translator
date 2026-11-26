@@ -75,6 +75,12 @@ const docxBranch=html.slice(html.indexOf("if(ext==='docx'){"),html.indexOf("}els
 if(!docxBranch.includes('75/paths.length,true'))throw new Error('DOCX translation must limit extraction to visible w:t text nodes');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']"))throw new Error('EPUB block coverage missing for div-based, semantic and table content');
 if(!html.includes("const nestedBlockTags=new Set(['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'])")||!html.includes("let parent=node.parentElement,nested=false")||!html.includes("while(parent&&parent!==block)"))throw new Error('EPUB text walker must exclude nested block descendants while retaining wrapper-owned text');
+const epubTranslationStart=html.indexOf("}else if(ext==='epub'){");
+const epubTranslationEnd=html.indexOf("}else if(ext==='xlsx'||ext==='xlsm')",epubTranslationStart);
+if(epubTranslationStart<0||epubTranslationEnd<0)throw new Error('EPUB translation branch not found');
+const epubTranslationSource=html.slice(epubTranslationStart,epubTranslationEnd);
+if(!epubTranslationSource.includes('/\\.(xhtml|html|htm|ncx)$/i.test(p)'))throw new Error('EPUB navigation NCX files must be included with XHTML chapters');
+if(!epubTranslationSource.includes("isNcx?'application/xml':'application/xhtml+xml'")||!epubTranslationSource.includes("if(isNcx){await translateXmlParagraphs(doc,'text'"))throw new Error('EPUB NCX navigation labels must be parsed as XML and translated without rewriting href targets');
 const epubOpenStart=html.indexOf('async function openEpub(file,openToken)')>=0?html.indexOf('async function openEpub(file,openToken)'):html.indexOf('async function openEpub(file)');
 const epubOpenEnd=html.indexOf("\n$('prevBtn').onclick",epubOpenStart);
 if(epubOpenStart<0||epubOpenEnd<0)throw new Error('EPUB open workflow not found');
