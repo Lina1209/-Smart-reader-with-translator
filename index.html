@@ -517,7 +517,7 @@ function detectLongStraightRuleInOcrBox(ctx,box,backgroundColor){
  if(!ctx||!isValidOcrBox(box))return{detected:true,reason:'invalid-region'};
  const {x0,y0,x1,y1}=box,left=Math.max(0,Math.floor(x0)),top=Math.max(0,Math.floor(y0)),right=Math.min(ctx.canvas?.width||0,Math.ceil(x1)),bottom=Math.min(ctx.canvas?.height||0,Math.ceil(y1)),width=right-left,height=bottom-top;
  if(width<8||height<4)return{detected:false,reason:'region-too-small'};
- const match=String(backgroundColor||'').match(/rgb\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)\\s*\\)/i);
+ const match=String(backgroundColor||'').match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i);
  if(!match)return{detected:true,reason:'unknown-background-color'};
  const bg=match.slice(1).map(Number);
  try{
