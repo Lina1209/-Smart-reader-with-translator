@@ -40,6 +40,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_pdf_image_placement.py' -v
       - name: Compare PDF text geometry with image placements
         run: python -m unittest discover -s tests -p 'test_pdf_text_image_overlap.py' -v
+      - name: Audit PDF text grouping and reading-order heuristics
+        run: python -m unittest discover -s tests -p 'test_pdf_reading_order_audit.py' -v
       - name: Render PDF fixtures and compare no-op round-trip pixels
         run: python -m unittest discover -s tests -p 'test_pdf_render_regression.py' -v
       - name: Check JavaScript syntax
