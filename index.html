@@ -364,7 +364,7 @@ function protectGlossaryTerms(value){
 function restoreGlossaryTerms(value,tokens){let text=String(value);for(const item of tokens)text=text.split(item.token).join(item.target);return text;}
 function isRetryableTranslationError(error){
  const message=String(error?.message||error);
- return /HTTP (?:408|425|500|502|503|504)/i.test(message)||/не ответил за 20 секунд|Не удалось связаться с LibreTranslate/i.test(message)||(translationEngine==='libretranslate'&&/HTTP 429/i.test(message));
+ return /HTTP (?:408|425|500|502|503|504)/i.test(message)||/не ответил за 20 секунд|Не удалось связаться с LibreTranslate|Failed to fetch|NetworkError|Load failed/i.test(message)||(translationEngine==='libretranslate'&&/HTTP 429/i.test(message));
 }
 async function requestTranslationChunkWithRetry(text,from,to,onRetry){
  for(let attempt=0;attempt<3;attempt++){
