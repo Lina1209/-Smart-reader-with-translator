@@ -60,7 +60,7 @@ class PdfWordBoxes(HTMLParser):
             self.current_page = []
             self.pages.append(self.current_page)
         elif tag == "word" and self.current_page is not None:
-            self.current_box = tuple(float(values[key]) for key in ("xMin", "yMin", "xMax", "yMax"))
+            self.current_box = tuple(float(values[key]) for key in ("xmin", "ymin", "xmax", "ymax"))
             self.words = []
 
     def handle_data(self, data):
