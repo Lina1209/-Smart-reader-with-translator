@@ -401,6 +401,15 @@ if(!html.includes('epubNavigationBusy')||!html.includes('updateEpubNavigationBut
 if(!html.includes('epubPageState={page:p,total:t}')||!html.includes('epubNavigationBusy||!epubPageState.total'))throw new Error('EPUB relocated state must drive the disabled state of navigation controls');
 if(!html.includes('Promise.resolve(delta<0?rendition.prev():rendition.next())'))throw new Error('EPUB page-turn promises must be handled safely');
 if(!html.includes('rendition.getContents()')||!html.includes('doc.__readerSwipeBound'))throw new Error('EPUB iframe touch gestures must be bound inside its document');
+const epubGestureStart=html.indexOf('function bindEpubPageGestures()');
+const epubGestureEnd=html.indexOf('bindReaderPageGestures();',epubGestureStart);
+if(epubGestureStart<0||epubGestureEnd<0)throw new Error('EPUB gesture binding function missing');
+const epubGestureSource=html.slice(epubGestureStart,epubGestureEnd);
+if(!epubGestureSource.includes("doc.addEventListener('touchstart'")||!epubGestureSource.includes("doc.addEventListener('touchend'"))throw new Error('EPUB iframe must listen for both swipe start and end');
+if(!epubGestureSource.includes('Math.abs(dx)>55')||!epubGestureSource.includes('Math.abs(dx)>Math.abs(dy)*1.25'))throw new Error('EPUB swipe must require a deliberate horizontal gesture and ignore vertical scrolling');
+if(!epubGestureSource.includes("moveReaderPage(dx<0?1:-1)"))throw new Error('EPUB swipe direction must map to next and previous pages');
+if(!html.includes("rendition.on('rendered',()=>{syncEpubBookText();bindEpubPageGestures();})"))throw new Error('EPUB iframe gestures must be rebound when a new page document is rendered');
+
 if(!html.includes('readerPageIndex=0;textViewer.style.display=\'block\';paginateReaderText(normalized)'))throw new Error('Text documents are not rendered as discrete reader pages');
 
 const rectificationStart=html.indexOf('function solvePageHomography('),rectificationEnd=html.indexOf('function detectPageQuadFromEdges',rectificationStart);
