@@ -141,6 +141,17 @@ const singleSummary=layoutSummary({lines:singleColumn});
 if(singleSummary.multiColumn||singleSummary.tableLike)throw new Error('Single-column text was incorrectly classified as a table or multiple columns');
 const sparseSideBySide=[makeLine('left heading',10,10,100,22),makeLine('right note',260,10,350,22),makeLine('caption',10,60,340,72)];
 if(layoutSummary({lines:sparseSideBySide}).multiColumn)throw new Error('A single side-by-side pair was incorrectly classified as a multi-column page');
+const renderScaleStart=html.indexOf('function createSafePdfViewport(');
+const renderScaleEnd=html.indexOf('\n',renderScaleStart);
+if(renderScaleStart<0||renderScaleEnd<0)throw new Error('Adaptive PDF render-scale helper not found');
+const safeViewport=vm.runInNewContext(html.slice(renderScaleStart,renderScaleEnd)+'; createSafePdfViewport');
+const mockPage=(width,height)=>({getViewport:({scale})=>({width:width*scale,height:height*scale,scale})});
+const ordinaryViewport=safeViewport(mockPage(612,792),1.4,16000000);
+if(ordinaryViewport.scale!==1.4)throw new Error('Ordinary PDF pages should retain the preferred OCR render scale');
+const oversizedViewport=safeViewport(mockPage(20000,18000),1.4,16000000);
+if(oversizedViewport.width*oversizedViewport.height>16000000.01||oversizedViewport.scale>=1.4)throw new Error('Oversized PDF pages were not constrained to the pixel budget');
+if(!html.includes('createSafePdfViewport(page,1.4)')||!html.includes('createSafePdfViewport(page,1.35)'))throw new Error('Adaptive PDF render scale is not used by both PDF OCR paths');
+
 
 if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<lines.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
 if(!html.includes('вероятная многоколоночная структура')||!html.includes('вероятная табличная структура'))throw new Error('Complex OCR layout warnings are not surfaced');
