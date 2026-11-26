@@ -1255,6 +1255,39 @@ async function translateXmlParagraphs(doc,selector,from,target,progressId,progre
  }
  return count;
 }
+function documentArchiveMimeType(ext){
+ const types={
+  docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  odt:'application/vnd.oasis.opendocument.text',
+  epub:'application/epub+zip',
+  xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  xlsm:'application/vnd.ms-excel.sheet.macroEnabled.12',
+  pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+ };
+ return types[String(ext||'').toLowerCase()]||'application/octet-stream';
+}
+async function validateGeneratedDocumentArchive(blob,ext,JSZip){
+ const kind=String(ext||'').toLowerCase(),mime=documentArchiveMimeType(kind);
+ if(!blob||!Number.isFinite(Number(blob.size))||blob.size<=0)throw Error('Собранный документ пуст. Файл не будет предложен для скачивания.');
+ if(!JSZip||typeof JSZip.loadAsync!=='function')throw Error('Не удалось проверить собранный архив: библиотека ZIP недоступна.');
+ let archive;
+ try{archive=await JSZip.loadAsync(blob);}catch(error){throw Error('Не удалось повторно открыть собранный архив. Файл повреждён или собран не полностью.');}
+ assertZipArchiveSafe(archive);
+ const entries=Object.keys(archive.files||{}).filter(path=>archive.files[path]&&!archive.files[path].dir);
+ const has=path=>!!(archive.file&&archive.file(path));
+ const requireParts=paths=>{for(const path of paths)if(!has(path))throw Error('В собранном '+kind.toUpperCase()+' отсутствует обязательная часть: '+path+'.');};
+ if(kind==='docx')requireParts(['[Content_Types].xml','_rels/.rels','word/document.xml']);
+ else if(kind==='odt'){requireParts(['mimetype','content.xml','META-INF/manifest.xml']);const value=await archive.file('mimetype').async('text');if(value.trim()!=='application/vnd.oasis.opendocument.text')throw Error('В собранном ODT указан неверный MIME-тип.');}
+ else if(kind==='epub'){
+  requireParts(['mimetype','META-INF/container.xml']);
+  if(!entries.some(path=>/\.opf$/i.test(path))||!entries.some(path=>/\.(xhtml|html|htm)$/i.test(path)))throw Error('В собранном EPUB отсутствует пакетная OPF-структура или глава.');
+  const value=await archive.file('mimetype').async('text');if(value.trim()!=='application/epub+zip')throw Error('В собранном EPUB указан неверный MIME-тип.');
+ }
+ else if(kind==='xlsx'||kind==='xlsm')requireParts(['[Content_Types].xml','xl/workbook.xml']);
+ else if(kind==='pptx'){requireParts(['[Content_Types].xml','ppt/presentation.xml']);if(!entries.some(path=>/^ppt\/slides\/slide\d+\.xml$/i.test(path)))throw Error('В собранной презентации не найден ни один слайд.');}
+ else throw Error('Проверка ZIP-экспорта не поддерживает формат '+kind.toUpperCase()+'.');
+ return new Blob([blob],{type:mime});
+}
 async function translatePreservingFile(file,from,target,statusId){
  const ext=(file.name.split('.').pop()||'').toLowerCase(),progressId='translatorProgress';
  resetProgress(progressId,'Перевод и сохранение файла');setProgress(progressId,0,'Подготовка оригинала',file.name);
@@ -1299,7 +1332,7 @@ async function translatePreservingFile(file,from,target,statusId){
    const contentPaths=[...slides,...auxiliaryPaths.filter(p=>!slides.includes(p))];
    for(let i=0;i<contentPaths.length;i++){const path=contentPaths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось прочитать '+path);await translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/contentPaths.length,80/Math.max(contentPaths.length,1));translatedText+=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').filter(Boolean).join('\n\n')+'\n\n';zip.file(path,new XMLSerializer().serializeToString(doc));}
   }
-  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6},mimeType:file.type||'application/octet-stream'});
+  const generatedBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6},mimeType:documentArchiveMimeType(ext)});const blob=await validateGeneratedDocumentArchive(generatedBlob,ext,JSZip);
   const layoutNotice=ext==='docx'?'ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: структура DOCX, изображения, таблицы и стили пакета сохраняются; длина перевода может изменить переносы строк и распределение текста между стилевыми фрагментами. Поля, встроенные объекты и редкие элементы Word требуют ручной проверки.':ext==='odt'?'ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: структура ODT и вложенные ресурсы сохраняются; изменение длины перевода может изменить переносы и разбиение страниц. Проверьте поля, колонтитулы и встроенные объекты.':ext==='epub'?'ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: разметка глав и ресурсы EPUB сохраняются, но длина перевода может изменить пагинацию; текст в SVG, CSS, изображениях и отдельных навигационных элементах может остаться оригинальным.':ext==='xlsx'||ext==='xlsm'?'ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки и распознанный rich text диаграмм. Комментарии, колонтитулы, подписи из кэшей диаграмм, текст фигур, сводные кэши и встроенные объекты могут остаться без перевода; формулы и числовые значения не переводятся.':ext==='pptx'?'ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текст слайдов, заметки докладчика и текстовые абзацы диаграмм/диаграммных схем. Кэшированные подписи диаграмм, встроенные книги Excel, некоторые SmartArt-данные, мастер-слайды и элементы макетов могут остаться без перевода; длина текста может изменить переносы.':'';
   return {blob,text:translatedText+(layoutNotice?'\n\n'+layoutNotice:''),filename:file.name};
  }
