@@ -15,6 +15,13 @@ class ReadingOrderAuditTests(unittest.TestCase):
   r=audit_reading_order([item("right",150,90,seq=1),item("left",20,89,seq=2)])
   self.assertEqual(r["status"],"review")
   self.assertEqual(r["sequence_anomalies"][0]["reason"],"possible-right-to-left-sequence-jump")
+ def test_implicit_array_order_not_flagged(self):
+  r=audit_reading_order([item("right",150,90),item("left",20,89)])
+  self.assertEqual(r["status"],"ok")
+  self.assertEqual(r["sequence_anomalies"],[])
+ def test_invalid_sequence_is_ignored_safely(self):
+  r=audit_reading_order([item("right",150,90,seq="bad"),item("left",20,89,seq=2)])
+  self.assertEqual(r["status"],"ok")
  def test_region_tagged(self):
   r=audit_reading_order([item("cell",20,20)],regions=[{"id":"table-cell-1","bbox":[0,0,60,40]}])
   self.assertEqual(r["items"][0]["region_ids"],["table-cell-1"])

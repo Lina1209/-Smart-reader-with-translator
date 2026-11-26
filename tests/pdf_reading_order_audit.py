@@ -30,7 +30,7 @@ def audit_reading_order(items, regions=None, row_tolerance=3.0, column_gap=12.0)
                 if len(rb)==4 and _overlap(b,rb)/area >= float(r.get("min_overlap",0.5)):
                     region_hits.append(r.get("id",r.get("type","region")))
             except (KeyError,TypeError,ValueError): continue
-        valid.append({"item_index":i,"sequence":it.get("sequence",i),"sequence_explicit":"sequence" in it,"text":it.get("text",""),
+        valid.append({"item_index":i,"sequence":float(it.get("sequence",i)) if isinstance(it.get("sequence",i),(int,float)) and math.isfinite(float(it.get("sequence",i))) else i,"sequence_explicit":"sequence" in it and isinstance(it.get("sequence"),(int,float)) and math.isfinite(float(it.get("sequence"))),"text":it.get("text",""),
           "bbox":b,"center_x":(b[0]+b[2])/2,"center_y":(b[1]+b[3])/2,
           "region_ids":region_hits})
     # Group by vertical bands, preserving ambiguous items as separate bands.
