@@ -175,8 +175,8 @@ class PdfImagePlacementTests(unittest.TestCase):
         self.assertEqual(report["status"], "ok")
         placement = report["placements"][0]
         self.assertEqual(placement["bbox"], (260.0, 246.0, 360.0, 306.0))
-        self.assertEqual(placement["form_clip_intersection_bbox"], (260.0, 246.0, 300.0, 306.0))
-        self.assertEqual(placement["form_clip_intersection_area"], 2400.0)
+        self.assertEqual(placement["form_clip_intersection_bbox"], (260.0, 246.0, 280.0, 306.0))
+        self.assertEqual(placement["form_clip_intersection_area"], 1200.0)
         self.assertFalse(placement["fully_clipped_by_form_bboxes"])
 
     def test_nested_form_bboxes_can_fully_clip_an_image(self):
