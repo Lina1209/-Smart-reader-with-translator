@@ -151,6 +151,7 @@ body[data-theme=dark] ::selection{background:#7656c9;color:#fff}
 <div class="tool-status" id="translatorBookStatus" role="status"></div></div>
 
 <div class="tool-row"><label for="standaloneSource">С языка</label><select id="standaloneSource" aria-label="Исходный язык"></select><label for="standaloneTarget">Перевести на</label><select id="standaloneTarget" aria-label="Язык перевода"><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option><option value="pl">Polski</option><option value="uk">Українська</option></select><button class="btn primary" id="standaloneTranslate">Перевести →</button><label for="translationEngine">Движок</label><select id="translationEngine" aria-label="Движок перевода"><option value="mymemory">MyMemory</option><option value="libretranslate">Свой LibreTranslate</option></select><input id="libreTranslateEndpoint" type="url" inputmode="url" placeholder="HTTPS-адрес LibreTranslate" aria-label="Адрес сервера LibreTranslate" hidden></div><p class="tool-note" id="translationEngineNote">MyMemory работает без настройки. Для автономного перевода выберите свой сервер LibreTranslate; сервер и языковые модели размещаются отдельно.</p>
+<div class="tool-field translation-glossary"><label for="translationGlossary">Глоссарий перевода</label><textarea id="translationGlossary" rows="3" placeholder="New York = Нью-Йорк&#10;OpenAI = OpenAI&#10;terms = термины"></textarea><p class="tool-note">Одна пара на строку: исходный термин = точный вариант перевода. Термины защищаются от изменения движком.</p></div>
 <div class="tool-grid"><div class="tool-field"><label for="standaloneInput">📖 Исходный текст</label><textarea id="standaloneInput" placeholder="Загрузите документ, PDF, фото или скан (JPG/PNG/WEBP) либо вставьте текст…"></textarea><div class="tool-actions"><button class="btn primary" id="translatorFileButton" type="button">＋ Загрузить книгу или документ</button><input id="translatorFileInput" type="file" accept=".epub,.fb2,.txt,.pdf,.docx,.odt,.rtf,.html,.htm,.md,.markdown,.csv,.xlsx,.xls,.xlsm,.xml,.json,.log,.srt,.vtt,.jpg,.jpeg,.png,.webp,application/epub+zip,application/xml,text/xml,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/rtf,text/rtf,text/html,text/markdown,text/csv,image/jpeg,image/png,image/webp,application/vnd.oasis.opendocument.text" hidden><button class="btn" id="translatorFileRemove" type="button">Удалить файл / очистить</button></div><div class="tool-note" id="translatorFileName">Можно вставить текст вручную. Для изображений JPG/PNG/WEBP доступен OCR и перевод с реконструкцией надписей. PDF сохраняется как PDF с реконструкцией страниц; результат растрируется, текстовое выделение/копирование теряется.</div><div class="progress-panel" id="translatorProgress" role="status" aria-live="polite"><div class="progress-head"><span class="progress-label">Подготовка файла…</span><span class="progress-percent">0%</span></div><div class="progress-track"><div class="progress-fill"></div></div><div class="progress-detail">Ожидание файла</div></div></div><div class="tool-field"><label>🌐 Перевод</label><div class="tool-result" id="standaloneOutput" aria-live="polite">Здесь появится перевод загруженного текста.</div><div class="tool-actions"><button class="btn" id="standaloneCopy">Копировать перевод</button><button class="btn primary" id="preserveDownload" disabled>Скачать перевод с сохранением формата</button><select id="standaloneSourceFormat" aria-label="Формат оригинала"><option value="txt">TXT</option><option value="epub">EPUB</option><option value="fb2">FB2</option><option value="docx">DOCX</option><option value="odt">ODT</option><option value="rtf">RTF</option><option value="pdf">PDF</option><option value="html">HTML</option><option value="md">Markdown</option></select><button class="btn" id="standaloneSaveSource">Скачать оригинал</button><select id="standaloneResultFormat" aria-label="Формат перевода"><option value="txt">TXT</option><option value="epub">EPUB</option><option value="fb2">FB2</option><option value="docx">DOCX</option><option value="odt">ODT</option><option value="rtf">RTF</option><option value="pdf">PDF</option><option value="html">HTML</option><option value="md">Markdown</option></select><button class="btn" id="standaloneSaveResult">Скачать перевод</button></div></div></div><div class="tool-actions"><button class="btn" id="standaloneClear">Очистить оба окна</button></div><div class="tool-status" id="standaloneStatus" role="status"></div><p class="tool-note" id="translationPrivacyNote">Текст отправляется в онлайн-сервис MyMemory.</p>
 </section>
 <section class="tool-panel" id="translitPanel">
@@ -345,21 +346,54 @@ let translationEngine='mymemory';
 function updateTranslationEngineUi(){const endpoint=$('libreTranslateEndpoint');if(endpoint){endpoint.hidden=translationEngine!=='libretranslate';endpoint.setAttribute('aria-hidden',String(translationEngine!=='libretranslate'));}const privacyNote=$('translationPrivacyNote');if(privacyNote)privacyNote.textContent=translationEngine==='libretranslate'?'Текст отправляется на указанный вами сервер LibreTranslate. Убедитесь, что доверяете владельцу сервера.':'Текст отправляется во внешний сервис MyMemory.';}
 $('translationEngine')?.addEventListener('change',e=>{translationEngine=e.target.value==='libretranslate'?'libretranslate':'mymemory';updateTranslationEngineUi();});
 updateTranslationEngineUi();
+function parseTranslationGlossary(){
+ const raw=String($('translationGlossary')?.value||'');
+ return raw.split(/\\r?\\n/).map(line=>{const match=line.match(/^\\s*(.+?)\\s*(?:=>|=|\\t)\\s*(.+?)\\s*$/);return match?{source:match[1].trim(),target:match[2].trim()}:null;}).filter(item=>item&&item.source&&item.target).sort((a,b)=>b.source.length-a.source.length);
+}
+function escapeTranslationRegex(value){return value.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\async function requestTranslationChunk(text,from,to){');}
+function protectGlossaryTerms(value){
+ let text=String(value),tokens=[];
+ const entries=parseTranslationGlossary();
+ entries.forEach((entry,index)=>{
+  let token='ZXQTERM'+index+'QXZ';while(text.includes(token))token+='X';
+  const pattern=new RegExp('(^|[^\\\\p{L}\\\\p{N}])('+escapeTranslationRegex(entry.source)+')(?=$|[^\\\\p{L}\\\\p{N}])','giu');
+  text=text.replace(pattern,(whole,prefix)=>{tokens.push({token,target:entry.target});return prefix+token;});
+ });
+ return {text,tokens};
+}
+function restoreGlossaryTerms(value,tokens){let text=String(value);for(const item of tokens)text=text.split(item.token).join(item.target);return text;}
+function isRetryableTranslationError(error){
+ const message=String(error?.message||error);
+ return /HTTP (?:408|425|500|502|503|504)/i.test(message)||/не ответил за 20 секунд|Не удалось связаться с LibreTranslate/i.test(message)||(translationEngine==='libretranslate'&&/HTTP 429/i.test(message));
+}
+async function requestTranslationChunkWithRetry(text,from,to,onRetry){
+ for(let attempt=0;attempt<3;attempt++){
+  try{return await requestTranslationChunk(text,from,to);}
+  catch(error){
+   if(attempt===2||!isRetryableTranslationError(error))throw error;
+   const wait=700*Math.pow(2,attempt);
+   if(typeof onRetry==='function')onRetry(attempt+1,wait,error);
+   await new Promise(resolve=>setTimeout(resolve,wait));
+  }
+ }
+ throw new Error('Не удалось выполнить перевод после повторных попыток.');
+}
 async function requestTranslationChunk(text,from,to){
+ const protectedText=protectGlossaryTerms(text),requestText=protectedText.text;
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,data;
  try{
   if(translationEngine==='libretranslate'){
    const endpoint=String($('libreTranslateEndpoint')?.value||'').trim().replace(/\/+$/,'');
    if(!endpoint)throw new Error('Укажите адрес своего сервера LibreTranslate (например, https://translate.example.com).');
    const source=from==='auto'?'auto':String(from).split('-')[0],target=String(to).split('-')[0];
-   response=await fetch(endpoint+'/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:text,source,target,format:'text'}),signal:controller.signal});
+   response=await fetch(endpoint+'/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:requestText,source,target,format:'text'}),signal:controller.signal});
    try{data=await response.json();}catch(e){throw new Error('LibreTranslate вернул некорректный ответ (HTTP '+response.status+').');}
    if(!response.ok)throw new Error(String(data.error||data.message||'LibreTranslate недоступен (HTTP '+response.status+').'));
    const translated=String(data.translatedText||'');if(!translated.trim())throw new Error('LibreTranslate не вернул перевод. Проверьте языковую пару и установленные языковые модели.');
-   return translated;
+   return restoreGlossaryTerms(translated,protectedText.tokens);
   }
-  const bytes=new TextEncoder().encode(text).length;if(bytes>500)throw new Error('Фрагмент превышает ограничение MyMemory в 500 байт.');
-  const params=new URLSearchParams({q:text,langpair:from+'|'+to,mt:'1'});
+  const bytes=new TextEncoder().encode(requestText).length;if(bytes>500)throw new Error('Фрагмент превышает ограничение MyMemory в 500 байт.');
+  const params=new URLSearchParams({q:requestText,langpair:from+'|'+to,mt:'1'});
   response=await fetch('https://api.mymemory.translated.net/get?'+params.toString(),{signal:controller.signal});
   try{data=await response.json();}catch(e){throw new Error('Сервис перевода вернул некорректный ответ (HTTP '+response.status+').');}
   const details=String(data.responseDetails||''),translated=String(data.responseData?.translatedText||'');
@@ -367,21 +401,21 @@ async function requestTranslationChunk(text,from,to){
   if(!response.ok)throw new Error('MyMemory недоступен (HTTP '+response.status+').');
   if(Number(data.responseStatus)!==200||/INVALID SOURCE LANGUAGE|INVALID TARGET LANGUAGE|PLEASE SELECT TWO DISTINCT/i.test(details))throw new Error(details||'MyMemory отклонил языковую пару ('+from+' → '+to+').');
   if(!translated.trim())throw new Error('MyMemory не вернул перевод.');
-  const box=document.createElement('textarea');box.innerHTML=translated;return box.value;
+  const box=document.createElement('textarea');box.innerHTML=translated;return restoreGlossaryTerms(box.value,protectedText.tokens);
  }catch(err){
   if(err.name==='AbortError')throw new Error('Сервис перевода не ответил за 20 секунд. Проверьте адрес сервера и доступность сети.');
   if(err instanceof TypeError&&translationEngine==='libretranslate')throw new Error('Не удалось связаться с LibreTranslate. Проверьте HTTPS, адрес сервера и разрешение CORS для сайта приложения.');
   throw err;
  }finally{clearTimeout(timer);}
 }
-async function translateLongText(source,target,fromOverride,statusId='standaloneStatus'){const from=fromOverride||getSourceLanguage(source,target);if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');const chunks=splitTranslationChunks(source,translationEngine==='mymemory'?450:4000),results=[],progressId=ensureProgressAfterStatus(statusId);setProgress(progressId,0,'Подготовка перевода',chunks.length+' фрагментов · '+source.length.toLocaleString('ru-RU')+' символов');for(let i=0;i<chunks.length;i++){const percent=(i/chunks.length)*100;setProgress(progressId,percent,'Переводим фрагмент '+(i+1)+' из '+chunks.length,'Языковая пара: '+from+' → '+target+' · '+Math.round(percent)+'%');if($(statusId))$(statusId).textContent='Переводим фрагмент '+(i+1)+' из '+chunks.length+'…';try{const chunk=chunks[i];if(!chunk.trim()||from===target){results.push(chunk);}else{const translated=await requestTranslationChunk(chunk,from,target),leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let preserved=translated;if(leading&&!/^\s/.test(preserved))preserved=leading+preserved;if(trailing&&!/\s$/.test(preserved))preserved+=trailing;results.push(preserved);}}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод приостановлен','Готово '+i+' из '+chunks.length+' фрагментов. '+error.message,true);throw error;}if(i<chunks.length-1)await new Promise(resolve=>setTimeout(resolve,350));}setProgress(progressId,100,'Перевод завершён',chunks.length+' из '+chunks.length+' фрагментов готово.',true);return results.join('');}
+async function translateLongText(source,target,fromOverride,statusId='standaloneStatus'){const from=fromOverride||getSourceLanguage(source,target);if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');const chunks=splitTranslationChunks(source,translationEngine==='mymemory'?450:4000),results=[],progressId=ensureProgressAfterStatus(statusId);setProgress(progressId,0,'Подготовка перевода',chunks.length+' фрагментов · '+source.length.toLocaleString('ru-RU')+' символов');for(let i=0;i<chunks.length;i++){const percent=(i/chunks.length)*100;setProgress(progressId,percent,'Переводим фрагмент '+(i+1)+' из '+chunks.length,'Языковая пара: '+from+' → '+target+' · '+Math.round(percent)+'%');if($(statusId))$(statusId).textContent='Переводим фрагмент '+(i+1)+' из '+chunks.length+'…';try{const chunk=chunks[i];if(!chunk.trim()||from===target){results.push(chunk);}else{const translated=await requestTranslationChunkWithRetry(chunk,from,target,(attempt,wait)=>setProgress(progressId,percent,'Повтор запроса','Временная ошибка. Повтор '+attempt+' через '+(wait/1000)+' сек.')),leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let preserved=translated;if(leading&&!/^\s/.test(preserved))preserved=leading+preserved;if(trailing&&!/\s$/.test(preserved))preserved+=trailing;results.push(preserved);}}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод приостановлен','Готово '+i+' из '+chunks.length+' фрагментов. '+error.message,true);throw error;}if(i<chunks.length-1)await new Promise(resolve=>setTimeout(resolve,350));}setProgress(progressId,100,'Перевод завершён',chunks.length+' из '+chunks.length+' фрагментов готово.',true);return results.join('');}
 
 let preserveSourceFile=null,preservedTranslationBlob=null,preservedTranslationName='';
 const preservedTranslationCache=new Map();
 async function translatePreservedText(value,from,target,progressId){
  const chunks=splitTranslationChunks(String(value||''),translationEngine==='mymemory'?450:4000),results=[];
  if(from===target)return String(value||'');
- for(let i=0;i<chunks.length;i++){const chunk=chunks[i],percent=100*(i+1)/Math.max(chunks.length,1);setProgress(progressId,percent,'Перевод блока '+(i+1)+' из '+chunks.length,'Сохраняем структуру исходного файла');if(!chunk.trim()){results.push(chunk);continue;}const engineScope=translationEngine==='libretranslate'?String($('libreTranslateEndpoint')?.value||'').trim().replace(/\/+$/,''):'mymemory';const key=[translationEngine,engineScope,from,target,chunk].join('\u0000'),wasCached=preservedTranslationCache.has(key);try{let translated=preservedTranslationCache.get(key);if(!wasCached){translated=await requestTranslationChunk(chunk,from,target);preservedTranslationCache.set(key,translated);if(preservedTranslationCache.size>1500)preservedTranslationCache.delete(preservedTranslationCache.keys().next().value);}const leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let value=translated;if(leading&&!/^\s/.test(value))value=leading+value;if(trailing&&!/\s$/.test(value))value+=trailing;results.push(value);}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод остановлен',i+' из '+chunks.length+' фрагментов выполнено. '+error.message,true);throw error;}if(i<chunks.length-1&&!wasCached)await new Promise(resolve=>setTimeout(resolve,350));}
+ for(let i=0;i<chunks.length;i++){const chunk=chunks[i],percent=100*(i+1)/Math.max(chunks.length,1);setProgress(progressId,percent,'Перевод блока '+(i+1)+' из '+chunks.length,'Сохраняем структуру исходного файла');if(!chunk.trim()){results.push(chunk);continue;}const engineScope=translationEngine==='libretranslate'?String($('libreTranslateEndpoint')?.value||'').trim().replace(/\/+$/,''):'mymemory';const key=[translationEngine,engineScope,from,target,chunk].join('\u0000'),wasCached=preservedTranslationCache.has(key);try{let translated=preservedTranslationCache.get(key);if(!wasCached){translated=await requestTranslationChunkWithRetry(chunk,from,target,(attempt,wait)=>setProgress(progressId,percent,'Повтор запроса','Временная ошибка. Повтор '+attempt+' через '+(wait/1000)+' сек.'));preservedTranslationCache.set(key,translated);if(preservedTranslationCache.size>1500)preservedTranslationCache.delete(preservedTranslationCache.keys().next().value);}const leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let value=translated;if(leading&&!/^\s/.test(value))value=leading+value;if(trailing&&!/\s$/.test(value))value+=trailing;results.push(value);}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод остановлен',i+' из '+chunks.length+' фрагментов выполнено. '+error.message,true);throw error;}if(i<chunks.length-1&&!wasCached)await new Promise(resolve=>setTimeout(resolve,350));}
  return results.join('');
 }
 async function translateDocumentNodeText(value,target,from,progressId){
