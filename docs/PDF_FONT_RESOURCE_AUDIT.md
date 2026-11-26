@@ -8,7 +8,7 @@ For simple fonts (for example Type1 and TrueType), the audit reports:
 - subtype and BaseFont name;
 - named Encoding or Encoding dictionary BaseEncoding;
 - a sample/count of Differences glyph names;
-- FirstChar and Widths array coverage;
+- FirstChar and Widths array coverage, with exact simple-font width lookup where explicitly available;
 - ToUnicode presence and a coarse count of mapping sections;
 - embedded font program keys (FontFile, FontFile2, FontFile3).
 
@@ -16,7 +16,7 @@ For Type 0 fonts, it reports:
 - named or stream Encoding CMap;
 - a basic vertical-writing-mode marker in a CMap stream;
 - descendant CID font subtype and BaseFont;
-- DW and presence/size of W width data;
+- DW and presence/size of W width data, with lookup for both legal W array forms (CID plus width array, and CID range plus shared width);
 - CIDToGIDMap kind and stream length;
 - descendant embedded font program keys;
 - ToUnicode presence.
@@ -38,3 +38,11 @@ python -m unittest discover -s tests -p 'test_pdf_font_resource_audit.py' -v
 The tests use generated Type1/WinAnsi, embedded subset TrueType with Russian/Kazakh text, predefined Type0/CID and Identity-H/CIDFontType2 fixtures, plus a deliberately incomplete font dictionary. They validate the diagnostic output only; they are not user-document tests and do not validate translated output.
 
 CI runs this suite after the PDF text-state audit.
+
+## Width lookup behavior
+
+`lookup_simple_width(font, code)` returns an explicit `/Widths` value when the byte code falls inside `FirstChar..FirstChar+len(Widths)-1`. It may return `/FontDescriptor/MissingWidth` only as a clearly labelled fallback. It does not guess metrics for the standard 14 fonts. Out-of-range or missing metrics are reported as invalid or unknown.
+
+`lookup_cid_width(descendant, cid)` supports both `/W` forms: a starting CID followed by an array of widths, and a starting/ending CID followed by one shared width. If no explicit range matches, it reports `/DW` as the default. Returned widths remain in font text-space units (normally 1000 units per em); font size, character/word spacing, horizontal scaling, glyph advances and text-matrix movement are not applied.
+
+The tests check explicit simple-font widths, both CID `/W` forms, default `/DW`, invalid inputs, and unknown metrics. This still does not decode source character codes into CIDs or glyph IDs.
