@@ -725,6 +725,6 @@ const officeWriterStart=html.indexOf('async function translatePreservingFile(fil
 const officeWriterEnd=html.indexOf("\n$('standaloneTranslate').addEventListener",officeWriterStart);
 if(officeWriterStart<0||officeWriterEnd<0)throw new Error('Office document export writer missing');
 const officeWriter=html.slice(officeWriterStart,officeWriterEnd);
-if(!officeWriter.includes("xl/charts/chart")||!officeWriter.includes("translateXmlParagraphs(doc,'p'"))throw new Error('XLSX chart rich-text titles and labels must be included in translation');
-if(!officeWriter.includes('notesSlides/notesSlide')||!officeWriter.includes('diagrams/drawing')||!officeWriter.includes('charts/chart'))throw new Error('PPTX export must include speaker notes, chart rich text and diagram text parts');
+if(!officeWriter.includes('const chartPaths=Object.keys(zip.files)')||!officeWriter.includes("translateXmlParagraphs(doc,'p'"))throw new Error('XLSX chart rich-text titles and labels must be included in translation');
+if(!officeWriter.includes('notesSlides')||!officeWriter.includes('diagrams')||!officeWriter.includes('charts'))throw new Error('PPTX export must include speaker notes, chart rich text and diagram text parts');
 if(!officeWriter.includes('const contentPaths=[...slides,...auxiliaryPaths.filter'))throw new Error('PPTX slide and auxiliary text parts must be processed together');
