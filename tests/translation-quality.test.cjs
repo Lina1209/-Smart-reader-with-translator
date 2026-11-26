@@ -58,7 +58,7 @@ const docxParagraphHelper=html.slice(html.indexOf('function translateXmlParagrap
 if(!docxParagraphHelper.includes('if(!node.nodeValue)continue;')||!docxParagraphHelper.includes("texts.some(node=>String(node.nodeValue||'').trim())"))throw new Error('DOCX paragraph extraction must retain whitespace-only separators while skipping empty paragraphs');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']"))throw new Error('EPUB block coverage missing for div-based, semantic and table content');
 if(!html.includes("const nestedBlockTags=new Set(['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'])")||!html.includes("let parent=node.parentElement,nested=false")||!html.includes("while(parent&&parent!==block)"))throw new Error('EPUB text walker must exclude nested block descendants while retaining wrapper-owned text');
-const epubOpenStart=html.indexOf('async function openEpub(file)');
+const epubOpenStart=html.indexOf('function openEpub(file,openToken)')>=0?html.indexOf('function openEpub(file,openToken)'):html.indexOf('async function openEpub(file)');
 const epubOpenEnd=html.indexOf("\n$('prevBtn').onclick",epubOpenStart);
 if(epubOpenStart<0||epubOpenEnd<0)throw new Error('EPUB open workflow not found');
 const epubOpenSource=html.slice(epubOpenStart,epubOpenEnd);
