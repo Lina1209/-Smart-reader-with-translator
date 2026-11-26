@@ -81,6 +81,12 @@ const preserveEntryEnd=html.indexOf("if(['docx','epub','odt','xlsx','xlsm','pptx
 if(preserveEntryStart<0||preserveEntryEnd<0)throw new Error('Document-preservation entry point not found');
 const preserveEntry=html.slice(preserveEntryStart,preserveEntryEnd);
 if(!preserveEntry.includes('file.size>100*1024*1024'))throw new Error('Preserving translation must reject files above the browser memory safety limit');
+const zipGuardStart=html.indexOf('function assertZipArchiveSafe(zip){');
+const zipGuardEnd=html.indexOf('async function ensureZipLibrary(){',zipGuardStart);
+if(zipGuardStart<0||zipGuardEnd<0)throw new Error('ZIP archive safety guard missing');
+const zipGuard=html.slice(zipGuardStart,zipGuardEnd);
+for(const guard of ['entries.length>5000','size>64*1024*1024','total>256*1024*1024','size/compressed>1000'])if(!zipGuard.includes(guard))throw new Error('ZIP archive guard missing limit: '+guard);
+if((html.match(/assertZipArchiveSafe\\(zip\\)/g)||[]).length<3)throw new Error('ZIP safety guard must protect ODT, PPTX extraction and preserving archive translation');
 if(!(preserveEntry.indexOf('file.size>100*1024*1024')<preserveEntry.indexOf('readFileBuffer(file)')))throw new Error('Oversized files must be rejected before allocating their ArrayBuffer');
 if(!(preserveEntry.indexOf("if(ext==='pdf')")<preserveEntry.indexOf('readFileBuffer(file)'))||!(preserveEntry.indexOf("includes(ext)){return await translateImagePreservingFile")<preserveEntry.indexOf('readFileBuffer(file)')))throw new Error('PDF and image translation must not allocate an unused duplicate file buffer');
 const docxBranch=html.slice(html.indexOf("if(ext==='docx'){"),html.indexOf("}else if(ext==='odt'){") );
