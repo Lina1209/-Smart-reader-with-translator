@@ -553,3 +553,23 @@ const columns=groupParagraphs([
  {text:'Right two',box:{x0:221,y0:25,x1:282,y1:37}}
 ]);
 if(columns.some(group=>group.lines.length>1))throw new Error('Separate columns must not be merged into one OCR paragraph');
+
+const positionStart=html.indexOf('function epubPositionKey(');
+const positionEnd=html.indexOf('function updateEpubNavigationButtons()',positionStart);
+if(positionStart<0||positionEnd<0)throw new Error('EPUB position persistence helpers not found');
+const positionStorage=new Map();
+const positionHelpers=vm.runInNewContext(html.slice(positionStart,positionEnd)+';({epubPositionKey,readEpubPosition,saveEpubPosition})',{
+ window:{localStorage:{getItem:key=>positionStorage.get(key)||null,setItem:(key,value)=>positionStorage.set(key,value)}},
+ console:{warn(){}},Date
+});
+const epubFile={name:'sample.epub',size:12345,lastModified:1700000000000};
+const positionKey=positionHelpers.epubPositionKey(epubFile);
+if(positionKey!==positionHelpers.epubPositionKey({...epubFile}))throw new Error('The same EPUB file must resolve to a stable reading-position key');
+if(positionKey===positionHelpers.epubPositionKey({...epubFile,size:54321}))throw new Error('Different EPUB files must not share a saved reading position');
+if(positionHelpers.readEpubPosition(positionKey)!=='')throw new Error('Missing EPUB position must safely fall back to the start');
+if(!positionHelpers.saveEpubPosition(positionKey,{start:{cfi:'epubcfi(/6/4[chapter]!/4/2/1:0)'}}))throw new Error('A valid EPUB CFI position should be saved');
+if(positionHelpers.readEpubPosition(positionKey)!=='epubcfi(/6/4[chapter]!/4/2/1:0)')throw new Error('Saved EPUB CFI position was not restored');
+positionStorage.set(positionKey,'{"cfi":"javascript:alert(1)"}');
+if(positionHelpers.readEpubPosition(positionKey)!=='')throw new Error('Invalid stored EPUB positions must be rejected');
+if(!html.includes('saveEpubPosition(epubPositionStorageKey,loc)')||!html.includes('await rendition.display(savedPosition)'))throw new Error('EPUB relocation must persist its CFI and opening must restore it');
+if(!html.includes("catch(error){console.warn('Сохранённая позиция EPUB недоступна, открываем начало книги',error);await rendition.display();}"))throw new Error('Invalid or stale EPUB positions must fall back to the beginning');
