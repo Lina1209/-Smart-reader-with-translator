@@ -590,6 +590,7 @@ const tocEntries=flattenToc([
 if(tocEntries.length!==3||tocEntries[0].depth!==0||tocEntries[1].depth!==1||tocEntries[2].href!=='chapter2.xhtml')throw new Error('EPUB nested table-of-contents entries must flatten in reading order');
 if(!html.includes('id="epubTocSelect"')||!html.includes('book.loaded.navigation')||!html.includes("await rendition.display(href)"))throw new Error('EPUB table of contents must be loaded and navigate to selected chapter hrefs');
 if(!html.includes('populateEpubToc();setProgress'))throw new Error('EPUB table of contents must populate after initial display');
+if(!html.includes('const sourceBook=book;')||!html.includes('if(book!==sourceBook)return;')||!html.includes('if(openToken!==requestId)return;populateEpubToc();'))throw new Error('Late EPUB loading must not overwrite the table of contents or UI after another book is opened');
 if(!html.includes("function closeExisting(){const tocControl=$('epubTocSelect')")||!html.includes("tocControl.hidden=true;tocControl.disabled=false")||!html.includes("epubPositionStorageKey='';epubNavigationBusy=false;epubPageState={page:0,total:0}"))throw new Error('Switching away from EPUB must clear its table of contents, saved-position key, and navigation state');
 if(!html.includes("rendition.resize()"))throw new Error('EPUB viewer must recalculate page layout after viewport resizing');
 if(!html.includes("saveEpubPosition(epubPositionStorageKey,loc)"))throw new Error('EPUB position must be persisted after relocation, including layout changes');
