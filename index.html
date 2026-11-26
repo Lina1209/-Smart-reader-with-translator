@@ -378,34 +378,6 @@ async function requestTranslationChunkWithRetry(text,from,to,onRetry){
  }
  throw new Error('Не удалось выполнить перевод после повторных попыток.');
 }
-async function requestTranslationChunk(text,from,to){');}
-function protectGlossaryTerms(value){
- let text=String(value),tokens=[];
- const entries=parseTranslationGlossary();
- entries.forEach((entry,index)=>{
-  let token='ZXQTERM'+index+'QXZ';while(text.includes(token))token+='X';
-  const pattern=new RegExp('(^|[^\\\\p{L}\\\\p{N}])('+escapeTranslationRegex(entry.source)+')(?=$|[^\\\\p{L}\\\\p{N}])','giu');
-  text=text.replace(pattern,(whole,prefix)=>{tokens.push({token,target:entry.target});return prefix+token;});
- });
- return {text,tokens};
-}
-function restoreGlossaryTerms(value,tokens){let text=String(value);for(const item of tokens)text=text.split(item.token).join(item.target);return text;}
-function isRetryableTranslationError(error){
- const message=String(error?.message||error);
- return /HTTP (?:408|425|500|502|503|504)/i.test(message)||/не ответил за 20 секунд|Не удалось связаться с LibreTranslate/i.test(message)||(translationEngine==='libretranslate'&&/HTTP 429/i.test(message));
-}
-async function requestTranslationChunkWithRetry(text,from,to,onRetry){
- for(let attempt=0;attempt<3;attempt++){
-  try{return await requestTranslationChunk(text,from,to);}
-  catch(error){
-   if(attempt===2||!isRetryableTranslationError(error))throw error;
-   const wait=700*Math.pow(2,attempt);
-   if(typeof onRetry==='function')onRetry(attempt+1,wait,error);
-   await new Promise(resolve=>setTimeout(resolve,wait));
-  }
- }
- throw new Error('Не удалось выполнить перевод после повторных попыток.');
-}
 async function requestTranslationChunk(text,from,to){
  const protectedText=protectGlossaryTerms(text),requestText=protectedText.text;
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,data;
