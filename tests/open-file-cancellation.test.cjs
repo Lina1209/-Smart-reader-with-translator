@@ -57,6 +57,6 @@ function makeContext(openText){
  const closeStart=html.indexOf('function closeBook(){');
  const closeEnd=html.indexOf("$('closeBook').onclick",closeStart);
  assert.ok(closeStart>=0&&closeEnd>closeStart,'reader close lifecycle must exist');
- assert.match(html.slice(closeStart,closeEnd),/^function closeBook\\(\\)\\{readerOpenPending=false;/,'closing during an asynchronous file load must clear the pending state before invalidating the request');
+ assert.match(html.slice(closeStart,closeEnd),/^function closeBook\(\)\{readerOpenPending=false;/,'closing during an asynchronous file load must clear the pending state before invalidating the request');
  console.log('Reader open cancellation and file-size tests passed: stale requests are cancelled, existing books remain open on rejected selections, oversized files are rejected early, and closing resets pending state.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
