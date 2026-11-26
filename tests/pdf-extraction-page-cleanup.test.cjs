@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
-const start=html.indexOf("const pages=[];let pdf=null;try{pdf=await loading.promise;ensureCurrent();readerSourcePageCount=pdf.numPages;");
+const start=html.indexOf("const pages=[];let pdf=null;try{pdf=await loading.promise;ensureCurrent();if(openToken!==undefined)readerSourcePageCount=pdf.numPages;");
 assert.ok(start>=0,'PDF text extraction loop must exist');
 const end=html.indexOf("if(name.endsWith('.pptx')",start);
 assert.ok(end>start,'PDF extraction block must have a following format handler');
