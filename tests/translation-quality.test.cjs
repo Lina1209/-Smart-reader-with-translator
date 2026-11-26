@@ -169,4 +169,17 @@ if(imagePipelineStart<0||imagePipelineEnd<0)throw new Error('Image OCR pipeline 
 const imagePipeline=html.slice(imagePipelineStart,imagePipelineEnd);
 if(!imagePipeline.includes('try{const ocr=await recognizeImageCanvas')||!imagePipeline.includes('finally{canvas.width=canvas.height=0;}'))throw new Error('Image OCR canvas is not released in a finally block');
 
+const deskewStart=html.indexOf('function createDeskewCanvas(');
+const deskewEnd=html.indexOf('function restoreOcrBox(',deskewStart);
+if(deskewStart<0||deskewEnd<0)throw new Error('Fine-angle deskew helpers not found');
+const deskewSource=html.slice(deskewStart,deskewEnd)+html.slice(html.indexOf('function restoreDeskewBox(',deskewEnd),html.indexOf('\nfunction scaleOcrBox',deskewEnd));
+const deskewHelpers=vm.runInNewContext(deskewSource+'; ({createDeskewCanvas,restoreDeskewBox})');
+const originalBox={x0:30,y0:40,x1:130,y1:70},angle=3*Math.PI/180,rotW=Math.ceil(200*Math.cos(angle)+100*Math.sin(angle)),rotH=Math.ceil(200*Math.sin(angle)+100*Math.cos(angle));
+const rotatedCorners=[[30,40],[130,40],[30,70],[130,70]].map(([x,y])=>{const dx=x-100,dy=y-50;return[dx*Math.cos(angle)-dy*Math.sin(angle)+rotW/2,dx*Math.sin(angle)+dy*Math.cos(angle)+rotH/2]});
+const rotatedBox={x0:Math.min(...rotatedCorners.map(p=>p[0])),y0:Math.min(...rotatedCorners.map(p=>p[1])),x1:Math.max(...rotatedCorners.map(p=>p[0])),y1:Math.max(...rotatedCorners.map(p=>p[1]))};
+const restored=deskewHelpers.restoreDeskewBox(rotatedBox,3,200,100,rotW,rotH);
+if(Math.abs(restored.x0-originalBox.x0)>2||Math.abs(restored.y0-originalBox.y0)>2||Math.abs(restored.x1-originalBox.x1)>2||Math.abs(restored.y1-originalBox.y1)>2)throw new Error('Deskew bounding-box coordinates were not restored to the source image');
+if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
+
+
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
