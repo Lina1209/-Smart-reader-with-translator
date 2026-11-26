@@ -527,7 +527,7 @@ function detectLongStraightRuleInOcrBox(ctx,box,backgroundColor){
   const vertical=[];
   for(let x=0;x<width;x++){let run=0,best=0;for(let y=0;y<height;y++){if(marked(x,y)){run++;best=Math.max(best,run);}else run=0;}if(best>=Math.max(8,height*.82))vertical.push(x);}
   const maxHorizontalThickness=Math.max(2,Math.ceil(height*.12)),maxVerticalThickness=Math.max(2,Math.ceil(width*.12));
-  const compact=(indices,maxThickness)=>{let count=0,previous=-2;for(const value of indices){if(value>previous+1)count=1;else count++;if(count>maxThickness)return true;previous=value;}return false;};
+  const compact=(indices,maxThickness)=>{if(!indices.length)return false;let count=1,previous=indices[0];for(let i=1;i<indices.length;i++){const value=indices[i];if(value===previous+1)count++;else{if(count<=maxThickness)return true;count=1;}previous=value;}return count<=maxThickness;};
   return{detected:compact(horizontal,maxHorizontalThickness)||compact(vertical,maxVerticalThickness),reason:'long-straight-rule'};
  }catch(error){return{detected:true,reason:'pixel-inspection-failed'};}
 }
