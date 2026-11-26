@@ -328,7 +328,7 @@ async function requestTranslationChunk(text,from,to){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,data;
  try{
   if(translationEngine==='libretranslate'){
-   const endpoint=String($('libreTranslateEndpoint')?.value||'').trim().replace(/\\/+$/,'');
+   const endpoint=String($('libreTranslateEndpoint')?.value||'').trim().replace(/\/+$/,'');
    if(!endpoint)throw new Error('Укажите адрес своего сервера LibreTranslate (например, https://translate.example.com).');
    const source=from==='auto'?'auto':String(from).split('-')[0],target=String(to).split('-')[0];
    response=await fetch(endpoint+'/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:text,source,target,format:'text'}),signal:controller.signal});
