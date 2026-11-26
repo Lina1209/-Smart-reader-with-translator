@@ -95,3 +95,12 @@ See [PDF font resource audit](PDF_FONT_RESOURCE_AUDIT.md) for the read-only insp
 The unit tests cover disjoint boxes, edge contact, partial and full containment overlap, multiple obstacles, malformed rectangles and fail-closed behavior. CI runs the suite independently.
 
 This is intentionally not a PDF object walker: it does not discover image/table/shape bounds, compose Form XObject or viewport matrices, resolve clipping paths, rotation, transparency, z-order or blend modes. Its inputs must already be transformed into a common page-space coordinate system. A reported intersection is a geometric warning, not proof of visible obstruction. No text is moved and no PDF is rewritten.
+
+
+## Page-level image XObject placement extraction
+
+`tests/pdf_image_placement.py` reads parsed page content operations and resolves page-level `Do` references whose XObject subtype is `/Image`. It tracks the page content `q`/`Q` stack and affine `cm` transforms, transforms all four corners of the image unit square, and returns a page-user-space bounding envelope plus the transformed corners. It also reports image pixel dimensions, color space and soft-mask presence. Form XObjects are explicitly returned as unresolved rather than mistaken for images.
+
+Tests use the generated transparency fixture to assert the image's actual page-space rectangle (100, 400, 190, 450), soft-mask metadata, matrix composition, rotated image corner geometry, and fail-closed reporting for a Form XObject. CI runs this parser test independently.
+
+Scope is deliberately limited: nested Form XObjects, inherited resource dictionaries, clipping-path intersection, crop-box/page rotation normalization, graphics-state transparency and z-order are not resolved. Thus this is a first real PDF-object geometry source, not a complete inventory of all visible image content. Callers must put text and image boxes into the same page coordinate system before overlap comparison.
