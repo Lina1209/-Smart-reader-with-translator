@@ -224,6 +224,12 @@ if(!shortCell||!wideCell||shortCell.x1!==75||wideCell.x0!==130||wideCell.x1!==25
 const foreignLine={text:'unmapped',box:{x0:300,y0:10,x1:350,y1:21}};
 if(constrainCell(foreignLine,overlapGrid)!==null)throw new Error('A line not assigned to a detected table cell must not be painted');
 if(!html.includes('constrainOcrLineToTableCell(line.lines[0],tableGrid)'))throw new Error('PDF and image OCR rendering must use detected cell bounds');
+if(!html.includes('function paintTranslationInOcrBox(ctx,text,box,targetCode,backgroundColor)'))throw new Error('Polygon-clipped OCR replacement helper is missing');
+const polygonPainterStart=html.indexOf('function paintTranslationInOcrBox('),polygonPainterEnd=html.indexOf('function mapRectifiedOcrDataToSource',polygonPainterStart);
+const polygonPainter=html.slice(polygonPainterStart,polygonPainterEnd);
+if(!polygonPainter.includes('ctx.lineTo(box.polygon[i].x,box.polygon[i].y)')||!polygonPainter.includes('ctx.clip()'))throw new Error('OCR replacement background and translated text must be clipped to the mapped perspective polygon');
+if(!html.includes('paintTranslationInOcrBox(ctx,translated,cellBox,target,bg.color)')||!html.includes('paintTranslationInOcrBox(ctx,translated,cellBox,target,fill.color)'))throw new Error('Both PDF and image OCR paths must use polygon-clipped replacement');
+
 const uncertainGrid=tableGridBuilder([
  {text:'one',box:{x0:10,y0:10,x1:90,y1:22}},
  {text:'two',box:{x0:220,y0:10,x1:300,y1:22}},
@@ -378,12 +384,14 @@ const mappedCenter=rectification.mapPageHomography(plan.sourceToOutput,{x:(sourc
 if(!mappedCenter||!Number.isFinite(mappedCenter.x)||!Number.isFinite(mappedCenter.y))throw new Error('Source-to-output coordinate mapping failed');
 const mappedBox=rectification.mapRectifiedOcrBox({x0:200,y0:200,x1:400,y1:300},plan.sourceToOutput);
 if(!mappedBox||!(mappedBox.x1>mappedBox.x0)||!(mappedBox.y1>mappedBox.y0))throw new Error('OCR box was not remapped using all four perspective-transformed corners');
+if(!Array.isArray(mappedBox.polygon)||mappedBox.polygon.length!==4||mappedBox.polygon.some(point=>!Number.isFinite(point.x)||!Number.isFinite(point.y)))throw new Error('Perspective-mapped OCR box must retain its four-corner polygon, not only its axis-aligned bounds');
 const identityPlan=rectification.createPageRectificationPlan([{x:0,y:0},{x:1000,y:0},{x:1000,y:1400},{x:0,y:1400}]);
 if(!identityPlan.accepted)throw new Error('A rectangular source page should produce a valid rectification plan');
 const identityBack=rectification.mapRectifiedOcrBox({x0:200,y0:300,x1:400,y1:500},identityPlan.outputToSource);
 if(!identityBack||Math.abs(identityBack.x0-200)>2||Math.abs(identityBack.y0-300)>2||Math.abs(identityBack.x1-400)>2||Math.abs(identityBack.y1-500)>2)throw new Error('OCR box mapping must return to the original page coordinate space accurately');
 const mappedBack=rectification.mapRectifiedOcrBox({x0:260,y0:260,x1:360,y1:330},plan.outputToSource);
 if(!mappedBack||!(mappedBack.x1>mappedBack.x0)||!(mappedBack.y1>mappedBack.y0))throw new Error('Rectified OCR coordinates could not be mapped back to the source page');
+if(!Array.isArray(mappedBack.polygon)||mappedBack.polygon.length!==4)throw new Error('Mapped OCR coordinates must preserve the source polygon for clipped restoration');
 const restoredData=rectification.mapRectifiedOcrDataToSource({lines:[{text:'sample',confidence:92,bbox:{x0:260,y0:260,x1:360,y1:330}},{text:'bad',confidence:10,bbox:{x0:NaN,y0:0,x1:1,y1:1}}]},plan.outputToSource);
 if(restoredData.lines.length!==1||restoredData.lines[0].text!=='sample'||restoredData.lines[0].confidence!==92||restoredData.unmappedBoxCount!==1)throw new Error('OCR line mapping must preserve valid line data and reject invalid boxes');
 const permutedPlan=rectification.createPageRectificationPlan([sourceQuad[2],sourceQuad[0],sourceQuad[3],sourceQuad[1]]);
