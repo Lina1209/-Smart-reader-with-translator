@@ -854,12 +854,19 @@ function distributeTranslationAcrossRuns(translated,texts){
  const active=texts.map((node,index)=>({node,index})).filter(item=>String(item.node.nodeValue||'').trim());
  if(!active.length)return;
  const weights=active.map(item=>Math.max(1,String(item.node.nodeValue||'').trim().length));
- texts.forEach(node=>{node.nodeValue='';});
- if(active.length===1){active[0].node.nodeValue=value;return;}
- const leading=(value.match(/^\s*/u)||[''])[0],trailing=(value.match(/\s*$/u)||[''])[0];
+ const write=(node,text)=>{
+  node.nodeValue=text;
+  // Word may discard boundary whitespace unless the corresponding w:t has xml:space="preserve".
+  if(/^\\s|\\s$/u.test(text)&&node.parentElement?.setAttributeNS){
+   node.parentElement.setAttributeNS('http://www.w3.org/XML/1998/namespace','xml:space','preserve');
+  }
+ };
+ texts.forEach(node=>{write(node,'');});
+ if(active.length===1){write(active[0].node,value);return;}
+ const leading=(value.match(/^\\s*/u)||[''])[0],trailing=(value.match(/\\s*$/u)||[''])[0];
  const core=value.slice(leading.length,value.length-trailing.length);
- if(!core){active[0].node.nodeValue=value;return;}
- const tokens=core.match(/\S+(?:\s+|$)/gu)||[];
+ if(!core){write(active[0].node,value);return;}
+ const tokens=core.match(/\\S+(?:\\s+|$)/gu)||[];
  const total=weights.reduce((sum,n)=>sum+n,0),assigned=[];
  let cursor=0,weightBefore=0;
  for(let i=0;i<active.length;i++){
@@ -867,9 +874,10 @@ function distributeTranslationAcrossRuns(translated,texts){
   const finish=i===active.length-1?tokens.length:Math.round(tokens.length*weightBefore/total);
   assigned.push(tokens.slice(cursor,finish).join(''));cursor=finish;
  }
- active[0].node.nodeValue=leading+assigned[0];
- for(let i=1;i<active.length;i++)active[i].node.nodeValue=assigned[i];
- active[active.length-1].node.nodeValue+=(trailing||'');
+ write(active[0].node,leading+assigned[0]);
+ for(let i=1;i<active.length;i++)write(active[i].node,assigned[i]);
+ const last=active[active.length-1].node;
+ write(last,String(last.nodeValue||'')+(trailing||''));
 }
 function xmlTextNodes(el,ns,tag){
  const nodes=Array.from(el.getElementsByTagNameNS(ns,tag)).flatMap(n=>Array.from(n.childNodes).filter(c=>c.nodeType===3));
