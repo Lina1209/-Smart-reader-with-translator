@@ -1145,6 +1145,18 @@ function initBookTTS(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initBookTTS,{once:true});else initBookTTS();
 
 /* Связка открытой книги с переводчиком и транслитератором */
+/* Синхронизация текста активных EPUB-разделов с панелями перевода. */
+function syncEpubBookText(){
+ try{
+  if(!rendition)return;
+  const contents=rendition.getContents()||[];
+  const value=contents.map(item=>{
+   const body=item&&item.document&&item.document.body;
+   return body?(body.innerText||body.textContent||''):'';
+  }).filter(text=>String(text).trim()).join('\n\n');
+  if(value.trim())setBookSource(value,'epub');
+ }catch(e){console.warn('Не удалось прочитать текст текущей главы EPUB',e);}
+}
 let bookSourceText='', bookSourcePages=[], bookSourcePage=0, bookSourceKind='';
 function splitBookText(value,limit=1900){
  const text=String(value||'');const pages=[];let start=0;
@@ -1229,17 +1241,7 @@ wireSimpleExport('standaloneSaveSource',()=>$('standaloneInput').value,'standalo
 wireBookExport('translator',()=>$('translatorBookSource').textContent,()=>{const v=$('translatorBookResult').textContent;return v.startsWith('Нажмите')?'':v;},'translatorBookStatus','book-translation');
 wireBookExport('translit',()=>$('translitBookSource').textContent,()=>$('translitBookResult').textContent,'translitBookStatus','book-transliteration');
 
-function syncEpubBookText(){
- try{
-  if(!rendition)return;
-  const contents=rendition.getContents()||[];
-  const value=contents.map(item=>{
-   const body=item&&item.document&&item.document.body;
-   return body?(body.innerText||body.textContent||''):'';
-  }).filter(text=>String(text).trim()).join('\n\n');
-  if(value.trim())setBookSource(value,'epub');
- }catch(e){console.warn('Не удалось прочитать текст текущей главы EPUB',e);}
-}
+
 
 setTheme('light');
 })();
