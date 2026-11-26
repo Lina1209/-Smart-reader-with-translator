@@ -277,8 +277,9 @@ function saveEpubPosition(key,location){
 let epubPositionStorageKey='';
 function flattenEpubToc(items,depth=0,result=[]){
  (Array.isArray(items)?items:[]).forEach(item=>{
-  if(!item||typeof item.href!=='string'||!item.href.trim())return;
-  result.push({label:String(item.label||item.title||'Раздел').trim(),href:item.href,depth});
+  if(!item)return;
+  const href=typeof item.href==='string'?item.href.trim():'';
+  if(href)result.push({label:String(item.label||item.title||'Раздел').trim(),href,depth});
   flattenEpubToc(item.subitems||item.children||[],depth+1,result);
  });
  return result;
