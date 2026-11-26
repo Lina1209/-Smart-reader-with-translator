@@ -229,6 +229,7 @@ const polygonPainterStart=html.indexOf('function paintTranslationInOcrBox('),pol
 const polygonPainter=html.slice(polygonPainterStart,polygonPainterEnd);
 if(!polygonPainter.includes('ctx.lineTo(box.polygon[i].x,box.polygon[i].y)')||!polygonPainter.includes('ctx.clip()'))throw new Error('OCR replacement background and translated text must be clipped to the mapped perspective polygon');
 if(!html.includes('paintTranslationInOcrBox(ctx,translated,cellBox,target,bg.color)')||!html.includes('paintTranslationInOcrBox(ctx,translated,cellBox,target,fill.color)'))throw new Error('Both PDF and image OCR paths must use polygon-clipped replacement');
+if((html.match(/const replacementGroups=rectification\|\|layout\.multiColumn\|\|layout\.tableLike\?/g)||[]).length!==2)throw new Error('PDF and image OCR must keep per-line polygons after perspective correction instead of merging them into rectangular paragraph bounds');
 
 const uncertainGrid=tableGridBuilder([
  {text:'one',box:{x0:10,y0:10,x1:90,y1:22}},
