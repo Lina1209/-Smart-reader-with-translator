@@ -70,7 +70,7 @@ const cases=[
   'ppt/diagrams/drawing1.xml','ppt/notesSlides/notesSlide1.xml'
  ],'PPTX translation must include slide notes, chart paragraphs and SmartArt data, but ignore unrelated binary/layout parts');
  let prepared=null;
- const prepZip={file(path,value,options){if(arguments.length===1)return{async:async()=> 'application/epub+zip'};prepared={path,value,options};return this;}};
+ const prepZip={files:{mimetype:{dir:false},'META-INF/container.xml':{dir:false}},file(path,value,options){if(arguments.length===1)return{async:async()=> 'application/epub+zip'};prepared={path,value,options};return this;}};
  let odtPrepared=null;
  const odtPrepZip={files:{mimetype:{dir:false},'content.xml':{dir:false}},file(path,value,options){if(arguments.length===1)return{async:async()=> 'application/vnd.oasis.opendocument.text'};odtPrepared={path,value,options};return this;}};
  await context.prepareOdt(odtPrepZip);
@@ -86,6 +86,8 @@ const cases=[
  assert.equal(prepared.options.compression,'STORE','EPUB mimetype must be stored without compression');
  await assert.rejects(context.validateArchive(new Blob(['zip']),'epub',fakeZip(makeArchive(['mimetype','META-INF/container.xml','OEBPS/content.opf','OEBPS/ch.xhtml'],'application/epub+zip',String.fromCharCode(8,0)))),/без сжатия/);
  await assert.rejects(context.validateArchive(new Blob(['zip']),'epub',fakeZip(makeArchive(['META-INF/container.xml','mimetype','OEBPS/content.opf','OEBPS/ch.xhtml'],'application/epub+zip',String.fromCharCode(0,0)))),/первым элементом/);
+ const invalidEpubPrepZip={files:{'META-INF/container.xml':{dir:false},mimetype:{dir:false}},file(){return{async:async()=> 'application/epub+zip'};}};
+ await assert.rejects(context.prepareEpub(invalidEpubPrepZip),/первым элементом/);
  const validPdf=context.validatePdf(new Uint8Array([37,80,68,70,45,49,46,55,10]));
  assert.equal(validPdf.type,'application/pdf');
  assert.ok(validPdf.size>=8);
