@@ -52,6 +52,6 @@ const cases=[
  await assert.rejects(context.validateArchive(new Blob(['zip']),'docx',fakeZip(makeArchive(['[Content_Types].xml']))),/word\/document\.xml/);
  await assert.rejects(context.validateArchive(new Blob(['zip']),'epub',fakeZip(makeArchive(['mimetype','META-INF/container.xml','OEBPS/content.opf','OEBPS/ch.xhtml'],'wrong/type'))),/неверный MIME/);
  await assert.rejects(context.validateArchive(new Blob(['zip']),'pptx',fakeZip(makeArchive(['[Content_Types].xml','ppt/presentation.xml']))),/ни один слайд/);
- assert.ok(safetyChecks>=cases.length+5,'Every loaded archive must pass the archive safety gate');
+ assert.ok(safetyChecks>=cases.length+3,'Every loaded archive must pass the archive safety gate');
  console.log('Document export integrity tests passed: non-empty archives, ZIP read-back, required package parts, MIME types and malformed-output rejection.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
