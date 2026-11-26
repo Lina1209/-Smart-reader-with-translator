@@ -455,6 +455,21 @@ if(!html.includes('mapRectifiedOcrDataToSource(ocr,rectification.outputToSource)
 if(!html.includes('rectifiedCanvas.width=rectifiedCanvas.height=0'))throw new Error('Temporary rectified OCR canvases must be released after each PDF page');
 if(!html.includes('OCR выполнен по выправленному предпросмотру'))throw new Error('PDF translation must report when perspective correction was used for OCR');
 
+const classifyStart=html.indexOf('function classifyPdfPageContent('),classifyEnd=html.indexOf('function createSafePdfViewport(',classifyStart);
+if(classifyStart<0||classifyEnd<0)throw new Error('PDF page content classifier not found');
+const classifyPdfPageContent=vm.runInNewContext(html.slice(classifyStart,classifyEnd)+';classifyPdfPageContent');
+const mockOps={paintImageXObject:1,constructPath:2,stroke:3};
+const textPage=classifyPdfPageContent({items:[{str:'Selectable PDF text'}]},{fnArray:[2,3]},mockOps);
+if(textPage.kind!=='text'||!textPage.hasText||textPage.chars!==19)throw new Error('Native text PDF page was not classified correctly');
+const scanPage=classifyPdfPageContent({items:[]},{fnArray:[1]},mockOps);
+if(scanPage.kind!=='scan'||!scanPage.hasImages)throw new Error('Image-only scanned PDF page was not classified correctly');
+const mixedPage=classifyPdfPageContent({items:[{str:'Caption'}]},{fnArray:[1,2]},mockOps);
+if(mixedPage.kind!=='mixed'||mixedPage.imageOps!==1)throw new Error('Mixed text-and-image PDF page was not classified correctly');
+const emptyPage=classifyPdfPageContent({items:[]},{fnArray:[]},mockOps);
+if(emptyPage.kind!=='graphic-or-empty')throw new Error('Graphic or empty PDF page classification failed');
+if(!html.includes('текущий режим реконструкции всё равно растеризует страницу'))throw new Error('Native PDF text-layer loss must be explicitly reported');
+if(!html.includes('текущий режим OCR-реконструкции растеризует страницу целиком'))throw new Error('Mixed PDF page rasterization must be explicitly reported');
+
 const safeFillStart=html.indexOf('function estimateSafeBackgroundFill('),safeFillEnd=html.indexOf('function translationLayoutTokens(',safeFillStart);
 if(safeFillStart<0||safeFillEnd<0)throw new Error('Conservative background restoration helper not found');
 const safeFill=vm.runInNewContext(html.slice(safeFillStart,safeFillEnd)+';estimateSafeBackgroundFill');
