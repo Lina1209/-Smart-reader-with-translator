@@ -687,7 +687,7 @@ async function translatePdfPreservingFile(file,from,target,progressId){
     if(layout.multiColumn)layoutWarnings.push('Страница '+pageNo+': обнаружена вероятная многоколоночная структура; проверьте порядок чтения.');
     const tableGrid=layout.tableLike?buildOcrTableGrid(replacementLines):null;
     if(layout.tableLike)layoutWarnings.push('Страница '+pageNo+': обнаружена вероятная табличная структура'+(tableGrid?' ('+tableGrid.rows.length+' строк, '+tableGrid.columns.length+' столбца)':' без надёжной сетки')+'; содержимое переводится отдельными OCR-фрагментами без объединения ячеек.');
-    const replacementGroups=layout.multiColumn||layout.tableLike?groupOcrParagraphs(replacementLines,{preserveLines:true}):groupOcrParagraphs(replacementLines);
+    const replacementGroups=rectification||layout.multiColumn||layout.tableLike?groupOcrParagraphs(replacementLines,{preserveLines:true}):groupOcrParagraphs(replacementLines);
     for(let lineNo=0;safeToTranslate&&lineNo<replacementGroups.length;lineNo++){
      const line=replacementGroups[lineNo],translated=await translatePreservedText(line.text,from,target,progressId),cellBox=tableGrid?constrainOcrLineToTableCell(line.lines[0],tableGrid):line.box;if(!cellBox){layoutWarnings.push('Страница '+pageNo+', строка '+(lineNo+1)+': ячейку таблицы не удалось определить безопасно; исходный текст сохранён.');continue;}const {x0,y0,x1,y1}=cellBox,w=Math.max(1,x1-x0),h=Math.max(1,y1-y0),pad=Math.max(2,Math.round(h*.12));
      const fit=drawTranslationInBox(ctx,translated,x0,y0,w,h,target,{paint:false});
@@ -737,7 +737,7 @@ async function translateImagePreservingFile(file,from,target,progressId){
   if(layout.multiColumn)layoutWarnings.push('Обнаружена вероятная многоколоночная структура; проверьте порядок чтения.');
   const tableGrid=layout.tableLike?buildOcrTableGrid(replacementLines):null;
   if(layout.tableLike)layoutWarnings.push('Обнаружена вероятная табличная структура'+(tableGrid?' ('+tableGrid.rows.length+' строк, '+tableGrid.columns.length+' столбца)':' без надёжной сетки')+'; содержимое переводится отдельными OCR-фрагментами без объединения ячеек.');
-  const replacementGroups=layout.multiColumn||layout.tableLike?groupOcrParagraphs(replacementLines,{preserveLines:true}):groupOcrParagraphs(replacementLines);
+  const replacementGroups=rectification||layout.multiColumn||layout.tableLike?groupOcrParagraphs(replacementLines,{preserveLines:true}):groupOcrParagraphs(replacementLines);
   for(let i=0;safeToTranslate&&i<replacementGroups.length;i++){
    const line=replacementGroups[i],translated=await translatePreservedText(line.text,from,target,progressId);
    outputLines.push(translated);setProgress(progressId,85+14*(i+1)/replacementLines.length,'Переводим блоки изображения',(i+1)+' из '+replacementGroups.length);
