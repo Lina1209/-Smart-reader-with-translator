@@ -352,3 +352,25 @@ const tooNarrow=draw(mockContext,'AB',0,0,2,5,'en');
 if(!tooNarrow||tooNarrow.overflow!==true||tooNarrow.fits!==false)throw new Error('Text that cannot fit even at minimum size must be reported, not silently distorted');
 const cjkFit=draw(mockContext,'日本語の文章を翻訳します',0,0,30,90,'ja');
 if(!cjkFit||cjkFit.lineCount<2)throw new Error('CJK translations must wrap at grapheme boundaries in narrow boxes');
+
+const groupStart=html.indexOf('function groupOcrParagraphs('),groupEnd=html.indexOf('function ocrLinesForReplacement(',groupStart);
+if(groupStart<0||groupEnd<0)throw new Error('OCR paragraph grouping helper not found');
+const groupParagraphs=vm.runInNewContext(html.slice(groupStart,groupEnd)+';groupOcrParagraphs');
+const paragraphLines=[
+ {text:'This is the first',box:{x0:10,y0:10,x1:120,y1:22}},
+ {text:'continuation of the same paragraph',box:{x0:11,y0:25,x1:180,y1:37}},
+ {text:'and its final sentence.',box:{x0:12,y0:40,x1:150,y1:52}},
+ {text:'A separate paragraph starts here.',box:{x0:10,y0:85,x1:180,y1:97}}
+];
+const groupedParagraphs=groupParagraphs(paragraphLines);
+if(groupedParagraphs.length!==2||groupedParagraphs[0].lines.length!==3||groupedParagraphs[0].text!=='This is the first continuation of the same paragraph and its final sentence.')throw new Error('Adjacent OCR lines were not combined into a context-aware paragraph');
+if(groupedParagraphs[0].box.y0!==10||groupedParagraphs[0].box.y1!==52)throw new Error('Paragraph bounds do not cover all original OCR lines');
+const protectedTableLines=groupParagraphs(paragraphLines,{preserveLines:true});
+if(protectedTableLines.length!==4||protectedTableLines.some(group=>group.lines.length!==1))throw new Error('Table-like layouts must preserve individual OCR lines');
+const columns=groupParagraphs([
+ {text:'Left one',box:{x0:10,y0:10,x1:70,y1:22}},
+ {text:'Right one',box:{x0:220,y0:10,x1:280,y1:22}},
+ {text:'Left two',box:{x0:11,y0:25,x1:72,y1:37}},
+ {text:'Right two',box:{x0:221,y0:25,x1:282,y1:37}}
+]);
+if(columns.some(group=>group.lines.length>1))throw new Error('Separate columns must not be merged into one OCR paragraph');
