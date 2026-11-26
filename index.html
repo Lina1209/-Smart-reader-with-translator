@@ -1034,9 +1034,10 @@ async function extractDocumentText(file,progressId,openToken){const isCurrent=()
   if(pdf.numPages>2000)throw Error('В PDF больше 2000 страниц — слишком большой объём для браузерной обработки.');
   for(let i=1;i<=pdf.numPages;i++){
    ensureCurrent();report(20+70*i/pdf.numPages,'Извлекаем текст PDF','Страница '+i+' из '+pdf.numPages);
-   const page=await pdf.getPage(i);ensureCurrent();
+   const page=await pdf.getPage(i);
    let canvas=null;
    try{
+    ensureCurrent();
     const data=await page.getTextContent();ensureCurrent();
     const value=pdfTextItemsToPlainText(data.items);
     if(value)pages.push(value);
