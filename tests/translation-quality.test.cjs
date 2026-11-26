@@ -141,6 +141,27 @@ const singleSummary=layoutSummary({lines:singleColumn});
 if(singleSummary.multiColumn||singleSummary.tableLike)throw new Error('Single-column text was incorrectly classified as a table or multiple columns');
 const sparseSideBySide=[makeLine('left heading',10,10,100,22),makeLine('right note',260,10,350,22),makeLine('caption',10,60,340,72)];
 if(layoutSummary({lines:sparseSideBySide}).multiColumn)throw new Error('A single side-by-side pair was incorrectly classified as a multi-column page');
+
+const tableGridStart=html.indexOf('function buildOcrTableGrid('),tableGridEnd=html.indexOf('function ocrLayoutSummary(',tableGridStart);
+if(tableGridStart<0||tableGridEnd<0)throw new Error('OCR table-grid analysis helper not found');
+const tableGridBuilder=vm.runInNewContext(html.slice(tableGridStart,tableGridEnd)+';buildOcrTableGrid',{isValidOcrBox:box=>!!box&&Number.isFinite(box.x0)&&Number.isFinite(box.y0)&&Number.isFinite(box.x1)&&Number.isFinite(box.y1)&&box.x1>box.x0&&box.y1>box.y0});
+const gridLines=[];
+for(let row=0;row<4;row++){
+ gridLines.push({text:'left cell '+row,box:{x0:10+row*.5,y0:10+row*24,x1:90,y1:21+row*24}});
+ gridLines.push({text:'right cell '+row,box:{x0:130+row*.4,y0:10+row*24,x1:210,y1:21+row*24}});
+}
+const detectedGrid=tableGridBuilder(gridLines);
+if(!detectedGrid||detectedGrid.rows.length!==4||detectedGrid.columns.length!==2)throw new Error('OCR table grid did not identify four rows and two stable columns');
+if(detectedGrid.rows.some(row=>row.cells.length!==2||row.cells[0].columnIndex!==0||row.cells[1].columnIndex!==1))throw new Error('OCR table cells were assigned to the wrong columns');
+const uncertainGrid=tableGridBuilder([
+ {text:'one',box:{x0:10,y0:10,x1:90,y1:22}},
+ {text:'two',box:{x0:220,y0:10,x1:300,y1:22}},
+ {text:'three',box:{x0:20,y0:60,x1:100,y1:72}},
+ {text:'four',box:{x0:240,y0:60,x1:320,y1:72}}
+]);
+if(uncertainGrid!==null)throw new Error('Sparse side-by-side OCR fragments must not be promoted to a table grid');
+if(!html.includes('содержимое переводится отдельными OCR-фрагментами без объединения ячеек'))throw new Error('Table-safe OCR translation warning is not surfaced');
+
 const renderScaleStart=html.indexOf('function createSafePdfViewport(');
 const renderScaleEnd=html.indexOf('\n',renderScaleStart);
 if(renderScaleStart<0||renderScaleEnd<0)throw new Error('Adaptive PDF render-scale helper not found');
