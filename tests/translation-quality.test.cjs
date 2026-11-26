@@ -266,6 +266,13 @@ for(let y=100;y<=900;y+=2){syntheticEdges.push({x:120,y},{x:880,y});}
 for(let y=180;y<820;y+=55)for(let x=190;x<790;x+=3)syntheticEdges.push({x,y});
 const detected=detectPage(syntheticEdges,1000,1000);
 if(!detected.accepted||detected.confidence<62||!detected.points||detected.points.length!==4)throw new Error('A high-contrast page boundary was not detected reliably: '+JSON.stringify(detected));
+
+const skewPolygon=[[220,110],[850,210],[760,890],[120,760]],skewEdges=[];
+for(let side=0;side<4;side++){const a=skewPolygon[side],b=skewPolygon[(side+1)%4],steps=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1]));for(let i=0;i<=steps;i++){const t=i/steps;skewEdges.push({x:Math.round(a[0]+(b[0]-a[0])*t),y:Math.round(a[1]+(b[1]-a[1])*t)});}}
+for(let y=200;y<800;y+=45)for(let x=250;x<740;x+=4)skewEdges.push({x,y});
+const skewDetected=detectPage(skewEdges,1000,1000);
+if(!skewDetected.accepted||skewDetected.confidence<62)throw new Error('A perspective-skewed page boundary was not detected reliably: '+JSON.stringify(skewDetected));
+
 const noPage=detectPage(Array.from({length:200},(_,i)=>({x:200+(i%20)*5,y:200+Math.floor(i/20)*5})),1000,1000);
 if(noPage.accepted)throw new Error('A compact text-like cluster must not be accepted as a page boundary');
 if(!html.includes('previewOnly:true')||!html.includes("reason:'no-reliable-page-boundary'"))throw new Error('Page detection must remain preview-only and reject uncertain candidates');
