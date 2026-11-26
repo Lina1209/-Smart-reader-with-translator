@@ -49,6 +49,27 @@ const cases=[
  ['xlsm',['[Content_Types].xml','xl/workbook.xml'],'application/vnd.ms-excel.sheet.macroEnabled.12'],
  ['pptx',['[Content_Types].xml','ppt/presentation.xml','ppt/slides/slide1.xml'],'application/vnd.openxmlformats-officedocument.presentationml.presentation']
 ];
+
+const downloadStart=html.indexOf('function downloadBlob(blob,filename,statusId){');
+const downloadEnd=html.indexOf('function makeRtf(value){',downloadStart);
+assert.ok(downloadStart>=0&&downloadEnd>downloadStart,'Download helper must exist');
+const downloadSource=html.slice(downloadStart,downloadEnd);
+let downloadStatus='',downloadUrlCount=0,revokedUrls=[],scheduled=[],clickCount=0,removedCount=0;
+const downloadAnchor={style:{},click(){clickCount++;},remove(){removedCount++;}};
+const downloadContext={Blob,Number,String,console:{warn(){}},URL:{createObjectURL(){downloadUrlCount++;return 'blob:test-download';},revokeObjectURL(url){revokedUrls.push(url);}},document:{body:{appendChild(){}},createElement(){return downloadAnchor;}},setTimeout(fn,ms){scheduled.push({fn,ms});},$(id){assert.equal(id,'downloadStatus');return {set textContent(value){downloadStatus=value;}};}};
+vm.createContext(downloadContext);
+vm.runInContext(downloadSource+';globalThis.runDownload=downloadBlob;',downloadContext);
+assert.equal(downloadContext.runDownload(new Blob([]),'empty.txt','downloadStatus'),false,'Empty files must not be offered for download');
+assert.equal(downloadUrlCount,0,'Invalid downloads must not allocate object URLs');
+assert.equal(downloadContext.runDownload(new Blob(['data']),'book-translated.epub','downloadStatus'),true,'Valid files must trigger a browser download');
+assert.equal(clickCount,1,'Download link must be clicked once');
+assert.equal(removedCount,1,'Temporary anchor must be removed');
+assert.match(downloadStatus,/book-translated\\.epub/);
+assert.equal(scheduled.length,1,'Object URL cleanup must be scheduled');
+assert.equal(scheduled[0].ms,10000,'Object URL must remain available while the browser starts the download');
+scheduled[0].fn();
+assert.deepEqual(revokedUrls,['blob:test-download'],'Object URL must be revoked after download startup');
+
 (async()=>{
  for(const [ext,paths,mime] of cases){
   const archive=makeArchive(paths,ext==='odt'?'application/vnd.oasis.opendocument.text':ext==='epub'?'application/epub+zip':undefined,ext==='epub'||ext==='odt'?String.fromCharCode(0,0):undefined);
