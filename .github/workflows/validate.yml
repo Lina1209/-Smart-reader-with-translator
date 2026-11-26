@@ -88,6 +88,8 @@ jobs:
         run: node tests/pdf-mixed-page-classification.test.cjs
       - name: Test EPUB extraction integrity
         run: node tests/epub-extraction-integrity.test.cjs
+      - name: Test FB2 extraction integrity
+        run: node tests/fb2-extraction-integrity.test.cjs
       - name: Test EPUB nested table of contents navigation
         run: node tests/epub-navigation-toc.test.cjs
       - name: Test EPUB navigation across chapter boundaries
