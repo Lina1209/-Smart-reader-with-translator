@@ -63,6 +63,11 @@ const isDocxVisibleTextNode=vm.runInNewContext(html.slice(visibleTextStart,visib
 for(const tag of ['t']){const node={parentElement:{localName:tag}};if(!isDocxVisibleTextNode(node))throw new Error('Visible DOCX text node was incorrectly skipped: '+tag);}
 for(const tag of ['instrText','delText','del','fldChar','tab']){const node={parentElement:{localName:tag}};if(isDocxVisibleTextNode(node))throw new Error('DOCX field/deleted/non-text element was incorrectly treated as visible text: '+tag);}
 for(const tag of ['del','moveFrom']){const node={parentElement:{localName:'t',parentElement:{localName:tag,parentElement:null}}};if(isDocxVisibleTextNode(node))throw new Error('DOCX deleted/moved-from revision text must not be translated: '+tag);}
+const simpleFieldNode={parentElement:{localName:'t',parentElement:{localName:'r',parentElement:{localName:'fldSimple',parentElement:null}}}};
+if(isDocxVisibleTextNode(simpleFieldNode))throw new Error('DOCX simple-field result text must not be translated because Word can regenerate it from the field instruction');
+const storyPattern=/^word\\/(document|header\\d+|footer\\d+|footnotes|endnotes|comments)\\.xml$/i;
+for(const path of ['word/document.xml','word/header1.xml','word/footer2.xml','word/footnotes.xml','word/endnotes.xml','word/comments.xml'])if(!storyPattern.test(path))throw new Error('DOCX translation must include the story part '+path);
+for(const path of ['word/styles.xml','word/numbering.xml','word/settings.xml','word/theme/theme1.xml'])if(storyPattern.test(path))throw new Error('DOCX style/relationship metadata must not be treated as translatable story text: '+path);
 const insertedNode={parentElement:{localName:'t',parentElement:{localName:'ins',parentElement:null}}};
 if(!isDocxVisibleTextNode(insertedNode))throw new Error('Visible inserted DOCX revision text must remain translatable');
 const drawingText={parentElement:{localName:'t',namespaceURI:'http://schemas.openxmlformats.org/drawingml/2006/main',parentElement:null}};
