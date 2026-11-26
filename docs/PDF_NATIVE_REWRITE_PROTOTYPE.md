@@ -4,18 +4,22 @@ Status: **isolated preflight prototype only; not connected to the document trans
 
 The current PDF workflow uses PDF.js for extraction and pdf-lib for page assembly. pdf-lib does not provide a high-level API for replacing arbitrary existing text operators. This prototype deliberately does not attempt to mutate PDF content streams.
 
-## What the prototype checks
+## What the preflight now requires
 
-`lib/pdf-rewrite-preflight.js` accepts one PDF.js-like text item and a font adapter supplied by a future engine. It allows a rewrite candidate only when:
+`lib/pdf-rewrite-preflight.js` accepts one PDF.js-like text item, a font adapter and an independently verified rewrite context. It only returns a candidate for a separate rewrite adapter when all of the following are explicitly confirmed:
 
-- the item has a valid six-number text transform, positive width/height and a font resource name;
-- the text direction is left-to-right (RTL and vertical text safely fall back for now);
-- the adapter explicitly confirms every translated character exists in the target font;
-- encoding returns bytes and text measurement succeeds;
-- the replacement fits without shrinking below 78% of nominal size;
-- the replacement remains a single line.
+- valid text transform, positive extracted dimensions and a font resource name;
+- left-to-right horizontal writing and a single-line replacement;
+- embedded source font program, source encoding, Unicode mapping, glyph mapping and target glyph coverage;
+- shaping/cluster support, not merely per-character glyph presence;
+- resolved text state, clipping and transparency, with the replacement proven to fit the available clipped width;
+- top-level page content (nested Form XObject editing is not supported by this gate);
+- unsigned, untagged document structure;
+- a font adapter with verified encoding and measured metrics.
 
-Unknown or unsupported cases return a named fallback reason. The function returns encoded bytes for a later adapter but **does not edit, save or rewrite any PDF**.
+Missing facts cause a named fallback. PDF.js `TextItem.width` is an extracted text advance, **not** a clipping bound; the gate therefore requires a separately calculated `rewriteContext.availableWidth`. The measured target width must come from a verified font-metrics adapter. A font family name or PDF.js style metadata is not proof of embedded glyph availability.
+
+The result action is `candidate-for-independent-rewrite-adapter`, not permission to mutate a PDF. Encoded bytes are only adapter output; they are not asserted to be valid bytes for the source PDF font's encoding. This module does not edit, save or rewrite any PDF.
 
 ## Synthetic checks
 
@@ -25,23 +29,22 @@ Run:
 node tests/pdf-rewrite-preflight.test.cjs
 ```
 
-The test covers Cyrillic, Kazakh letters, mixed Latin/Cyrillic, missing glyphs, RTL fallback, multi-line text, invalid geometry, incomplete font adapters and overflow.
+The tests exercise Cyrillic, Kazakh letters, mixed scripts, missing glyphs, RTL fallback, line breaks, malformed geometry, unverified font metrics/encoding, and fail-closed behavior for every required graphics/font fact, vertical writing, nested forms, signatures, tagged structure and unknown available width.
 
-These are unit tests of the safety gate, not tests against real PDF files or real embedded fonts. They do not prove that a PDF content-stream rewrite will preserve kerning, ligatures, character spacing, clipping paths, transparency, tagged structure, signatures or searchable text.
+These are synthetic unit tests of the safety gate. They are not tests against actual embedded fonts, browser PDF.js replacement, real user documents or translated PDF output. In particular, the booleans in test fixtures are simulated evidence; production code must derive them from a real PDF object/content-stream analysis and a real shaping/font adapter.
 
-## Next engineering gate
+## Why the source-font checks are separate
 
-Before integration, a real content-stream adapter must be designed and tested against synthetic PDFs generated with:
-- WinAnsi simple fonts;
-- embedded subset TrueType fonts with ToUnicode CMaps;
-- Type0/CID fonts and Identity-H;
-- non-embedded fonts;
-- mixed text and vector table rules;
-- ligatures, kerning, TJ arrays, rotated text and clipped text.
+PDF text extraction commonly exposes a Unicode string through a `ToUnicode` CMap, but that does not by itself identify how to encode replacement bytes. A simple font's character code is interpreted through its font Encoding and Differences; a Type 0 font uses a CMap to map character codes to CIDs, then a descendant font and often a `CIDToGIDMap` to reach glyph IDs. The embedded subset may omit characters that exist in the full font family. Therefore:
 
-The adapter must re-open each output with PDF.js and verify that the old text is gone, the replacement is extractable, and unrelated images/vectors remain unchanged. Unsupported pages must remain unchanged or use the disclosed OCR fallback. No third-party engine with an incompatible license is bundled by this prototype.
+- `ToUnicode` supports text extraction; it is not a reverse encoder.
+- Encoding CMap and `CIDToGIDMap` solve different mapping stages.
+- A glyph being present in a font family does not prove it exists in the embedded subset.
+- Per-codepoint coverage does not prove correct shaping of ligatures, combining sequences, Arabic joining or Indic clusters.
 
-## Real PDF fixture gate
+A real adapter must inspect the actual font program and PDF mappings, shape the full translated run, and encode through the exact source-font path—or embed a new font and update all relevant PDF resources/operators. The latter is a separate, substantially larger engineering task.
+
+## Synthetic PDF fixture and rendering gates
 
 GitHub Actions generates temporary PDF files with ReportLab and inspects them with pypdf. The fixtures cover:
 
@@ -54,16 +57,14 @@ GitHub Actions generates temporary PDF files with ReportLab and inspects them wi
 - nested Form XObjects with independent resource dictionaries, nested `Do` invocations, per-form matrices and clipping paths;
 - an RGB image XObject with a grayscale soft mask, an alpha/blend graphics state, clipping and selectable text over the image.
 
-The tests inspect the font resources actually selected by each page's `Tf` operators, embedded font programs, the explicit Kazakh Unicode mappings, Type0 descendant fonts, CID widths, CID-to-glyph mapping bytes, `TJ` array members and text-state operators, nested Form XObject resource references, form matrices, `Do` invocations, clipping operators, image XObject and `/SMask` relationships, `/ExtGState` alpha/blend settings, and extracted text. This avoids treating unused font entries in a shared ReportLab resource dictionary as fonts used by a page.
+The tests inspect font resources selected by `Tf`, embedded font programs, explicit Kazakh Unicode mappings, Type 0 descendant fonts, CID widths, CID-to-glyph mapping bytes, `TJ` members and text-state operators, nested Form XObject resource references, form matrices, `Do` invocations, clipping operators, image XObjects and `/SMask` relationships, graphics-state alpha/blend settings, and extracted text.
 
-The ReportLab Type0 fixture uses a predefined Japanese Unicode CMap and a CIDFontType0 descendant with explicit widths. A second hand-built PDF fixture exercises Identity-H, an embedded CIDFontType2 TrueType program, a ToUnicode mapping and a binary CIDToGIDMap stream. The latter validates one known CID-to-glyph mapping; it is not a broad font-shaping or rendering test.
-
-The PDF files are generated during CI and are not committed as binary fixtures. A separate Poppler-based regression renders an eight-page suite before and after a no-op pypdf read/write round trip at 96 DPI, checks page dimensions, and compares pixel differences with a small tolerance. It also extracts per-word bounding boxes with `pdftotext -bbox-layout` and checks that word order, text and all four page coordinates remain stable within 0.05 points. Separate geometry assertions check that every extracted word box stays within its page, that table labels/cells fall inside the known vector-table rectangle, and that the text-over-image label lies within the image fixture's declared rectangle (converting PDF bottom-left coordinates to Poppler's top-left coordinates). These are fixture-specific extraction-coordinate checks; they do not calculate arbitrary image bounds or table cells in production PDFs. This is a renderer-visible serialization and geometry stability check; it does not translate text or compare a translated page against its source. The nested-form fixture validates the object graph and the presence of transform and clipping instructions; it does not calculate a complete device-space clip region. The image fixture validates soft-mask and graphics-state dictionaries plus their content-stream use; it does not render pixels or prove that a future rewrite preserves visual compositing. A production walker still needs to resolve inherited resources, recursive Form XObjects, graphics-state save/restore, matrix composition and clipping intersections with recursion and resource limits. This is a real-PDF parsing and fixture-validation step, not a text-rewrite test. The render regression verifies that a no-op serialization round trip does not materially alter fixture pixels or word geometry in the selected Poppler tools; it cannot establish fidelity for an actual translated output. It does not yet use PDF.js, replace text operators, or prove visual equivalence after translation. No production PDF pipeline is connected to this prototype.
+A separate Poppler-based regression renders an eight-page suite before and after a no-op pypdf read/write round trip at 96 DPI, checks page dimensions and pixel differences, and extracts word boxes to check stable text/order/coordinates. Fixture-specific assertions check word boxes against page, table and image bounds. These tests validate parsing and no-op serialization stability; they do not test translation or fidelity of rewritten content. The nested-form fixture does not calculate complete device-space clip intersections, and the transparency fixture does not prove future rewrite compositing fidelity. A production walker still needs bounded recursive resource resolution, graphics-state save/restore, matrix composition, clipping intersections and exact text-state interpretation.
 
 ## PDF.js text geometry adapter
 
-A browser-loadable helper now composes each PDF.js text item's six-value transform with the page viewport transform. It records the transformed baseline, text basis vectors, advance, height, rotation, direction and end-of-line marker. Invalid or degenerate transforms are rejected and counted.
+`lib/pdf-text-geometry.js` composes each PDF.js text item's six-value transform with the page viewport transform. It records the transformed baseline, text basis vectors, advance, height, rotation, direction and end-of-line marker. Invalid or degenerate transforms are rejected and counted.
 
-The adapter intentionally does not infer exact glyph outlines, source-font encodings, glyph IDs, clipping paths or a precise glyph bounding box. PDF.js text item geometry is useful for locating text runs, but it is not sufficient evidence that translated glyphs can be safely encoded into an existing embedded font. The helper is loaded by the app and has Node regression tests for scaling, rotation, RTL metadata, EOL and malformed inputs.
+The adapter intentionally does not infer exact glyph outlines, source-font encodings, glyph IDs, clipping paths or precise glyph bounds. PDF.js text geometry helps locate text runs but does not establish safe native replacement.
 
-This is still geometry inspection only. No PDF content stream is edited, and no visual or real-document replacement test is claimed.
+No production PDF pipeline is connected to this prototype. Unsupported cases must continue to use the existing disclosed OCR/raster fallback or remain unchanged; no native rewrite should be integrated until an actual content-stream adapter passes independent extraction and visual regression tests.
