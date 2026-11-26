@@ -134,6 +134,67 @@ def add_tj_spacing_fixture(path):
     return Path(path)
 
 
+def add_nested_form_and_clipping_fixture(path):
+    """Build nested Form XObjects with inherited transforms and clipping paths."""
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+
+    font = DictionaryObject({
+        NameObject("/Type"): NameObject("/Font"),
+        NameObject("/Subtype"): NameObject("/Type1"),
+        NameObject("/BaseFont"): NameObject("/Helvetica"),
+        NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
+    })
+    font_ref = writer._add_object(font)
+
+    def form_xobject(data, bbox, resources, matrix=None):
+        stream = DecodedStreamObject()
+        stream.set_data(data)
+        stream.update({
+            NameObject("/Type"): NameObject("/XObject"),
+            NameObject("/Subtype"): NameObject("/Form"),
+            NameObject("/FormType"): NumberObject(1),
+            NameObject("/BBox"): ArrayObject([NumberObject(v) for v in bbox]),
+            NameObject("/Resources"): resources,
+        })
+        if matrix is not None:
+            stream[NameObject("/Matrix")] = ArrayObject([NumberObject(v) for v in matrix])
+        return writer._add_object(stream)
+
+    inner_resources = DictionaryObject({
+        NameObject("/Font"): DictionaryObject({NameObject("/F1"): font_ref}),
+    })
+    inner = form_xobject(
+        b"BT /F1 13 Tf 1 0 0 1 12 35 Tm (NESTED_FORM_TEXT) Tj ET",
+        [0, 0, 180, 80],
+        inner_resources,
+        [1, 0, 0, 1, 4, 6],
+    )
+
+    outer_resources = DictionaryObject({
+        NameObject("/XObject"): DictionaryObject({NameObject("/Inner"): inner}),
+    })
+    outer = form_xobject(
+        b"0 0 170 70 re W n q 0.8 0 0 0.8 9 11 cm /Inner Do Q",
+        [0, 0, 180, 80],
+        outer_resources,
+        [1, 0.15, -0.1, 1, 20, 25],
+    )
+
+    page[NameObject("/Resources")] = DictionaryObject({
+        NameObject("/XObject"): DictionaryObject({NameObject("/Outer"): outer}),
+    })
+    content = DecodedStreamObject()
+    content.set_data(
+        b"q 0 0 260 150 re W n 0.9 0 0 0.9 70 320 cm /Outer Do Q"
+    )
+    page[NameObject("/Contents")] = writer._add_object(content)
+
+    with Path(path).open("wb") as output:
+        writer.write(output)
+    return Path(path)
+
+
 def used_page_fonts(page):
     """Resolve only font resources actually selected by Tf in this page's stream."""
     resources = page_fonts(page)
@@ -157,6 +218,10 @@ class RealPdfFixtureTests(unittest.TestCase):
         cls.identity_h_reader = PdfReader(str(cls.identity_h_path))
         cls.tj_path = add_tj_spacing_fixture(Path(cls.temp_dir.name) / "tj-spacing.pdf")
         cls.tj_reader = PdfReader(str(cls.tj_path))
+        cls.nested_path = add_nested_form_and_clipping_fixture(
+            Path(cls.temp_dir.name) / "nested-forms-clipping.pdf"
+        )
+        cls.nested_reader = PdfReader(str(cls.nested_path))
 
     @classmethod
     def tearDownClass(cls):
@@ -228,6 +293,32 @@ class RealPdfFixtureTests(unittest.TestCase):
         self.assertEqual(by_operator[b"TJ"][0], ["A", -120, "V"])
         for operator in (b"Tc", b"Tw", b"Tz", b"Ts", b"Tm"):
             self.assertIn(operator, by_operator, f"Expected text-state operator {operator.decode()}")
+
+    def test_nested_form_xobjects_and_clipping_paths_are_present(self):
+        page = self.nested_reader.pages[0]
+        page_ops = page.get_contents().operations
+        page_operators = [operator for _, operator in page_ops]
+        self.assertIn(b"W", page_operators, "Page-level clipping path must be present")
+        self.assertIn(b"Do", page_operators, "Page must invoke the outer Form XObject")
+
+        page_resources = dereference(page["/Resources"])
+        page_xobjects = dereference(page_resources["/XObject"])
+        outer = dereference(page_xobjects["/Outer"])
+        self.assertEqual(str(outer.get("/Subtype")), "/Form")
+        self.assertEqual(len(outer.get("/Matrix")), 6)
+        outer_ops = outer.get_data()
+        self.assertIn(b"/Inner Do", outer_ops)
+        self.assertIn(b"W n", outer_ops)
+
+        outer_resources = dereference(outer["/Resources"])
+        inner_xobjects = dereference(outer_resources["/XObject"])
+        inner = dereference(inner_xobjects["/Inner"])
+        self.assertEqual(str(inner.get("/Subtype")), "/Form")
+        self.assertEqual(len(inner.get("/Matrix")), 6)
+        inner_ops = inner.get_data()
+        self.assertIn(b"NESTED_FORM_TEXT", inner_ops)
+        inner_resources = dereference(inner["/Resources"])
+        self.assertIn("/F1", {str(key) for key in dereference(inner_resources["/Font"]).keys()})
 
     def test_table_text_and_vector_rules_coexist(self):
         page = self.reader.pages[3]
