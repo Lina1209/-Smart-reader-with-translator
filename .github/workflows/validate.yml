@@ -122,6 +122,8 @@ jobs:
         run: node tests/pdf-rewrite-preflight.test.cjs
       - name: Test PDF.js text geometry
         run: node tests/pdf-text-geometry.test.cjs
+      - name: Test PDF extraction cleanup after cancellation
+        run: node tests/pdf-extraction-page-cleanup.test.cjs
       - name: Test PDF page navigation concurrency and cleanup
         run: node tests/pdf-page-navigation.test.cjs
       - name: Test PDF preview resource cleanup lifecycle
