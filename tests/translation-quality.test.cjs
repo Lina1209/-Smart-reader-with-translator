@@ -91,7 +91,7 @@ if(!html.includes('createEnhancedOcrCanvas(canvas,1.5)'))throw new Error('Enhanc
 const qualityStart=html.indexOf('function ocrQualitySummary(');
 const qualityEnd=html.indexOf('\n',qualityStart);
 if(qualityStart<0||qualityEnd<0)throw new Error('OCR quality summary helper not found');
-const qualitySummary=vm.runInNewContext(html.slice(qualityStart,qualityEnd)+'; ocrQualitySummary');
+const qualitySummary=vm.runInNewContext(html.slice(qualityStart,qualityEnd)+'; ocrQualitySummary',{isValidOcrBox:box=>!!box&&['x0','y0','x1','y1'].every(key=>Number.isFinite(Number(box[key])))&&Number(box.x1)>Number(box.x0)&&Number(box.y1)>Number(box.y0)});
 const quality=qualitySummary({lines:[
  {text:'clear',confidence:90,bbox:{x0:0,y0:0,x1:20,y1:10}},
  {text:'uncertain',confidence:10,bbox:{x0:0,y0:12,x1:20,y1:22}},
