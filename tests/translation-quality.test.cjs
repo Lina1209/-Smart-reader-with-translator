@@ -182,11 +182,11 @@ if(Math.abs(fineAngleRestored.x0-fineAngleOriginalBox.x0)>2||Math.abs(fineAngleR
 if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
 
 if(!html.includes('function createThresholdOcrCanvas(')||!html.includes('createThresholdOcrCanvas(canvas,1.5)'))throw new Error('Adaptive threshold OCR fallback is missing');
-const scaleStart=html.indexOf('function safeOcrScale('),scaleEnd=html.indexOf('\nfunction createEnhancedOcrCanvas',scaleStart);
-if(scaleStart<0||scaleEnd<0)throw new Error('Safe OCR scaling helper not found');
-const safeScale=vm.runInNewContext(html.slice(scaleStart,scaleEnd)+'; safeOcrScale');
-if(safeScale({width:1000,height:1000},1.5,16000000)!==1.5)throw new Error('Safe OCR scale changed ordinary image dimensions unnecessarily');
-if(safeScale({width:10000,height:10000},1.5,16000000)>0.400001)throw new Error('Safe OCR scale exceeded its pixel budget');
+const safeOcrScaleUnderTestHelperStart=html.indexOf('function safeOcrScale('),safeOcrScaleUnderTestHelperEnd=html.indexOf('\nfunction createEnhancedOcrCanvas',safeOcrScaleUnderTestHelperStart);
+if(safeOcrScaleUnderTestHelperStart<0||safeOcrScaleUnderTestHelperEnd<0)throw new Error('Safe OCR scaling helper not found');
+const safeOcrScaleUnderTest=vm.runInNewContext(html.slice(safeOcrScaleUnderTestHelperStart,safeOcrScaleUnderTestHelperEnd)+'; safeOcrScale');
+if(safeOcrScaleUnderTest({width:1000,height:1000},1.5,16000000)!==1.5)throw new Error('Safe OCR scale changed ordinary image dimensions unnecessarily');
+if(safeOcrScaleUnderTest({width:10000,height:10000},1.5,16000000)>0.400001)throw new Error('Safe OCR scale exceeded its pixel budget');
 
 
 
