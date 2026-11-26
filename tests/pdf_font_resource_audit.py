@@ -10,9 +10,7 @@ def dereference(value):
 
 
 def _name(value):
-    if value is None:
-        return None
-    return str(value)
+    return None if value is None else str(value)
 
 
 def _stream_bytes(value):
@@ -29,10 +27,7 @@ def _font_program_keys(descriptor):
     descriptor = dereference(descriptor) if descriptor is not None else None
     if descriptor is None:
         return []
-    return [
-        key for key in ("/FontFile", "/FontFile2", "/FontFile3")
-        if descriptor.get(key) is not None
-    ]
+    return [key for key in ("/FontFile", "/FontFile2", "/FontFile3") if descriptor.get(key) is not None]
 
 
 def _simple_width_summary(font):
@@ -68,10 +63,10 @@ def _differences_summary(encoding):
 def _tounicode_summary(font):
     cmap = font.get("/ToUnicode")
     if cmap is None:
-        return {"present": False, "mapping_entry_count": None}
+        return {"present": False, "mapping_section_count": None}
     data = _stream_bytes(cmap)
-    entries = len(re.findall(rb"\bbeginbfchar\b|\bbeginbfrange\b", data))
-    return {"present": True, "mapping_entry_count": entries if data else None}
+    sections = len(re.findall(rb"\bbeginbfchar\b|\bbeginbfrange\b", data))
+    return {"present": True, "mapping_section_count": sections if data else None}
 
 
 def _cid_width_summary(descendant):
@@ -86,12 +81,15 @@ def _cid_width_summary(descendant):
 
 
 def _cid_to_gid_summary(descendant):
+    subtype = _name(descendant.get("/Subtype"))
+    if subtype != "/CIDFontType2":
+        return {"kind": "not-applicable", "byte_length": None}
     mapping = descendant.get("/CIDToGIDMap")
     if mapping is None:
         return {"kind": "default-identity", "byte_length": None}
     mapping = dereference(mapping)
-    if isinstance(mapping, str) or _name(mapping) in ("/Identity",):
-        return {"kind": _name(mapping), "byte_length": None}
+    if _name(mapping) == "/Identity":
+        return {"kind": "/Identity", "byte_length": None}
     data = _stream_bytes(mapping)
     return {
         "kind": "stream" if data else "unknown",
@@ -104,12 +102,10 @@ def audit_font_dictionary(font):
     """Return conservative structural evidence for one resolved PDF font dict."""
     font = dereference(font)
     subtype = _name(font.get("/Subtype"))
-    base_font = _name(font.get("/BaseFont"))
-    to_unicode = _tounicode_summary(font)
     result = {
         "subtype": subtype,
-        "base_font": base_font,
-        "to_unicode": to_unicode,
+        "base_font": _name(font.get("/BaseFont")),
+        "to_unicode": _tounicode_summary(font),
         "font_program_embedded": False,
         "font_program_keys": [],
         "encoding": None,
@@ -147,9 +143,7 @@ def audit_font_dictionary(font):
             "cmap_stream_present": bool(encoding_data),
             "vertical_writing_mode_marker": bool(re.search(rb"/WMode\s+1\b", encoding_data)),
         }
-        result["font_program_embedded"] = any(
-            item["font_program_embedded"] for item in result["descendants"]
-        )
+        result["font_program_embedded"] = any(item["font_program_embedded"] for item in result["descendants"])
         result["font_program_keys"] = sorted({
             key for item in result["descendants"] for key in item["font_program_keys"]
         })
