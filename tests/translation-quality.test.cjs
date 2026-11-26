@@ -704,7 +704,7 @@ if(pptxExtractorStart<0||pptxExtractorEnd<0)throw new Error('PPTX extraction bra
 const pptxExtractor=html.slice(pptxExtractorStart,pptxExtractorEnd);
 for(const guard of ['await ensureZipLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await JSZip.loadAsync(buffer);ensureCurrent()','for(let i=0;i<slides.length;i++){ensureCurrent();', "await entry.async('text');ensureCurrent()", 'ensureCurrent();return out.join'])if(!pptxExtractor.includes(guard))throw new Error('PPTX cancellation boundary missing: '+guard);
 
-const cancellationDocumentExtractorStart=html.indexOf('async function extractDocumentText(file,progressId,openToken){');
+const cancellationDocumentExtractorStart=html.indexOf('async function extractDocumentText(file,progressId,openToken,isCurrentOverride){');
 const cancellationDocumentExtractorEnd=html.indexOf('\nfunction bindDocumentUpload(',cancellationDocumentExtractorStart);
 if(cancellationDocumentExtractorStart<0||cancellationDocumentExtractorEnd<0)throw new Error('Document extraction dispatcher missing');
 const cancellationDocumentExtractor=html.slice(cancellationDocumentExtractorStart,cancellationDocumentExtractorEnd);
