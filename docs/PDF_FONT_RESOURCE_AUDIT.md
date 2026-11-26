@@ -59,3 +59,15 @@ Destination strings are decoded as UTF-16BE, including surrogate pairs. Source c
 The tests cover single mappings, supplementary Unicode, scalar ranges, destination arrays, comments, odd hex nibbles, malformed UTF-16, duplicate entries, unsupported sections and expansion limits.
 
 This parser does not parse codespace ranges or the font's source Encoding CMap, and it does not connect source character codes to CIDs, glyph IDs or embedded subset glyphs. A ToUnicode map remains an extraction map, not a reverse encoder. It is diagnostic only and is not integrated into PDF rewriting.
+
+
+## Encoding CMap parser (read-only)
+
+tests/pdf_encoding_cmap.py parses embedded Encoding CMap sections:
+- codespacerange: accepted byte lengths and source-code intervals;
+- cidchar: individual source-code to CID mappings;
+- cidrange: sequential source-code ranges mapped to sequential CIDs.
+
+The parser preserves source codes as byte-hex keys, checks codespace membership when codespaces are declared, rejects duplicate mappings and invalid ranges, and caps expansion at 4,096 entries per range by default (100,000 mappings overall). Predefined named CMaps such as Identity-H are intentionally reported as unsupported rather than guessed.
+
+CID is not a glyph ID. This module does not resolve UseCMap inheritance, predefined CMaps, CIDToGIDMap streams, embedded subset glyphs or glyph outlines. It is diagnostic only and is not integrated into PDF rewriting. CI runs seven focused tests for codespace lengths, cidchar, cidrange, mismatches, duplicates, malformed ranges and expansion limits.
