@@ -228,7 +228,7 @@ const mockTesseract={createWorker:async language=>{attempts.push(language);if(la
  console.log('OCR worker availability tests passed: model fallback, explicit-language error and shared loader.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
-const quadStart=html.indexOf('function validatePageQuad('),quadEnd=html.indexOf('\\nasync function recognizeImageCanvas',quadStart);
+const quadStart=html.indexOf('function validatePageQuad('),quadEnd=html.indexOf('\nasync function recognizeImageCanvas',quadStart);
 if(quadStart<0||quadEnd<0)throw new Error('Page-quadrilateral validation helper not found');
 const validateQuad=vm.runInNewContext(html.slice(quadStart,quadEnd)+'; validatePageQuad');
 const rectangle=validateQuad([[100,80],[900,80],[900,920],[100,920]],1000,1000);
