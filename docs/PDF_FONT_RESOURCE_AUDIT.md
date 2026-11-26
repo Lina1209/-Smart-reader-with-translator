@@ -78,3 +78,10 @@ CID is not a glyph ID. This module does not resolve UseCMap inheritance, predefi
 The font audit module now includes lookup_cid_to_gid(mapping, cid, descendant_subtype). For CIDFontType2 it distinguishes the PDF default identity mapping (when /CIDToGIDMap is absent), explicit /Identity, and a two-byte big-endian stream. It rejects negative or over-16-bit CIDs, odd-length streams, unreadable/empty streams and CIDs beyond the stream's available entries. CIDFontType0 is reported as not applicable rather than interpreted using the Type2 rule.
 
 Tests cover identity/default, explicit GID extraction, multiple entries, odd stream length, out-of-range CID, invalid CID and non-Type2 descendants. This only resolves one CID-to-GID lookup. It does not inspect the embedded font's glyph table or prove that the GID has a usable outline, nor does it prove that the translated character can be shaped or encoded in the font.
+
+
+## Joined Type 0 character mapping chain
+
+tests/pdf_character_mapping_audit.py joins already-parsed reports for one source character code: source bytes -> ToUnicode text and Encoding CMap CID -> CIDToGIDMap GID (for CIDFontType2 only). It distinguishes missing CID, missing Unicode, invalid source codes and unavailable/out-of-range GID evidence. The six tests cover an explicit mapping, identity default, missing links, out-of-range GID, CIDFontType0 and invalid source-code input.
+
+This is a report-joining adapter, not a parser for a complete PDF font resource. The maps are joined only when their source-code byte keys match. A mapped GID still does not prove an actual usable glyph outline, nor does it establish that arbitrary translated text can be encoded or shaped with that font. CI runs this test suite independently.
