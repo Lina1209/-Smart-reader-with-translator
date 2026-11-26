@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const html=fs.readFileSync('index.html','utf8');
+const start=html.indexOf('function escapeXml(value){');
+const end=html.indexOf('function downloadBlob',start);
+assert.ok(start>=0&&end>start,'XML escaping helper must exist');
+const context={String,Array};
+vm.createContext(context);
+vm.runInContext(html.slice(start,end)+';globalThis.escapeXml=escapeXml;',context);
+const escaped=context.escapeXml('A&B <tag> "quoted" \'apostrophe\'\tline\nnext\r😀\u0000\u0001\u0008\u000B\u000C\u001F\uD800');
+assert.ok(escaped.includes('A&amp;B &lt;tag&gt; &quot;quoted&quot; &apos;apostrophe&apos;'),'XML metacharacters must be escaped');
+assert.ok(escaped.includes('\tline\nnext\r'),'XML-permitted whitespace must be retained');
+assert.ok(escaped.includes('😀'),'Valid supplementary Unicode characters must be preserved');
+for(const forbidden of ['\u0000','\u0001','\u0008','\u000B','\u000C','\u001F','\uD800'])assert.ok(!escaped.includes(forbidden),'XML 1.0 forbidden character U+'+forbidden.charCodeAt(0).toString(16)+' must be removed');
+console.log('XML escaping integrity tests passed: metacharacters, legal whitespace, emoji and forbidden controls.');
