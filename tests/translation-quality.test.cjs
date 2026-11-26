@@ -263,11 +263,13 @@ const renderScaleEnd=html.indexOf('\n',renderScaleStart);
 if(renderScaleStart<0||renderScaleEnd<0)throw new Error('Adaptive PDF render-scale helper not found');
 const safeViewport=vm.runInNewContext(html.slice(renderScaleStart,renderScaleEnd)+'; createSafePdfViewport');
 const mockPage=(width,height)=>({getViewport:({scale})=>({width:width*scale,height:height*scale,scale})});
-const ordinaryViewport=safeViewport(mockPage(612,792),1.4,16000000);
-if(ordinaryViewport.scale!==1.4)throw new Error('Ordinary PDF pages should retain the preferred OCR render scale');
-const oversizedViewport=safeViewport(mockPage(20000,18000),1.4,16000000);
-if(oversizedViewport.width*oversizedViewport.height>16000000.01||oversizedViewport.scale>=1.4)throw new Error('Oversized PDF pages were not constrained to the pixel budget');
-if(!html.includes('createSafePdfViewport(page,1.4)')||!html.includes('createSafePdfViewport(page,1.35)'))throw new Error('Adaptive PDF render scale is not used by both PDF OCR paths');
+const ordinaryViewport=safeViewport(mockPage(612,792),2.0,16000000);
+if(ordinaryViewport.scale!==2.0)throw new Error('Ordinary PDF pages should retain the preferred OCR render scale');
+const oversizedViewport=safeViewport(mockPage(20000,18000),2.0,16000000);
+if(oversizedViewport.width*oversizedViewport.height>16000000.01||oversizedViewport.scale>=2.0)throw new Error('Oversized PDF pages were not constrained to the pixel budget');
+if(!html.includes('createSafePdfViewport(page,2.0,16000000)')||!html.includes('createSafePdfViewport(page,1.35)'))throw new Error('High-resolution adaptive rendering is not used by PDF reconstruction and text extraction');
+if(!html.includes("canvas.toBlob(resolve,'image/jpeg',.98)"))throw new Error('PDF reconstruction must use the updated high-quality JPEG setting');
+if(!html.includes('исходный текстовый слой, векторная графика и возможность поиска по тексту в этом режиме не сохраняются'))throw new Error('PDF output must disclose that raster reconstruction does not preserve selectable/searchable text');
 
 
 if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<replacementGroups.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
