@@ -338,7 +338,7 @@ async function translatePreservingFile(file,from,target,statusId){
  setProgress(progress,0,'Подготовка оригинала',file.name);
  const binary=await readFileBuffer(file);
  let translatedText='';
- if(['docx','epub','odt','xlsx','xlsm'].includes(ext)){
+ if(['docx','epub','odt','xlsx','xlsm','pptx'].includes(ext)){
   const zip=await JSZip.loadAsync(binary);
   if(ext==='docx'){
    const paths=Object.keys(zip.files).filter(p=>/^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i.test(p));
@@ -367,6 +367,11 @@ async function translatePreservingFile(file,from,target,statusId){
    if(shared){const doc=new DOMParser().parseFromString(await shared.async('text'),'application/xml');const sis=Array.from(doc.getElementsByTagNameNS('*','si'));for(let i=0;i<sis.length;i++){const nodes=Array.from(sis[i].getElementsByTagNameNS('*','t'));if(!nodes.length)continue;const original=nodes.map(n=>n.textContent||'').join('');const trans=await translateDocumentNodeText(original,target,from,statusId);nodes[0].textContent=trans;for(let n=1;n<nodes.length;n++)nodes[n].textContent='';}zip.file('xl/sharedStrings.xml',new XMLSerializer().serializeToString(doc));}
    const sheets=Object.keys(zip.files).filter(p=>/^xl\/worksheets\/sheet\d+\.xml$/i.test(p));
    for(const path of sheets){const doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');const cells=Array.from(doc.getElementsByTagNameNS('*','is'));for(const cell of cells){const t=cell.getElementsByTagNameNS('*','t');if(!t.length)continue;const trans=await translateDocumentNodeText(t[0].textContent||'',target,from,statusId);t[0].textContent=trans;for(let n=1;n<t.length;n++)t[n].textContent='';}zip.file(path,new XMLSerializer().serializeToString(doc));}
+  }else if(ext==='pptx'){
+   const slides=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p));
+   if(!slides.length)throw Error('В PPTX не найдены слайды.');
+   for(let i=0;i<slides.length;i++){const path=slides[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось прочитать '+path);await translateXmlParagraphs(doc,'p',from,target,statusId,5+80*i/slides.length,80/slides.length);zip.file(path,new XMLSerializer().serializeToString(doc));}
+   translatedText='Презентация переведена. Слайды, макеты, изображения, диаграммы и оформление сохранены.';
    translatedText='Таблицы переведены. Структура книги, листы, формулы, стили, размеры ячеек и графики сохранены.';
   }
   const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6},mimeType:file.type||'application/octet-stream'});
@@ -384,7 +389,7 @@ async function translatePreservingFile(file,from,target,statusId){
   const source=await readFileText(file),trans=await translateLongText(source,target,from,statusId);
   return {blob:new Blob([trans],{type:file.type||'text/plain;charset=utf-8'}),text:trans,filename:file.name};
  }
- throw Error('Сохранение оригинального дизайна пока не поддерживается для '+ext.toUpperCase()+'. Можно получить перевод текста отдельно. PDF и RTF требуют отдельного форматно-специфичного движка для сохранения вёрстки.');
+ throw Error('Для '+ext.toUpperCase()+' пока нельзя создать файл с сохранением оригинального оформления. Перевод текста доступен отдельно. PDF, RTF, старый XLS и другие форматы требуют отдельного форматного движка.');
 }
 
 $('standaloneTranslate').addEventListener('click',async()=>{
