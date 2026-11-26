@@ -62,6 +62,9 @@ if(visibleTextStart<0||visibleTextEnd<0)throw new Error('DOCX visible-text node 
 const isDocxVisibleTextNode=vm.runInNewContext(html.slice(visibleTextStart,visibleTextEnd+2)+'; isDocxVisibleTextNode');
 for(const tag of ['t','w:t']){const node={parentElement:{localName:tag}};if(!isDocxVisibleTextNode(node))throw new Error('Visible DOCX text node was incorrectly skipped: '+tag);}
 for(const tag of ['instrText','delText','del','fldChar','tab']){const node={parentElement:{localName:tag}};if(isDocxVisibleTextNode(node))throw new Error('DOCX field/deleted/non-text element was incorrectly treated as visible text: '+tag);}
+for(const tag of ['del','moveFrom']){const node={parentElement:{localName:'t',parentElement:{localName:tag,parentElement:null}}};if(isDocxVisibleTextNode(node))throw new Error('DOCX deleted/moved-from revision text must not be translated: '+tag);}
+const insertedNode={parentElement:{localName:'t',parentElement:{localName:'ins',parentElement:null}}};
+if(!isDocxVisibleTextNode(insertedNode))throw new Error('Visible inserted DOCX revision text must remain translatable');
 const docxBranch=html.slice(html.indexOf("if(ext==='docx'){"),html.indexOf("}else if(ext==='odt'){") );
 if(!docxBranch.includes('75/paths.length,true'))throw new Error('DOCX translation must limit extraction to visible w:t text nodes');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']"))throw new Error('EPUB block coverage missing for div-based, semantic and table content');
