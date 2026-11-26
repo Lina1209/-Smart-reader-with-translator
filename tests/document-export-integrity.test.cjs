@@ -7,10 +7,15 @@ const start=html.indexOf('function documentArchiveMimeType(ext){');
 const end=html.indexOf('async function translatePreservingFile(file,from,target,statusId){',start);
 assert.ok(start>=0&&end>start,'Document archive validation helpers must exist');
 const source=html.slice(start,end);
+const pdfStart=html.indexOf('function createValidatedPdfBlob(bytes){');
+const pdfEnd=html.indexOf('async function translatePdfPreservingFile(file,from,target,progressId){',pdfStart);
+assert.ok(pdfStart>=0&&pdfEnd>pdfStart,'PDF output validation helper must exist');
+const pdfSource=html.slice(pdfStart,pdfEnd);
 let safetyChecks=0;
 const context={Blob,Error,Number,String,Object,RegExp,Promise,assertZipArchiveSafe(archive){safetyChecks++;assert.ok(archive&&archive.files,'Archive safety check must receive a loaded archive');}};
 vm.createContext(context);
 vm.runInContext(source+';globalThis.mimeFor=documentArchiveMimeType;globalThis.validateArchive=validateGeneratedDocumentArchive;',context);
+vm.runInContext(pdfSource+';globalThis.validatePdf=createValidatedPdfBlob;',context);
 function makeArchive(paths,mimetype){
  const files={};
  for(const path of paths)files[path]={dir:false};
@@ -37,6 +42,11 @@ const cases=[
  }
  assert.equal(context.mimeFor('docx'),cases[0][2]);
  assert.equal(context.mimeFor('pptx'),cases[5][2]);
+ const validPdf=context.validatePdf(new Uint8Array([37,80,68,70,45,49,46,55,10]));
+ assert.equal(validPdf.type,'application/pdf');
+ assert.ok(validPdf.size>=8);
+ assert.throws(()=>context.validatePdf(new Uint8Array([1,2,3,4,5,6,7,8])),/сигнатуру/);
+ assert.throws(()=>context.validatePdf(new Uint8Array([])),/сигнатуру/);
  await assert.rejects(context.validateArchive(new Blob([]),'docx',fakeZip(makeArchive([]))),/пуст/);
  await assert.rejects(context.validateArchive(new Blob(['bad']),'docx',fakeZip(null,{fail:true})),/повторно открыть/);
  await assert.rejects(context.validateArchive(new Blob(['zip']),'docx',fakeZip(makeArchive(['[Content_Types].xml']))),/word\/document\.xml/);
