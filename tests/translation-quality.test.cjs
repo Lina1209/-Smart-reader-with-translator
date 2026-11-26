@@ -131,6 +131,17 @@ if(!layoutSummary({lines:twoColumns}).multiColumn)throw new Error('OCR layout di
 const table=[];
 for(let row=0;row<4;row++){table.push(makeLine('cell A'+row,10,10+row*24,90,21+row*24));table.push(makeLine('cell B'+row,130,10+row*24,210,21+row*24));}
 if(!layoutSummary({lines:table}).tableLike)throw new Error('OCR layout diagnostics failed to flag a synthetic aligned table-like layout');
+const twoColumnSummary=layoutSummary({lines:twoColumns});
+if(twoColumnSummary.columnCount!==2||twoColumnSummary.confidence!=='medium')throw new Error('Two-column OCR diagnostics did not report stable column geometry');
+const tableSummary=layoutSummary({lines:table});
+if(!tableSummary.tableLike||tableSummary.multiColumn||tableSummary.columnCount!==2)throw new Error('Table-like OCR rows were confused with widely separated text columns');
+const singleColumn=[];
+for(let row=0;row<8;row++)singleColumn.push(makeLine('paragraph line '+row,12,10+row*22,340,22+row*22));
+const singleSummary=layoutSummary({lines:singleColumn});
+if(singleSummary.multiColumn||singleSummary.tableLike)throw new Error('Single-column text was incorrectly classified as a table or multiple columns');
+const sparseSideBySide=[makeLine('left heading',10,10,100,22),makeLine('right note',260,10,350,22),makeLine('caption',10,60,340,72)];
+if(layoutSummary({lines:sparseSideBySide}).multiColumn)throw new Error('A single side-by-side pair was incorrectly classified as a multi-column page');
+
 if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<lines.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
 if(!html.includes('вероятная многоколоночная структура')||!html.includes('вероятная табличная структура'))throw new Error('Complex OCR layout warnings are not surfaced');
 if(!html.includes('safeToTranslate&&i<lines.length')||!html.includes('Изображение сохранено без замены текста'))throw new Error('Low-confidence image scans are not kept unchanged');
