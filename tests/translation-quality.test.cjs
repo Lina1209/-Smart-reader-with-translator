@@ -262,6 +262,9 @@ if(!html.includes("flow:'paginated'")||html.includes("flow:'scrolled-doc'"))thro
 if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;background:var(--paper)'))throw new Error('Reader page must keep a bounded book-page frame');
 if(!html.includes('function paginateReaderText(')||!html.includes('function moveReaderPage(')||!html.includes("e.key==='ArrowRight'"))throw new Error('Text reader pagination and keyboard navigation are missing');
 if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'))throw new Error('Touch swipe page turning is missing');
+if(!html.includes("window.addEventListener('resize'")||!html.includes('previousProgress*readerPages.length'))throw new Error('Reader pagination must adapt to screen rotation/resize while retaining approximate reading position');
+if(!html.includes("$('prevBtn').disabled=!t||p<=1")||!html.includes("$('nextBtn').disabled=!t||p>=t"))throw new Error('EPUB navigation buttons must reflect first and last page');
+if(!html.includes('rendition.getContents()')||!html.includes('doc.__readerSwipeBound'))throw new Error('EPUB iframe touch gestures must be bound inside its document');
 if(!html.includes('readerPageIndex=0;textViewer.style.display=\'block\';paginateReaderText(normalized)'))throw new Error('Text documents are not rendered as discrete reader pages');
 
 const rectificationStart=html.indexOf('function solvePageHomography('),rectificationEnd=html.indexOf('function detectPageQuadFromEdges',rectificationStart);
