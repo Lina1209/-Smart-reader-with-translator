@@ -85,3 +85,12 @@ Tests cover identity/default, explicit GID extraction, multiple entries, odd str
 tests/pdf_character_mapping_audit.py joins already-parsed reports for one source character code: source bytes -> ToUnicode text and Encoding CMap CID -> CIDToGIDMap GID (for CIDFontType2 only). It distinguishes missing CID, missing Unicode, invalid source codes and unavailable/out-of-range GID evidence. The six tests cover an explicit mapping, identity default, missing links, out-of-range GID, CIDFontType0 and invalid source-code input.
 
 This is a report-joining adapter, not a parser for a complete PDF font resource. The maps are joined only when their source-code byte keys match. A mapped GID still does not prove an actual usable glyph outline, nor does it establish that arbitrary translated text can be encoded or shaped with that font. CI runs this test suite independently.
+
+
+## Embedded TrueType glyph outline audit (read-only)
+
+tests/pdf_truetype_glyph_audit.py adds a bounded fontTools-based inspection for embedded TrueType programs (FontFile2 / glyf+loca). Given a resolved GID, it checks whether the GID exists in the font's glyph order, reports the glyph name and number of contours, distinguishes simple outlines, composite outlines and empty glyphs, walks composite components with depth/component limits, and reports Unicode cmap scalars associated with the glyph name.
+
+The tests inspect a real DejaVu Sans font program embedded in a generated PDF, including GID 36 from the CIDToGIDMap fixture, plus a simple letter, a composite accented letter and the empty space glyph. Invalid font data and out-of-range GIDs fail closed. CI installs fontTools and runs this suite independently.
+
+This adapter supports TrueType glyf/loca outlines only. It does not inspect CFF/OpenType-CFF, Type 1 or CIDFontType0 outlines. A structurally present outline does not prove that PDF clipping, text state, shaping, color/alpha, layout or translated-text fit are safe. The Unicode cmap is supporting font evidence; PDF source-code/Encoding/ToUnicode mappings remain separate.
