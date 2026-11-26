@@ -74,6 +74,54 @@ def _bbox(points):
     return (min(xs), min(ys), max(xs), max(ys))
 
 
+def _polygon_area(points):
+    if len(points) < 3:
+        return 0.0
+    return abs(sum(points[i][0] * points[(i + 1) % len(points)][1] - points[(i + 1) % len(points)][0] * points[i][1] for i in range(len(points)))) / 2.0
+
+def _clip_convex_polygon(subject, clipper, epsilon=1e-9):
+    """Sutherland-Hodgman intersection for convex polygons in page space."""
+    if len(subject) < 3 or len(clipper) < 3:
+        return []
+    orientation = sum(clipper[i][0] * clipper[(i + 1) % len(clipper)][1] - clipper[(i + 1) % len(clipper)][0] * clipper[i][1] for i in range(len(clipper)))
+    if abs(orientation) <= epsilon:
+        return []
+    sign = 1.0 if orientation > 0 else -1.0
+    output = list(subject)
+    def side(point, start, end):
+        return sign * ((end[0] - start[0]) * (point[1] - start[1]) - (end[1] - start[1]) * (point[0] - start[0]))
+    for index, start in enumerate(clipper):
+        end = clipper[(index + 1) % len(clipper)]
+        source, output = output, []
+        if not source:
+            break
+        previous = source[-1]
+        previous_inside = side(previous, start, end) >= -epsilon
+        for current in source:
+            current_inside = side(current, start, end) >= -epsilon
+            if current_inside != previous_inside:
+                dx, dy = current[0] - previous[0], current[1] - previous[1]
+                ex, ey = end[0] - start[0], end[1] - start[1]
+                denominator = dx * ey - dy * ex
+                if abs(denominator) > epsilon:
+                    t = ((start[0] - previous[0]) * ey - (start[1] - previous[1]) * ex) / denominator
+                    output.append((previous[0] + t * dx, previous[1] + t * dy))
+            if current_inside:
+                output.append(current)
+            previous, previous_inside = current, current_inside
+    return output if _polygon_area(output) > epsilon else []
+
+def _intersect_form_clips(points, clips):
+    result = list(points)
+    for clip in clips:
+        polygon = clip.get("corners") if isinstance(clip, dict) else None
+        if not polygon:
+            return []
+        result = _clip_convex_polygon(result, polygon)
+        if not result:
+            break
+    return result
+
 def _form_bbox(form, matrix, index, path):
     raw = form.get("/BBox")
     if raw is None or len(raw) != 4:
@@ -146,6 +194,7 @@ def inspect_page_image_placements(page, max_depth=12, max_forms=512):
                     current_path = form_path + [name]
                     if subtype == "/Image":
                         points = _corners(ctm)
+                        form_clip_polygon = _intersect_form_clips(points, inherited_clips)
                         counters["image_invocations"] += 1
                         placements.append({
                             "operator_index": index, "resource": name,
@@ -157,6 +206,10 @@ def inspect_page_image_placements(page, max_depth=12, max_forms=512):
                             "has_soft_mask": target.get("/SMask") is not None,
                             "axis_aligned": abs(ctm[1]) < 1e-9 and abs(ctm[2]) < 1e-9,
                             "form_bbox_clips": list(inherited_clips),
+                            "form_clip_intersection_corners": form_clip_polygon,
+                            "form_clip_intersection_bbox": _bbox(form_clip_polygon) if form_clip_polygon else None,
+                            "form_clip_intersection_area": _polygon_area(form_clip_polygon),
+                            "fully_clipped_by_form_bboxes": bool(inherited_clips) and not form_clip_polygon,
                             "arbitrary_clip_unresolved": bool(local_clips),
                         })
                     elif subtype == "/Form":
