@@ -258,7 +258,7 @@ if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text 
 
 const detectorStart=html.indexOf('function detectPageQuadFromEdges('),detectorEnd=html.indexOf('\nfunction detectPageQuadFromCanvas',detectorStart);
 if(detectorStart<0||detectorEnd<0)throw new Error('Page boundary detector helper not found');
-const detectPage=vm.runInNewContext(html.slice(detectorStart,detectorEnd)+'; detectPageQuadFromEdges',{validatePageQuad});
+const detectPage=vm.runInNewContext(html.slice(detectorStart,detectorEnd)+'; detectPageQuadFromEdges',{validatePageQuad:validateQuad});
 const syntheticEdges=[];
 for(let x=120;x<=880;x+=2){syntheticEdges.push({x,y:100},{x,y:900});}
 for(let y=100;y<=900;y+=2){syntheticEdges.push({x:120,y},{x:880,y});}
