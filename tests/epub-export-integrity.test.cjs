@@ -20,7 +20,7 @@ const context={
 vm.createContext(context);
 vm.runInContext(html.slice(start,end)+';globalThis.makeEpubBlob=makeEpubBlob;',context);
 (async()=>{
-  const first=await context.makeEpubBlob('Первая строка\n\nВторая строка','Книга & тест');
+  const first=await context.makeEpubBlob('Первая строка\r\n\rВторая строка\nТретья строка','Книга & тест');
   const second=await context.makeEpubBlob('Текст','Книга & тест');
   assert.equal(first.files.mimetype,'application/epub+zip','EPUB mimetype entry must be present');
   assert.equal(first.options.mimetype.compression,'STORE','EPUB mimetype must be stored uncompressed');
@@ -30,7 +30,7 @@ vm.runInContext(html.slice(start,end)+';globalThis.makeEpubBlob=makeEpubBlob;',c
   assert.notEqual(opf,second.files['OEBPS/content.opf'],'Repeated exports must not reuse identical metadata');
   const modified=opf.match(/<meta property="dcterms:modified">([^<]+)<\/meta>/);
   assert.ok(modified&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(modified[1]),'EPUB modified timestamp must be a valid UTC timestamp');
-  assert.ok(first.files['OEBPS/chapter.xhtml'].includes('<p>Первая строка</p><p></p><p>Вторая строка</p>'),'EPUB paragraph and blank-line structure must be retained');
+  assert.ok(first.files['OEBPS/chapter.xhtml'].includes('<p>Первая строка</p><p></p><p>Вторая строка</p><p>Третья строка</p>'),'EPUB must normalize CRLF, lone CR and LF while retaining blank paragraphs');
   assert.ok(first.files['OEBPS/chapter.xhtml'].includes('<title>Книга &amp; тест</title>'),'EPUB title must be XML-escaped');
   console.log('EPUB export integrity tests passed: package resources, mimetype, paragraph structure and fresh metadata.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
