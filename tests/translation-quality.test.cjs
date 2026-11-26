@@ -588,8 +588,8 @@ const tocEntries=flattenToc([
  {label:'Empty item',href:''}
 ]);
 if(tocEntries.length!==3||tocEntries[0].depth!==0||tocEntries[1].depth!==1||tocEntries[2].href!=='chapter2.xhtml')throw new Error('EPUB nested table-of-contents entries must flatten in reading order');
-if(!html.includes('id="epubTocSelect"')||!html.includes('book.loaded.navigation')||!html.includes("await activeRendition.display(href)"))throw new Error('EPUB table of contents must be loaded and navigate to selected chapter hrefs');
-if(!html.includes('populateEpubToc();setProgress'))throw new Error('EPUB table of contents must populate after initial display');
+if(!html.includes('id="epubTocSelect"')||!html.includes('sourceBook.loaded.navigation')||!html.includes("await activeRendition.display(href)"))throw new Error('EPUB table of contents must be loaded and navigate to selected chapter hrefs');
+if(!html.includes('populateEpubToc(openedBook,openToken);setProgress'))throw new Error('EPUB table of contents must populate after initial display');
 if(!html.includes('const activeRendition=rendition,activeToken=requestId;')||!html.includes('activeToken===requestId&&rendition===activeRendition'))throw new Error('EPUB navigation must not let stale page or TOC operations unlock or report errors for a newer book');
 if(!html.includes('await (delta<0?activeRendition.prev():activeRendition.next())'))throw new Error('EPUB page turns must use the rendition captured for the active reader session');
 if(!html.includes('const sourceBook=expectedBook||book;')||!html.includes('book!==sourceBook||(openToken!==undefined&&openToken!==requestId)')||!html.includes('populateEpubToc(openedBook,openToken)')||!html.includes('book!==openedBook||rendition!==openedRendition'))throw new Error('Late EPUB loading must not overwrite the table of contents or UI after another book is opened');
