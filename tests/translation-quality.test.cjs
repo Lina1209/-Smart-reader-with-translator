@@ -166,6 +166,29 @@ for(let row=0;row<4;row++){
 const detectedGrid=tableGridBuilder(gridLines);
 if(!detectedGrid||detectedGrid.rows.length!==4||detectedGrid.columns.length!==2)throw new Error('OCR table grid did not identify four rows and two stable columns');
 if(detectedGrid.rows.some(row=>row.cells.length!==2||row.cells[0].columnIndex!==0||row.cells[1].columnIndex!==1))throw new Error('OCR table cells were assigned to the wrong columns');
+const cellBoundsStart=html.indexOf('function constrainOcrLineToTableCell('),cellBoundsEnd=html.indexOf('function ocrLayoutSummary(',cellBoundsStart);
+if(cellBoundsStart<0||cellBoundsEnd<0)throw new Error('OCR table-cell boundary helper not found');
+const constrainCell=vm.runInNewContext(html.slice(cellBoundsStart,cellBoundsEnd)+';constrainOcrLineToTableCell');
+const overlapCells=[];
+for(let row=0;row<3;row++){
+ overlapCells.push({text:'wide left '+row,box:{x0:10,y0:10+row*24,x1:135,y1:21+row*24}});
+ overlapCells.push({text:'narrow right '+row,box:{x0:125,y0:10+row*24,x1:160,y1:21+row*24}});
+}
+const overlapGrid=tableGridBuilder(overlapCells);
+if(!overlapGrid)throw new Error('Overlapping synthetic table columns should still produce a diagnostic grid');
+const boundedLeft=constrainCell(overlapCells[0],overlapGrid),boundedRight=constrainCell(overlapCells[1],overlapGrid);
+if(!boundedLeft||!boundedRight||boundedLeft.x1>boundedRight.x0||Math.abs(boundedLeft.x1-130)>0.01||Math.abs(boundedRight.x0-130)>0.01)throw new Error('OCR replacement bounds must be clipped at the midpoint between overlapping neighbouring cells');
+const unequalCells=[];
+for(let row=0;row<3;row++){
+ unequalCells.push({text:'short left '+row,box:{x0:10,y0:10+row*24,x1:75,y1:21+row*24}});
+ unequalCells.push({text:'wide right '+row,box:{x0:130,y0:10+row*24,x1:250,y1:21+row*24}});
+}
+const unequalGrid=tableGridBuilder(unequalCells);
+const shortCell=constrainCell(unequalCells[0],unequalGrid),wideCell=constrainCell(unequalCells[1],unequalGrid);
+if(!shortCell||!wideCell||shortCell.x1!==75||wideCell.x0!==130||wideCell.x1!==250)throw new Error('Different column widths must retain their independent OCR cell bounds');
+const foreignLine={text:'unmapped',box:{x0:300,y0:10,x1:350,y1:21}};
+if(constrainCell(foreignLine,overlapGrid)!==null)throw new Error('A line not assigned to a detected table cell must not be painted');
+if(!html.includes('constrainOcrLineToTableCell(line.lines[0],tableGrid)'))throw new Error('PDF and image OCR rendering must use detected cell bounds');
 const uncertainGrid=tableGridBuilder([
  {text:'one',box:{x0:10,y0:10,x1:90,y1:22}},
  {text:'two',box:{x0:220,y0:10,x1:300,y1:22}},
