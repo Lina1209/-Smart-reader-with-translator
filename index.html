@@ -318,7 +318,7 @@ function detectPageQuadFromEdges(edgePoints,width,height){
  peaks.sort((a,b)=>b.votes-a.votes);const lines=[];
  for(const peak of peaks){if(lines.every(line=>Math.abs(line.theta-peak.theta)>3&&Math.abs(Math.abs(line.theta-peak.theta)-90)>3||Math.abs(line.rho-peak.rho)>10)){lines.push(peak);if(lines.length>=18)break;}}
  const intersection=(a,b)=>{const det=cosines[a.theta]*sines[b.theta]-cosines[b.theta]*sines[a.theta];if(Math.abs(det)<.25)return null;return{x:(a.rho*sines[b.theta]-b.rho*sines[a.theta])/det,y:(b.rho*cosines[a.theta]-a.rho*cosines[b.theta])/det};};
- const support=(a,b)=>{let hits=0,total=0;for(let i=0;i<points.length;i+=Math.max(1,Math.floor(points.length/160))){const p=points[i],distance=Math.abs(p.x*cosines[a.theta]+p.y*sines[a.theta]-a.rho);if(distance<=3.5){const projection=(p.x-b.x)*(a.x-b.x)+(p.y-b.y)*(a.y-b.y),length=(a.x-b.x)**2+(a.y-b.y)**2;if(projection>=-length*.03&&projection<=length*1.03)hits++;}}for(let i=0;i<=24;i++){const x=a.x+(b.x-a.x)*i/24,y=a.y+(b.y-a.y)*i/24;let found=false;for(let k=0;k<points.length;k+=Math.max(1,Math.floor(points.length/500))){if(Math.hypot(points[k].x-x,points[k].y-y)<=4){found=true;break;}}if(found)total++;}return total/25;};
+ const support=(a,b)=>{let total=0;for(let i=0;i<=32;i++){const x=a.x+(b.x-a.x)*i/32,y=a.y+(b.y-a.y)*i/32;let found=false;for(let k=0;k<points.length;k+=Math.max(1,Math.floor(points.length/700))){if(Math.hypot(points[k].x-x,points[k].y-y)<=4){found=true;break;}}if(found)total++;}return total/33;};
  let best=null;
  for(let i=0;i<lines.length;i++)for(let j=i+1;j<lines.length;j++)for(let k=j+1;k<lines.length;k++)for(let m=k+1;m<lines.length;m++){
   const selected=[lines[i],lines[j],lines[k],lines[m]],corners=[];
