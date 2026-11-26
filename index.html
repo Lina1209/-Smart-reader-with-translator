@@ -1326,7 +1326,7 @@ async function translatePreservingFile(file,from,target,statusId){
  const ext=(file.name.split('.').pop()||'').toLowerCase(),progressId='translatorProgress';
  resetProgress(progressId,'Перевод и сохранение файла');setProgress(progressId,0,'Подготовка оригинала',file.name);
  if(file.size>100*1024*1024)throw Error('Файл больше 100 МБ. Для стабильной обработки в браузере выберите файл меньшего размера.');
- if(ext==='pdf'){return await translatePdfPreservingFile(file,from,target,progressId);}if(['png','jpg','jpeg','webp'].includes(ext)){return await translateImagePreservingFile(file,from,target,progressId);}
+ if(ext==='pdf'){return await translatePdfPreservingFile(file,from,target,progressId);}if(['png','jpg','jpeg','webp','gif'].includes(ext)){return await translateImagePreservingFile(file,from,target,progressId);}
  let binary=await readFileBuffer(file),translatedText='';
  if(['docx','epub','odt','xlsx','xlsm','pptx'].includes(ext)){
   const JSZip=await ensureZipLibrary(),zip=await JSZip.loadAsync(binary);binary=null;assertZipArchiveSafe(zip);
