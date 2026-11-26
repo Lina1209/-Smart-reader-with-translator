@@ -495,7 +495,46 @@ function estimateSafeBackgroundFill(ctx,x,y,w,h,pad=4){
 }
 function translationLayoutTokens(text,targetCode){const code=String(targetCode||'').toLowerCase();if(/^(zh|ja)(-|$)/.test(code)){if(typeof Intl!=='undefined'&&Intl.Segmenter)return Array.from(new Intl.Segmenter(code,{granularity:'grapheme'}).segment(String(text||'')),part=>part.segment);return Array.from(String(text||''));}return String(text||'').split(/\s+/).filter(Boolean);}
 function isValidOcrBox(box){return !!box&&['x0','y0','x1','y1'].every(key=>Number.isFinite(Number(box[key])))&&Number(box.x1)>Number(box.x0)&&Number(box.y1)>Number(box.y0);}
-function drawTranslationInBox(ctx,text,x,y,w,h,targetCode){const rtl=/^(ar|he|fa|ur)(-|$)/i.test(String(targetCode||'')),noSpace=/^(zh|ja)(-|$)/i.test(String(targetCode||'')),words=translationLayoutTokens(text,targetCode),separator=noSpace?'':'';if(!words.length||w<=0||h<=0)return{lineCount:0,fontSize:0,overflow:false};const previousFont=ctx.font;let fontSize=Math.max(4,Math.min(28,Math.round(h*.78))),lines=[];const makeLines=()=>{ctx.font='600 '+fontSize+'px Arial,sans-serif';lines=[];let row='';for(const word of words){const next=row?row+separator+word:word;if(ctx.measureText(next).width<=w||!row){row=next;}else{lines.push(row);row=word;}}if(row)lines.push(row);};makeLines();while(lines.length*fontSize*1.08>h&&fontSize>4){fontSize--;makeLines();}const lineH=fontSize*1.08,totalH=lines.length*lineH,startY=y+(h-totalH)/2+lineH/2,drawX=rtl?x+w:x;let severeCompression=false;ctx.save();try{ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.font='600 '+fontSize+'px Arial,sans-serif';ctx.textBaseline='middle';ctx.textAlign=rtl?'right':'left';ctx.direction=rtl?'rtl':'ltr';for(let i=0;i<lines.length;i++){const line=lines[i],measured=ctx.measureText(line).width;if(measured>w){const ratio=w/Math.max(1,measured);if(ratio<.65)severeCompression=true;ctx.save();ctx.translate(drawX,startY+i*lineH);ctx.scale(ratio,1);ctx.fillText(line,0,0);ctx.restore();}else ctx.fillText(line,drawX,startY+i*lineH);}}finally{ctx.restore();ctx.font=previousFont;}return{lineCount:lines.length,fontSize,overflow:totalH>h+.5||severeCompression};}
+function drawTranslationInBox(ctx,text,x,y,w,h,targetCode){
+ const rtl=/^(ar|he|fa|ur)(-|$)/i.test(String(targetCode||'')),noSpace=/^(zh|ja)(-|$)/i.test(String(targetCode||'')),tokens=translationLayoutTokens(text,targetCode);
+ if(!tokens.length||w<=0||h<=0)return{lineCount:0,fontSize:0,overflow:false,fits:true,reason:null};
+ const previousFont=ctx.font,minFont=4,maxFont=Math.max(4,Math.min(28,Math.floor(h*.78))),lineHeight=1.12;
+ let fontSize=maxFont,lines=[],fits=false;
+ const splitLongToken=(token)=>{
+  if(!noSpace&&ctx.measureText(token).width<=w)return[token];
+  const parts=typeof Intl!=='undefined'&&Intl.Segmenter?Array.from(new Intl.Segmenter(targetCode||'und',{granularity:'grapheme'}).segment(String(token)),part=>part.segment):Array.from(String(token));
+  const chunks=[];let chunk='';
+  for(const part of parts){const candidate=chunk+part;if(chunk&&ctx.measureText(candidate).width>w){chunks.push(chunk);chunk=part;}else chunk=candidate;}
+  if(chunk)chunks.push(chunk);return chunks;
+ };
+ const buildLines=()=>{
+  ctx.font='600 '+fontSize+'px Arial,sans-serif';lines=[];let row='';
+  for(const token of tokens){
+   const pieces=splitLongToken(token);
+   for(const piece of pieces){
+    const candidate=row?(noSpace?'': ' ')+piece:piece;
+    if(row&&ctx.measureText(row+candidate.slice(piece.length+(noSpace?0:1))).width>w){lines.push(row);row=piece;}
+    else if(!row&&ctx.measureText(piece).width>w){lines.push(piece);row='';}
+    else row+=candidate;
+   }
+  }
+  if(row)lines.push(row);
+ };
+ while(fontSize>=minFont){
+  buildLines();
+  const totalH=lines.length*fontSize*lineHeight;
+  if(totalH<=h+.01&&lines.every(line=>ctx.measureText(line).width<=w+.01)){fits=true;break;}
+  if(fontSize===minFont)break;fontSize--;
+ }
+ if(!lines.length)buildLines();
+ const lineH=fontSize*lineHeight,totalH=lines.length*lineH,startY=y+(h-totalH)/2+lineH/2,drawX=rtl?x+w:x;
+ ctx.save();
+ try{
+  ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.font='600 '+fontSize+'px Arial,sans-serif';ctx.textBaseline='middle';ctx.textAlign=rtl?'right':'left';ctx.direction=rtl?'rtl':'ltr';
+  for(let i=0;i<lines.length;i++){const line=lines[i];if(ctx.measureText(line).width<=w+.01)ctx.fillText(line,drawX,startY+i*lineH);}
+ }finally{ctx.restore();ctx.font=previousFont;}
+ return{lineCount:lines.length,fontSize,overflow:!fits,fits,reason:fits?null:(totalH>h?'height':'width'),totalHeight:totalH};
+}
 function ocrLayoutSummary(data){
  const lines=ocrLines(data),heights=lines.map(line=>line.box.y1-line.box.y0).filter(value=>value>0).sort((a,b)=>a-b),median=heights.length?heights[Math.floor(heights.length/2)]:0;
  if(lines.length<6||!median)return{multiColumn:false,tableLike:false,rowCount:0,columnCount:1,confidence:'low'};
