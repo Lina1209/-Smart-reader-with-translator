@@ -81,6 +81,39 @@ def inspect_truetype_glyph(font_program, gid, max_component_depth=16, max_compon
             codepoint for codepoint, mapped_name in cmap.items()
             if mapped_name == glyph_name
         )
+
+        # Font-program metrics are reported separately from PDF /Widths and /W.
+        units_per_em = int(font["head"].unitsPerEm)
+        metric_report = {"status": "unknown", "advance_width": None, "left_side_bearing": None}
+        if "hmtx" in font and glyph_name in font["hmtx"].metrics:
+            advance, side_bearing = font["hmtx"].metrics[glyph_name]
+            metric_report = {
+                "status": "available",
+                "advance_width": int(advance),
+                "left_side_bearing": int(side_bearing),
+                "advance_width_per_1000_em": round(advance * 1000 / units_per_em, 4) if units_per_em else None,
+                "left_side_bearing_per_1000_em": round(side_bearing * 1000 / units_per_em, 4) if units_per_em else None,
+            }
+
+        bounds = {"status": "unavailable", "x_min": None, "y_min": None, "x_max": None, "y_max": None}
+        try:
+            glyph.recalcBounds(glyph_table)
+            values = (glyph.xMin, glyph.yMin, glyph.xMax, glyph.yMax)
+            if all(value is not None for value in values):
+                bounds = {
+                    "status": "available",
+                    "x_min": int(values[0]),
+                    "y_min": int(values[1]),
+                    "x_max": int(values[2]),
+                    "y_max": int(values[3]),
+                    "width": int(values[2] - values[0]),
+                    "height": int(values[3] - values[1]),
+                    "width_per_1000_em": round((values[2] - values[0]) * 1000 / units_per_em, 4) if units_per_em else None,
+                    "height_per_1000_em": round((values[3] - values[1]) * 1000 / units_per_em, 4) if units_per_em else None,
+                }
+        except Exception:
+            pass
+
         return {
             "status": status,
             "gid": gid,
@@ -90,7 +123,9 @@ def inspect_truetype_glyph(font_program, gid, max_component_depth=16, max_compon
             "composite_component_count": component_count,
             "unicode_codepoints": unicode_scalars[:32],
             "unicode_codepoint_count": len(unicode_scalars),
-            "units_per_em": int(font["head"].unitsPerEm),
+            "units_per_em": units_per_em,
+            "horizontal_metrics": metric_report,
+            "outline_bounds": bounds,
             "outline_flavor": "TrueType glyf/loca",
             "errors": errors,
             "limitations": [

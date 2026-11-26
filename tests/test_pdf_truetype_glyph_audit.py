@@ -30,6 +30,10 @@ class TrueTypeGlyphAuditTests(unittest.TestCase):
         self.assertEqual(report["glyph_name"], glyph_name)
         self.assertIn(0x41, report["unicode_codepoints"])
         self.assertGreater(report["number_of_contours"], 0)
+        self.assertEqual(report["horizontal_metrics"]["status"], "available")
+        self.assertGreater(report["horizontal_metrics"]["advance_width"], 0)
+        self.assertEqual(report["outline_bounds"]["status"], "available")
+        self.assertGreater(report["outline_bounds"]["width"], 0)
 
     def test_composite_glyph_resolves_component_outline(self):
         glyph_name = self.cmap[0x00E9]
@@ -37,12 +41,18 @@ class TrueTypeGlyphAuditTests(unittest.TestCase):
         report = inspect_truetype_glyph(self.font_program, gid)
         self.assertEqual(report["status"], "composite-outline-present")
         self.assertGreater(report["composite_component_count"], 0)
+        self.assertEqual(report["horizontal_metrics"]["status"], "available")
+        self.assertEqual(report["outline_bounds"]["status"], "available")
 
     def test_space_glyph_is_reported_as_empty_not_missing(self):
         glyph_name = self.cmap[0x20]
         gid = self.name_to_gid[glyph_name]
         report = inspect_truetype_glyph(self.font_program, gid)
         self.assertEqual(report["status"], "empty-glyph")
+        self.assertEqual(report["horizontal_metrics"]["status"], "available")
+        self.assertGreater(report["horizontal_metrics"]["advance_width"], 0)
+        self.assertEqual(report["outline_bounds"]["status"], "available")
+        self.assertEqual(report["outline_bounds"]["width"], 0)
 
     def test_invalid_font_program_and_gid_fail_closed(self):
         self.assertEqual(inspect_truetype_glyph(b"not a font", 1)["status"], "unreadable-font")

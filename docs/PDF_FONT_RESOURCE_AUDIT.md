@@ -94,3 +94,12 @@ tests/pdf_truetype_glyph_audit.py adds a bounded fontTools-based inspection for 
 The tests inspect a real DejaVu Sans font program embedded in a generated PDF, including GID 36 from the CIDToGIDMap fixture, plus a simple letter, a composite accented letter and the empty space glyph. Invalid font data and out-of-range GIDs fail closed. CI installs fontTools and runs this suite independently.
 
 This adapter supports TrueType glyf/loca outlines only. It does not inspect CFF/OpenType-CFF, Type 1 or CIDFontType0 outlines. A structurally present outline does not prove that PDF clipping, text state, shaping, color/alpha, layout or translated-text fit are safe. The Unicode cmap is supporting font evidence; PDF source-code/Encoding/ToUnicode mappings remain separate.
+
+
+## Embedded TrueType glyph metrics and bounds (read-only)
+
+The TrueType glyph audit now reads the font's `hmtx` advance width and left side bearing, and calculates the selected glyph's outline bounds from `glyf`. It reports values in native font units and normalizes them to a 1000-units-per-em view for comparison work. Empty glyphs such as space can have a non-zero advance while having zero outline width; these are intentionally reported separately.
+
+These are font-program metrics, not PDF `/Widths` or Type 0 `/W` values. The audit does not assume they are interchangeable: PDF font matrices, subset encodings, text size, character/word spacing, horizontal scaling and text matrices can change the effective page-space result. No translated string width is predicted here. Complex scripts and ligatures still require a shaping engine.
+
+Tests assert metrics and bounds for a simple Latin letter, a composite accented glyph and the empty space glyph. Missing metrics/bounds remain unknown rather than guessed.
