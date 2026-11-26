@@ -42,6 +42,12 @@ if(runs.map(x=>x.nodeValue).join('')!==translated)throw new Error('DOCX run redi
 const blankRuns=[{nodeValue:'first'},{nodeValue:'second'}];
 distribute('   ',blankRuns);
 if(blankRuns.map(x=>x.nodeValue).join('')!=='   ')throw new Error('Whitespace-only translated paragraphs were not preserved');
+const spacedRuns=[{nodeValue:'first'},{nodeValue:' '},{nodeValue:'second'}];
+distribute('Translated phrase',spacedRuns);
+if(spacedRuns.map(x=>x.nodeValue).join('')!=='Translated phrase')throw new Error('DOCX translation lost spaces when Word stored a separator in a whitespace-only run');
+if(spacedRuns[1].nodeValue!=='')throw new Error('Whitespace-only formatting runs must not receive translated words');
+const docxParagraphHelper=html.slice(html.indexOf('function translateXmlParagraphs('),html.indexOf('async function translatePreservingFile('));
+if(!docxParagraphHelper.includes('if(n.nodeValue)texts.push(n)')||!docxParagraphHelper.includes('texts.some(n=>String(n.nodeValue||\'\').trim())'))throw new Error('DOCX paragraph extraction must retain whitespace-only separators while skipping empty paragraphs');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd']"))throw new Error('EPUB block coverage missing');
 if(!html.includes(".sort((a,b)=>Number(a.match(/slide(\\d+)/i)?.[1]||0)-Number(b.match(/slide(\\d+)/i)?.[1]||0))"))throw new Error('PPTX numeric slide ordering missing');
 const pdfStart=html.indexOf('function pdfTextItemsToPlainText(');
