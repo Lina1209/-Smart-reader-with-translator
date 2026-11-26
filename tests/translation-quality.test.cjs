@@ -535,7 +535,7 @@ if(noPage.accepted)throw new Error('A compact text-like cluster must not be acce
 if(!html.includes('previewOnly:true')||!html.includes("reason:'no-reliable-page-boundary'"))throw new Error('Page detection must remain preview-only and reject uncertain candidates');
 
 
-if(!html.includes('async function openPdfScanPreview(file,ext,openToken)')||!html.includes('page.getTextContent()')||!html.includes('Math.min(3,pdf.numPages)'))throw new Error('PDF scan preview must distinguish scanned PDFs from PDFs with a text layer');
+if(!html.includes('async function openPdfScanPreview(file,ext,openToken)')||!html.includes('page.getTextContent()')||!html.includes('n<=pdf.numPages')||!html.includes('pdf.numPages>2000'))throw new Error('PDF scan preview must inspect all pages for text and respect the 2000-page safety limit');
 if(!html.includes("const page=await pdf.getPage(n);try{if(openToken!==requestId){try{await task.destroy()}catch(e){}return false;}const content=await page.getTextContent();if(openToken!==requestId){try{await task.destroy()}catch(e){}return false;}"))throw new Error('PDF scan classification must cancel promptly when a newer file is opened');
 if(!html.includes("const pages=[];let pdf=null;try{pdf=await loading.promise;"))throw new Error('PDF extraction must enter cleanup protection before awaiting the PDF document');
 if(!html.includes("async function extractDocumentText(file,progressId,openToken){const isCurrent=()=>openToken===undefined||openToken===requestId;"))throw new Error('Document extraction must accept a request token for cancellation');
