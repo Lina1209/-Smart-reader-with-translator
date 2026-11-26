@@ -390,6 +390,8 @@ if(!html.includes("rendition.resize("))throw new Error('EPUB rendition must resi
 if(!html.includes(".epubbox{height:min(72vh,1050px)")||!html.includes("@media(max-width:600px){.page{"))throw new Error('EPUB and text reader must use bounded responsive viewports');
 if(!html.includes("rendition.themes.default({'body':{background:bg+' !important',color:ink+' !important'"))throw new Error('EPUB theme changes must be propagated to the rendered book');
 if(!html.includes("if(!rendition&&readerFullText&&textViewer.style.display!=='none')paginateReaderText(readerFullText)"))throw new Error('EPUB font changes must not trigger hidden text-reader pagination');
+if(!html.includes('const openToken=requestId;try{setProgress')||!html.includes('if(openToken!==requestId)return;')||!html.includes('openEpub(file,openToken)')||!html.includes('openText(file,ext,openToken)'))throw new Error('A stale asynchronous file open must not replace a newer book');
+if(!html.includes('openScanImage(file,ext,openToken)')||!html.includes('openPdfScanPreview(file,ext,openToken)'))throw new Error('Image and PDF file opening must honor the active open request');
 
 if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;background:var(--paper)'))throw new Error('Reader page must keep a bounded book-page frame');
 if(!html.includes('overflow-wrap:anywhere'))throw new Error('Long unbroken words must wrap inside the fixed book-page frame');
