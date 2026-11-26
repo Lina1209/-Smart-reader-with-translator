@@ -48,6 +48,7 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
  assert.equal(elements.prevBtn.disabled,true);assert.equal(elements.nextBtn.disabled,false);
  assert.equal(elements.sliderSync?.current,1,'failed PDF navigation must restore the slider to the previously displayed page');
  assert.equal(elements.sliderSync?.total,3,'failed PDF navigation must preserve the source page count');
+ assert.equal(elements.pageStatus.textContent,'Страница 1 из 3','failed PDF navigation must restore the visible page counter');
  const stalePending=deferred();let staleCleanups=0;
  const stalePage={cleanup(){staleCleanups++;}};
  state.pdfDocument={getPage:()=>stalePending.promise};
