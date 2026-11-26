@@ -86,6 +86,8 @@ jobs:
         run: node tests/pdf-rewrite-preflight.test.cjs
       - name: Test PDF.js text geometry
         run: node tests/pdf-text-geometry.test.cjs
+      - name: Test PDF page navigation concurrency and cleanup
+        run: node tests/pdf-page-navigation.test.cjs
       - name: Check HTML IDs and referenced elements
         run: |
           python3 - <<'PY'
