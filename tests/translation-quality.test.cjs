@@ -182,6 +182,13 @@ if(Math.abs(fineAngleRestored.x0-fineAngleOriginalBox.x0)>2||Math.abs(fineAngleR
 if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
 
 if(!html.includes('function createThresholdOcrCanvas(')||!html.includes('createThresholdOcrCanvas(canvas,1.5)'))throw new Error('Adaptive threshold OCR fallback is missing');
+
+const languageHelperStart=html.indexOf('function ocrLanguageForCode('),languageHelperEnd=html.indexOf('\nfunction rotateCanvasForOcr',languageHelperStart);
+if(languageHelperStart<0||languageHelperEnd<0)throw new Error('OCR language mapping helper not found');
+const languageMapper=vm.runInNewContext(html.slice(languageHelperStart,languageHelperEnd)+'; ocrLanguageForCode');
+for(const [input,expected] of [['ru-RU','rus'],['kk-KZ','kaz'],['en','eng'],['zh-CN','chi_sim'],['ja','jpn'],['ar','ara'],['hi','hin'],['fr-FR','fra']])if(languageMapper(input)!==expected)throw new Error('Incorrect OCR model for '+input+': '+languageMapper(input));
+if(languageMapper('auto')!=='eng+rus')throw new Error('Automatic OCR fallback language changed unexpectedly');
+
 const safeOcrScaleUnderTestHelperStart=html.indexOf('function safeOcrScale('),safeOcrScaleUnderTestHelperEnd=html.indexOf('\nfunction createEnhancedOcrCanvas',safeOcrScaleUnderTestHelperStart);
 if(safeOcrScaleUnderTestHelperStart<0||safeOcrScaleUnderTestHelperEnd<0)throw new Error('Safe OCR scaling helper not found');
 const safeOcrScaleUnderTest=vm.runInNewContext(html.slice(safeOcrScaleUnderTestHelperStart,safeOcrScaleUnderTestHelperEnd)+'; safeOcrScale');
