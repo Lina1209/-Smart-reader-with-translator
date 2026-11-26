@@ -68,3 +68,16 @@ A separate Poppler-based regression renders an eight-page suite before and after
 The adapter intentionally does not infer exact glyph outlines, source-font encodings, glyph IDs, clipping paths or precise glyph bounds. PDF.js text geometry helps locate text runs but does not establish safe native replacement.
 
 No production PDF pipeline is connected to this prototype. Unsupported cases must continue to use the existing disclosed OCR/raster fallback or remain unchanged; no native rewrite should be integrated until an actual content-stream adapter passes independent extraction and visual regression tests.
+
+
+## Content-stream text-state audit (diagnostic only)
+
+`tests/pdf_content_stream_audit.py` inspects operators already parsed by pypdf and records text-show events (`Tj`, `TJ`, quote operators) with the active text-state values: font resource name, font size, character spacing, word spacing, horizontal scaling, leading, rise and render mode. It also counts text-matrix operators, clipping operators, Form XObject invocations and checks basic `q`/`Q` and `BT`/`ET` balance.
+
+This deliberately does **not** calculate glyph advances or resulting text matrices after `Tj`/`TJ`: that requires the exact font encoding, widths, writing mode and character-code interpretation. It also does not resolve inherited resources, recursive Form XObjects, transformed clipping intersections or transparency. The report is evidence for the next implementation step, not an eligibility proof and not a content-stream editor.
+
+Run the new checks with:
+
+```sh
+python -m unittest discover -s tests -p 'test_pdf_content_stream_audit.py' -v
+```
