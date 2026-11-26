@@ -80,6 +80,8 @@ jobs:
         run: node tests/translation-chunks.test.cjs
       - name: Test reader file-open cancellation and stale requests
         run: node tests/open-file-cancellation.test.cjs
+      - name: Test PDF OCR text extraction separators
+        run: node tests/pdf-text-extraction-separators.test.cjs
       - name: Test fixed-page reader pagination and long-token wrapping
         run: node tests/reader-pagination.test.cjs
       - name: Test glossary protection and retry classification
