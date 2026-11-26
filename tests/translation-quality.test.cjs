@@ -68,4 +68,17 @@ for(const [angle,expected] of expectedBoxes){
  if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('OCR box rotation '+angle+'° incorrect: '+JSON.stringify(actual));
 }
 if(!html.includes('image\\/(png|jpeg|webp|gif)')||!html.includes("file.type==='image/gif'?'image/png'"))throw new Error('GIF first-frame OCR and PNG output support missing');
+const tokenStart=html.indexOf('function translationLayoutTokens(');
+const tokenEnd=html.indexOf('\n',tokenStart);
+if(tokenStart<0||tokenEnd<0)throw new Error('CJK layout tokenizer not found');
+const layoutTokens=vm.runInNewContext(html.slice(tokenStart,tokenEnd)+'; translationLayoutTokens');
+const cjkTokens=layoutTokens('日本語の文章','ja');
+if(cjkTokens.join('')!=='日本語の文章'||cjkTokens.length!==6)throw new Error('Japanese text was not segmented for natural line wrapping');
+const validStart=html.indexOf('function isValidOcrBox(');
+const validEnd=html.indexOf('\n',html.indexOf('function ocrLines(',validStart));
+if(validStart<0||validEnd<0)throw new Error('OCR bounding-box validation helpers not found');
+const ocrHelpers=vm.runInNewContext(html.slice(validStart,validEnd)+'; ({isValidOcrBox,ocrLines})');
+if(!ocrHelpers.isValidOcrBox({x0:0,y0:0,x1:10,y1:10})||ocrHelpers.isValidOcrBox({x0:5,y0:0,x1:2,y1:10})||ocrHelpers.isValidOcrBox({x0:0,y0:0,x1:NaN,y1:10}))throw new Error('OCR bounding-box validation failed');
+const filtered=ocrHelpers.ocrLines({lines:[{text:'valid',confidence:90,bbox:{x0:0,y0:0,x1:10,y1:10}},{text:'invalid box',confidence:99,bbox:{x0:5,y0:5,x1:2,y1:2}}]});
+if(filtered.length!==1||filtered[0].text!=='valid')throw new Error('OCR accepted an invalid bounding box');
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
