@@ -325,6 +325,9 @@ if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'
 if(!html.includes("window.addEventListener('resize'")||!html.includes('readerPageOffsets[readerPageIndex]')||!html.includes('readerPageOffsets[i]<=previousOffset'))throw new Error('Reader pagination must adapt to screen rotation/resize while retaining the same text position');
 if(!html.includes('readerPageOffsets=[]')||!html.includes('offsets.push(currentOffset)'))throw new Error('Text reader page offsets must be tracked and reset safely');
 if(!html.includes("$('prevBtn').disabled=!t||p<=1")||!html.includes("$('nextBtn').disabled=!t||p>=t"))throw new Error('EPUB navigation buttons must reflect first and last page');
+if(!html.includes('epubNavigationBusy')||!html.includes('updateEpubNavigationButtons()')||!html.includes("Не удалось перелистнуть EPUB"))throw new Error('EPUB navigation must serialize rapid page turns and recover button state after failures');
+if(!html.includes('epubPageState={page:p,total:t}')||!html.includes('epubNavigationBusy||!epubPageState.total'))throw new Error('EPUB relocated state must drive the disabled state of navigation controls');
+if(!html.includes('Promise.resolve(delta<0?rendition.prev():rendition.next())'))throw new Error('EPUB page-turn promises must be handled safely');
 if(!html.includes('rendition.getContents()')||!html.includes('doc.__readerSwipeBound'))throw new Error('EPUB iframe touch gestures must be bound inside its document');
 if(!html.includes('readerPageIndex=0;textViewer.style.display=\'block\';paginateReaderText(normalized)'))throw new Error('Text documents are not rendered as discrete reader pages');
 
