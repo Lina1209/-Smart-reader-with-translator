@@ -726,7 +726,7 @@ const officeWriterEnd=html.indexOf("\n$('standaloneTranslate').addEventListener"
 if(officeWriterStart<0||officeWriterEnd<0)throw new Error('Office document export writer missing');
 const officeWriter=html.slice(officeWriterStart,officeWriterEnd);
 if(!officeWriter.includes('const chartPaths=Object.keys(zip.files)')||!officeWriter.includes("translateXmlParagraphs(doc,'p'"))throw new Error('XLSX chart rich-text titles and labels must be included in translation');
-if(!officeWriter.includes('notesSlides')||!officeWriter.includes('diagrams')||!officeWriter.includes('charts'))throw new Error('PPTX export must include speaker notes, chart rich text and diagram text parts');
+if(!officeWriter.includes('getPptxTranslatableContentPaths(Object.keys(zip.files))'))throw new Error('PPTX export must use the shared slide and auxiliary-content path selector');
 if(!officeWriter.includes('const contentPaths=[...slides,...auxiliaryPaths.filter'))throw new Error('PPTX slide and auxiliary text parts must be processed together');
 
 for(const notice of ['ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки','заметки докладчика','подписи из кэшей диаграмм','встроенные объекты и редкие элементы Word'])if(!officeWriter.includes(notice))throw new Error('Office export must disclose incomplete text/layout coverage: '+notice);
