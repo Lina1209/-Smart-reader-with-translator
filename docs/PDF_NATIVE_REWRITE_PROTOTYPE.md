@@ -40,3 +40,16 @@ Before integration, a real content-stream adapter must be designed and tested ag
 - ligatures, kerning, TJ arrays, rotated text and clipped text.
 
 The adapter must re-open each output with PDF.js and verify that the old text is gone, the replacement is extractable, and unrelated images/vectors remain unchanged. Unsupported pages must remain unchanged or use the disclosed OCR fallback. No third-party engine with an incompatible license is bundled by this prototype.
+
+## Real PDF fixture gate
+
+GitHub Actions also generates temporary PDF files with ReportLab and inspects them with pypdf. The fixtures cover:
+
+- a simple Type1 / WinAnsi page;
+- an embedded subset TrueType page containing Russian, Kazakh-specific letters and accented Latin;
+- a Type0/CID page with a Unicode CMap;
+- a page combining selectable table text, vector rules and a rotated text run.
+
+The tests inspect actual PDF font dictionaries, embedded font programs, extracted text and content-stream operators. The PDF files are generated during CI and are not committed as binary fixtures.
+
+This is a real-PDF parsing and fixture-validation step, not a text-rewrite test. It does not yet use PDF.js, replace text operators, or prove visual equivalence after translation. No production PDF pipeline is connected to this prototype.
