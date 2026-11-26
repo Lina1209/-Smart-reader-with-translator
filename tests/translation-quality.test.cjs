@@ -194,7 +194,7 @@ if(!dryFit.fits||paintCalls!==0)throw new Error('OCR preflight must measure tran
 draw(dryContext,'Translated',0,0,100,30,'en',{paint:true});
 if(paintCalls===0)throw new Error('OCR final render must paint after a successful fit check');
 const pdfLoop=html.slice(html.indexOf('async function translatePdfPreservingFile'),html.indexOf('async function translateImagePreservingFile'));
-if(!pdfLoop.includes("const loading=pdfjs.getDocument({data:pdfBytes});let sourcePdf=null,outPdf=null,sourcePdfForCopy=null;"))throw new Error('PDF reconstruction must declare cleanup state before parsing');
+if(!pdfLoop.includes("loading=pdfjs.getDocument({data:pdfBytes});let sourcePdf=null,outPdf=null,sourcePdfForCopy=null;"))throw new Error('PDF reconstruction must declare cleanup state before parsing');
 if(!pdfLoop.includes("sourcePdf=await loading.promise;\n  outPdf=await PDFLib.PDFDocument.create();"))throw new Error('PDF reconstruction must protect document loading and output creation with cleanup');
 if(!pdfLoop.includes("if(sourcePdf)await sourcePdf.cleanup();}catch(e){}try{await loading.destroy();}"))throw new Error('PDF reconstruction must clean up even when PDF parsing fails');
 const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
