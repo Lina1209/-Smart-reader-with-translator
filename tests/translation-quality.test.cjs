@@ -199,3 +199,18 @@ if(safeOcrScaleUnderTest({width:10000,height:10000},1.5,16000000)>0.400001)throw
 
 
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
+
+const workerStart=html.indexOf('async function createOcrWorker('),workerEnd=html.indexOf('\nfunction ocrLanguageForCode',workerStart);
+if(workerStart<0||workerEnd<0)throw new Error('OCR worker fallback helper not found');
+const workerFactory=vm.runInNewContext(html.slice(workerStart,workerEnd)+'; createOcrWorker');
+const attempts=[];
+const mockTesseract={createWorker:async language=>{attempts.push(language);if(language==='eng+rus+kaz'||language==='eng+rus')throw new Error('traineddata unavailable');return{language,terminate:async()=>{}};}};
+(async()=>{
+ const fallback=await workerFactory(mockTesseract,'eng+rus+kaz',()=>{},()=>{});
+ if(fallback.language!=='eng'||!fallback.fallback||attempts.join(',')!=='eng+rus+kaz,eng+rus,eng')throw new Error('Automatic OCR model fallback did not select the first available model');
+ let explicitFailed=false;
+ try{await workerFactory({createWorker:async()=>{throw new Error('missing traineddata');}},'kaz',()=>{},()=>{});}catch(error){explicitFailed=/kaz/.test(error.message);}
+ if(!explicitFailed)throw new Error('Explicit OCR language failure must be reported, not silently replaced');
+ if(!html.includes('let tesseractLoadingPromise=null')||!html.includes('return tesseractLoadingPromise'))throw new Error('Tesseract loader is not protected against concurrent duplicate script injection');
+ console.log('OCR worker availability tests passed: model fallback, explicit-language error and shared loader.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
