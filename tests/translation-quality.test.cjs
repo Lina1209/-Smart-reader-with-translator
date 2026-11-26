@@ -662,3 +662,11 @@ if(!html.includes("rendition.on('selected',(cfi,contents)=>{if(openToken!==reque
 if(!html.includes("function closeExisting(){const tocControl=$('epubTocSelect')")||!html.includes("tocControl.hidden=true;tocControl.disabled=false")||!html.includes("epubPositionStorageKey='';epubNavigationBusy=false;epubPageState={page:0,total:0}"))throw new Error('Switching away from EPUB must clear its table of contents, saved-position key, and navigation state');
 if(!html.includes("rendition.resize()"))throw new Error('EPUB viewer must recalculate page layout after viewport resizing');
 if(!html.includes("saveEpubPosition(epubPositionStorageKey,loc)"))throw new Error('EPUB position must be persisted after relocation, including layout changes');
+
+const paginationStart=html.indexOf('function paginateReaderText(value){');
+const paginationEnd=html.indexOf('\nfunction renderReaderPage()',paginationStart);
+if(paginationStart<0||paginationEnd<0)throw new Error('Reader page measurement helper not found');
+const paginationSource=html.slice(paginationStart,paginationEnd);
+if(!paginationSource.includes('Math.max(1,textViewer.clientWidth||'))throw new Error('Reader page width must use the actual narrow viewport instead of forcing a 240px minimum');
+if(!paginationSource.includes('Math.max(1,textViewer.clientHeight||'))throw new Error('Reader page height must use the actual short viewport instead of forcing a 320px minimum');
+if(paginationSource.includes('Math.max(240,textViewer.clientWidth')||paginationSource.includes('Math.max(320,textViewer.clientHeight'))throw new Error('Reader pagination must not measure against dimensions larger than the visible page on small screens');
