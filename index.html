@@ -681,7 +681,7 @@ async function translatePdfPreservingFile(file,from,target,progressId){
   ocrWorker=ocrWorkerInfo.worker;
   for(let pageNo=1;pageNo<=sourcePdf.numPages;pageNo++){
    activePage=pageNo;setProgress(progressId,100*(pageNo-1)/sourcePdf.numPages,'Обрабатываем PDF-страницу',pageNo+' из '+sourcePdf.numPages);
-   const page=await sourcePdf.getPage(pageNo),viewport=createSafePdfViewport(page,1.4),canvas=document.createElement('canvas');
+   const page=await sourcePdf.getPage(pageNo),viewport=createSafePdfViewport(page,2.0,16000000),canvas=document.createElement('canvas');
    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);let rectifiedCanvas=null;
    try{
     const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)throw Error('Не удалось создать холст PDF-страницы.');
@@ -715,7 +715,7 @@ async function translatePdfPreservingFile(file,from,target,progressId){
      paintTranslationInOcrBox(ctx,translated,cellBox,target,bg.color);
      setProgress(progressId,100*(pageNo-1+lineNo/Math.max(replacementLines.length,1))/sourcePdf.numPages,'Переводим текст PDF','Страница '+pageNo+' · блок '+(lineNo+1)+' из '+replacementGroups.length);
     }
-    const jpeg=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.94));if(!jpeg)throw Error('Не удалось сжать страницу PDF.');
+    const jpeg=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.98));if(!jpeg)throw Error('Не удалось сжать страницу PDF.');
     const pageImage=await outPdf.embedJpg(await jpeg.arrayBuffer()),originalSize=page.getViewport({scale:1}),outPage=outPdf.addPage([originalSize.width,originalSize.height]);
     outPage.drawImage(pageImage,{x:0,y:0,width:originalSize.width,height:originalSize.height});
    }finally{
@@ -725,7 +725,7 @@ async function translatePdfPreservingFile(file,from,target,progressId){
   }
   const bytes=await outPdf.save({useObjectStreams:true}),blob=new Blob([bytes],{type:'application/pdf'});
   setProgress(progressId,100,'PDF собран',pageWarnings.length||layoutWarnings.length?'Требуют проверки: OCR-страниц '+pageWarnings.length+', переполнений текста '+layoutWarnings.length:'Страниц: '+sourcePdf.numPages+' · исходные размеры сохранены',true);
-  return{blob,text:'PDF обработан постранично. Текстовый слой заменён изображениями страниц; исходные размеры сохранены.'+(pageWarnings.length?' ВНИМАНИЕ OCR: '+pageWarnings.join(' '):'')+(layoutWarnings.length?' ВНИМАНИЕ ВЁРСТКА: '+layoutWarnings.join(' '):''),filename:file.name};
+  return{blob,text:'PDF обработан постранично. Страницы сохранены как изображения высокого разрешения; исходные размеры сохранены. Важно: исходный текстовый слой, векторная графика и возможность поиска по тексту в этом режиме не сохраняются.'+(pageWarnings.length?' ВНИМАНИЕ OCR: '+pageWarnings.join(' '):'')+(layoutWarnings.length?' ВНИМАНИЕ ВЁРСТКА: '+layoutWarnings.join(' '):''),filename:file.name};
  }finally{
   try{if(ocrWorker)await ocrWorker.terminate();}catch(e){}try{await sourcePdf.cleanup();}catch(e){}try{await loading.destroy();}catch(e){}
  }
