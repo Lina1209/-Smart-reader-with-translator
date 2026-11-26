@@ -14,8 +14,8 @@ assert.ok(rtf.startsWith('{\\rtf1\\ansi\\deff0\\uc1'),'RTF document header must 
 assert.ok(rtf.includes('\\u1058?'),'Cyrillic must be encoded as RTF Unicode');
 assert.ok(rtf.includes('\\{\\u1074?')&&rtf.includes('\\u1093?\\}'),'Braces must be escaped around Unicode text');
 assert.ok(rtf.includes('\\\\ путь'),'Backslashes must be escaped');
-assert.ok(rtf.includes('\\par\nВторая строка'),'CRLF must become one RTF paragraph break');
-assert.ok(rtf.includes('\\tab табуляция'),'Tabs must use the RTF tab control');
+assert.ok(rtf.includes('\\par\n\\u1042?\\u1090?'),'CRLF must become one RTF paragraph break');
+assert.ok(rtf.includes('\\tab \\u1090?'),'Tabs must use the RTF tab control');
 assert.ok(rtf.includes('\\u-10179?\\u-8704?'),'Emoji surrogate pair must be retained as UTF-16 RTF Unicode units');
 const controls=context.makeRtf('A\u0001B');
 assert.ok(controls.includes('\\u1?'),'Unsupported control characters must not be emitted raw');
