@@ -47,7 +47,7 @@ GitHub Actions also generates temporary PDF files with ReportLab and inspects th
 
 - a simple Type1 / WinAnsi page;
 - an embedded subset TrueType page containing Russian, Kazakh-specific letters and accented Latin;
-- a Type0/CID page with a Unicode CMap;
+- a predefined Type0/CID page using `UniJIS-UCS2-H`;\n- a hand-built Type0/CIDFontType2 page using `Identity-H`, an embedded TrueType font, a `ToUnicode` CMap, explicit widths and a binary `CIDToGIDMap`;
 - a page combining selectable table text, vector rules and a rotated text run.
 
 The tests inspect actual PDF font dictionaries, embedded font programs, extracted text and content-stream operators. The PDF files are generated during CI and are not committed as binary fixtures.
