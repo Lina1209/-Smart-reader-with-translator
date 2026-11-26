@@ -115,7 +115,7 @@ const richRunCalls=xlsxSource.split('distributeTranslationAcrossRuns(trans,textN
 if(richRunCalls!==2)throw new Error('XLSX shared and inline rich-text runs must both retain their original run structure');
 if(!xlsxSource.includes("nodes.flatMap(node=>Array.from(node.childNodes).filter(child=>child.nodeType===3))"))throw new Error('XLSX shared strings must collect all rich text nodes before translation');
 if(!xlsxSource.includes("cell.getElementsByTagNameNS('*','t')"))throw new Error('XLSX inline strings must preserve all text runs in each cell');
-if(!html.includes("translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/slides.length,80/slides.length)"))throw new Error('PPTX progress updates must use the active translator progress panel');
+if(!html.includes("translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/contentPaths.length,80/Math.max(contentPaths.length,1))"))throw new Error('PPTX slide and auxiliary text translation must update the active progress panel');
 const pdfStart=html.indexOf('function pdfTextItemsToPlainText(');
 const pdfEnd=html.indexOf('\n}',pdfStart);
 if(pdfStart<0||pdfEnd<0)throw new Error('PDF text extraction helper not found');
@@ -433,7 +433,7 @@ if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text 
 
 
 if(!html.includes('async function openScanImage(file,ext,openToken)')||!html.includes('detectPageQuadFromCanvas(original)')||!html.includes('rectifyPageCanvas(original,points,6000000,3000)')||!html.includes('scanOriginalBtn')||!html.includes('scanCorrectedBtn')||!html.includes('releaseScanPreview()'))throw new Error('Scanned image reader preview must compare original and preview-only perspective correction with cleanup');
-if(!html.includes("'jpg','jpeg','png','webp','gif'")||!html.includes('imageFileToCanvas(file)')||!html.includes('recognizeImageCanvas(canvas,report)'))throw new Error('Common scanned-image formats must reach the OCR extraction path');
+if(!html.includes("'jpg','jpeg','png','webp','gif'")||!html.includes('imageFileToCanvas(file)')||!html.includes('recognizeImageCanvas(canvas,report,ocrLanguageForCode'))throw new Error('Common scanned-image formats must reach the OCR extraction path');
 
 if(!html.includes("flow:'paginated'")||html.includes("flow:'scrolled-doc'"))throw new Error('EPUB reader must use fixed paginated flow, not endless scrolling');
 if(!html.includes("spread:'none'"))throw new Error('EPUB must display one page at a time without facing-page spreads');
@@ -679,3 +679,55 @@ const paginationSource=html.slice(paginationStart,paginationEnd);
 if(!paginationSource.includes('Math.max(1,textViewer.clientWidth||'))throw new Error('Reader page width must use the actual narrow viewport instead of forcing a 240px minimum');
 if(!paginationSource.includes('Math.max(1,textViewer.clientHeight||'))throw new Error('Reader page height must use the actual short viewport instead of forcing a 320px minimum');
 if(paginationSource.includes('Math.max(240,textViewer.clientWidth')||paginationSource.includes('Math.max(320,textViewer.clientHeight'))throw new Error('Reader pagination must not measure against dimensions larger than the visible page on small screens');
+
+const spreadsheetExtractorStart=html.indexOf('async function extractSpreadsheetText(file,report,isCurrent=()=>true){');
+const spreadsheetExtractorEnd=html.indexOf('let tesseractLoadingPromise=',spreadsheetExtractorStart);
+if(spreadsheetExtractorStart<0||spreadsheetExtractorEnd<0)throw new Error('Cancellable spreadsheet extraction helper missing');
+const spreadsheetExtractor=html.slice(spreadsheetExtractorStart,spreadsheetExtractorEnd);
+for(const guard of ['await ensureXlsxLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()', "XLSX.read(buffer,{type:'array',cellDates:true});ensureCurrent()", 'for(let i=0;i<workbook.SheetNames.length;i++){\n  ensureCurrent();'])if(!spreadsheetExtractor.includes(guard))throw new Error('XLSX cancellation boundary missing: '+guard);
+if(!html.includes('extractSpreadsheetText(file,report,isCurrent)'))throw new Error('XLSX extraction must receive the active reader cancellation guard');
+const odtExtractorStart=html.indexOf('async function extractOdtText(file,isCurrent=()=>true){');
+const odtExtractorEnd=html.indexOf('\n\nlet readerFullText=',odtExtractorStart);
+if(odtExtractorStart<0||odtExtractorEnd<0)throw new Error('Cancellable ODT extraction helper missing');
+const odtExtractor=html.slice(odtExtractorStart,odtExtractorEnd);
+for(const guard of ['await ensureZipLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await JSZip.loadAsync(buffer);ensureCurrent()', "await entry.async('text');ensureCurrent()", 'ensureCurrent();return blocks'])if(!odtExtractor.includes(guard))throw new Error('ODT cancellation boundary missing: '+guard);
+if(!html.includes('extractOdtText(file,isCurrent)'))throw new Error('ODT extraction must receive the active reader cancellation guard');
+const pptxExtractorStart=html.indexOf("if(name.endsWith('.pptx')||type.includes('presentationml')){");
+const pptxExtractorEnd=html.indexOf("if(name.endsWith('.docx')",pptxExtractorStart);
+if(pptxExtractorStart<0||pptxExtractorEnd<0)throw new Error('PPTX extraction branch missing');
+const pptxExtractor=html.slice(pptxExtractorStart,pptxExtractorEnd);
+for(const guard of ['await ensureZipLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await JSZip.loadAsync(buffer);ensureCurrent()','for(let i=0;i<slides.length;i++){ensureCurrent();', "await entry.async('text');ensureCurrent()", 'ensureCurrent();return out.join'])if(!pptxExtractor.includes(guard))throw new Error('PPTX cancellation boundary missing: '+guard);
+
+const cancellationDocumentExtractorStart=html.indexOf('async function extractDocumentText(file,progressId,openToken){');
+const cancellationDocumentExtractorEnd=html.indexOf('\nfunction bindDocumentUpload(',cancellationDocumentExtractorStart);
+if(cancellationDocumentExtractorStart<0||cancellationDocumentExtractorEnd<0)throw new Error('Document extraction dispatcher missing');
+const cancellationDocumentExtractor=html.slice(cancellationDocumentExtractorStart,cancellationDocumentExtractorEnd);
+const cancellationDocxStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.docx')||type.includes('wordprocessingml')){");
+const cancellationDocxEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.odt')",cancellationDocxStart);
+if(cancellationDocxStart<0||cancellationDocxEnd<0)throw new Error('DOCX extraction branch missing');
+const cancellationDocxBranch=cancellationDocumentExtractor.slice(cancellationDocxStart,cancellationDocxEnd);
+for(const guard of ['await ensureMammothLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await mammoth.extractRawText({arrayBuffer:buffer});ensureCurrent()'])if(!cancellationDocxBranch.includes(guard))throw new Error('DOCX cancellation boundary missing: '+guard);
+const cancellationEpubStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.epub')||type.includes('epub')){");
+const cancellationEpubEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.png')",cancellationEpubStart);
+if(cancellationEpubStart<0||cancellationEpubEnd<0)throw new Error('EPUB extraction branch missing');
+const cancellationEpubBranch=cancellationDocumentExtractor.slice(cancellationEpubStart,cancellationEpubEnd);
+for(const guard of ['await ensureEpubLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await epub.ready;ensureCurrent()','for(const item of epub.spine.items){ensureCurrent();','await epub.load(item.href);ensureCurrent()','if(!isCurrent())throw err','ensureCurrent();if(!sections.length)'])if(!cancellationEpubBranch.includes(guard))throw new Error('EPUB cancellation boundary missing: '+guard);
+
+const cancellationPlainTextBranch=cancellationDocumentExtractor.slice(cancellationDocumentExtractor.indexOf("if(name.endsWith('.rtf')"),cancellationDocumentExtractor.indexOf("if(name.endsWith('.fb2')"));
+for(const guard of ['await readFileText(file);ensureCurrent()','const html=await readFileText(file);ensureCurrent()'])if(!cancellationPlainTextBranch.includes(guard))throw new Error('Text document cancellation boundary missing: '+guard);
+const cancellationImageBranchStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.png')||name.endsWith('.jpg')");
+const cancellationImageBranchEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.xml')",cancellationImageBranchStart);
+if(cancellationImageBranchStart<0||cancellationImageBranchEnd<0)throw new Error('Image OCR extraction branch missing');
+const cancellationImageBranch=cancellationDocumentExtractor.slice(cancellationImageBranchStart,cancellationImageBranchEnd);
+for(const guard of ['await imageFileToCanvas(file);ensureCurrent()','null,isCurrent);ensureCurrent()','finally{canvas.width=canvas.height=0;}'])if(!cancellationImageBranch.includes(guard))throw new Error('Image OCR cancellation or cleanup missing: '+guard);
+
+const officeWriterStart=html.indexOf('async function translatePreservingFile(file,from,target,statusId){');
+const officeWriterEnd=html.indexOf("\n$('standaloneTranslate').addEventListener",officeWriterStart);
+if(officeWriterStart<0||officeWriterEnd<0)throw new Error('Office document export writer missing');
+const officeWriter=html.slice(officeWriterStart,officeWriterEnd);
+if(!officeWriter.includes('const chartPaths=Object.keys(zip.files)')||!officeWriter.includes("translateXmlParagraphs(doc,'p'"))throw new Error('XLSX chart rich-text titles and labels must be included in translation');
+if(!officeWriter.includes('notesSlides')||!officeWriter.includes('diagrams')||!officeWriter.includes('charts'))throw new Error('PPTX export must include speaker notes, chart rich text and diagram text parts');
+if(!officeWriter.includes('const contentPaths=[...slides,...auxiliaryPaths.filter'))throw new Error('PPTX slide and auxiliary text parts must be processed together');
+
+for(const notice of ['ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки','заметки докладчика','подписи из кэшей диаграмм','встроенные объекты и редкие элементы Word'])if(!officeWriter.includes(notice))throw new Error('Office export must disclose incomplete text/layout coverage: '+notice);
+if(!officeWriter.includes(String.raw`layoutNotice?'\n\n'+layoutNotice`))throw new Error('Office export coverage notice must be separated from translated text');
