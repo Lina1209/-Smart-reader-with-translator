@@ -12,9 +12,10 @@ const context={String,Date,Math,ensureZipLibrary:()=>Promise.resolve(FakeZip),es
 vm.createContext(context);
 const docxStart=html.indexOf('function makeDocxBlob(value){');
 const odtStart=html.indexOf('function makeOdtBlob(value){');
-const epubStart=html.indexOf('function makeEpubBlob',odtStart);
-assert.ok(docxStart>=0&&odtStart>docxStart&&epubStart>odtStart,'DOCX and ODT export helpers must exist');
-vm.runInContext(html.slice(docxStart,odtStart)+html.slice(odtStart,epubStart)+';globalThis.makeDocxBlob=makeDocxBlob;globalThis.makeOdtBlob=makeOdtBlob;',context);
+const nextFunction=html.indexOf('\nfunction ',odtStart);
+assert.ok(docxStart>=0&&odtStart>docxStart,'DOCX and ODT export helpers must exist');
+assert.ok(nextFunction>odtStart,'ODT export helper must have a bounded source section');
+vm.runInContext(html.slice(docxStart,odtStart)+html.slice(odtStart,nextFunction)+';globalThis.makeDocxBlob=makeDocxBlob;globalThis.makeOdtBlob=makeOdtBlob;',context);
 (async()=>{
  const sample='Первая строка\r\n\rВторая строка\nТретья & <строка> 😀';
  const docx=await context.makeDocxBlob(sample);
