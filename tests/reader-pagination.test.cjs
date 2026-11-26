@@ -14,7 +14,7 @@ const unicodeResult=paginateByHeight(unicode,height,2);
 assert.ok(unicodeResult.pages.every(page=>height(page)<=2));
 assert.equal(unicodeResult.pages.join(''),unicode,'Unicode and whitespace must be preserved');
 assert.deepEqual(paginateByHeight('   ',height,2),{pages:[],offsets:[]});
-const graphemeSource='x👩🏽‍💻🇰🇿e\\u0301y';
+const graphemeSource='x👩🏽‍💻🇰🇿e\u0301y';
 const segmenter=new Intl.Segmenter(undefined,{granularity:'grapheme'});
 const expectedGraphemes=Array.from(segmenter.segment(graphemeSource),part=>part.segment);
 const graphemeOffsets=Array.from(segmenter.segment(graphemeSource),part=>part.index);
