@@ -90,6 +90,8 @@ jobs:
         run: node tests/epub-navigation-toc.test.cjs
       - name: Test EPUB reading position persistence
         run: node tests/epub-position-storage.test.cjs
+      - name: Test EPUB dependency loader concurrency and retries
+        run: node tests/epub-library-loader.test.cjs
       - name: Test fixed-page reader pagination and long-token wrapping
         run: node tests/reader-pagination.test.cjs
       - name: Test glossary protection and retry classification
