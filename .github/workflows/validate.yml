@@ -24,6 +24,8 @@ jobs:
           python -m pip install --disable-pip-version-check reportlab pypdf pillow
       - name: Generate and inspect real PDF fixtures
         run: python -m unittest discover -s tests -p 'test_pdf_real_fixtures.py' -v
+      - name: Audit PDF text-state operators
+        run: python -m unittest discover -s tests -p 'test_pdf_content_stream_audit.py' -v
       - name: Render PDF fixtures and compare no-op round-trip pixels
         run: python -m unittest discover -s tests -p 'test_pdf_render_regression.py' -v
       - name: Check JavaScript syntax
