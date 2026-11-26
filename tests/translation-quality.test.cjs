@@ -384,6 +384,12 @@ if(!html.includes('async function openScanImage(file,ext)')||!html.includes('det
 if(!html.includes("'jpg','jpeg','png','webp','gif'")||!html.includes('imageFileToCanvas(file)')||!html.includes('recognizeImageCanvas(canvas,report)'))throw new Error('Common scanned-image formats must reach the OCR extraction path');
 
 if(!html.includes("flow:'paginated'")||html.includes("flow:'scrolled-doc'"))throw new Error('EPUB reader must use fixed paginated flow, not endless scrolling');
+if(!html.includes("spread:'none'"))throw new Error('EPUB must display one page at a time without facing-page spreads');
+if(!html.includes("rendition.themes.fontSize(fontSize+'px')"))throw new Error('EPUB font-size controls must apply to the active rendition');
+if(!html.includes("rendition.resize("))throw new Error('EPUB rendition must resize with its fixed reader viewport');
+if(!html.includes(".epubbox{height:min(72vh,1050px)")||!html.includes("@media(max-width:600px){.page{"))throw new Error('EPUB and text reader must use bounded responsive viewports');
+if(!html.includes("rendition.themes.default({'body':{background:bg+' !important',color:ink+' !important'"))throw new Error('EPUB theme changes must be propagated to the rendered book');
+
 if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;background:var(--paper)'))throw new Error('Reader page must keep a bounded book-page frame');
 if(!html.includes('overflow-wrap:anywhere'))throw new Error('Long unbroken words must wrap inside the fixed book-page frame');
 if(!html.includes('function paginateReaderText(')||!html.includes('function moveReaderPage(')||!html.includes("e.key==='ArrowRight'"))throw new Error('Text reader pagination and keyboard navigation are missing');
