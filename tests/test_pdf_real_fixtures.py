@@ -6,7 +6,7 @@ from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import (
-    ArrayObject, DecodedStreamObject, DictionaryObject, NameObject,
+    ArrayObject, DecodedStreamObject, DictionaryObject, FloatObject, NameObject,
     NumberObject, TextStringObject,
 )
 
@@ -158,7 +158,7 @@ def add_nested_form_and_clipping_fixture(path):
             NameObject("/Resources"): resources,
         })
         if matrix is not None:
-            stream[NameObject("/Matrix")] = ArrayObject([NumberObject(v) for v in matrix])
+            stream[NameObject("/Matrix")] = ArrayObject([FloatObject(v) for v in matrix])
         return writer._add_object(stream)
 
     inner_resources = DictionaryObject({
