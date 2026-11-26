@@ -31,14 +31,4 @@ if(key1===key2)throw new Error('Different translation endpoints must not share c
 glossaryValue='term = термин';
 const key3=cacheKey('source','en','ru');
 if(key2===key3)throw new Error('Different glossary settings must not share cached translations');
-let endpoint='https://one.example',glossaryValue='term = перевод';
-const cacheContext={translationEngine:'libretranslate',$:(id)=>({value:id==='libreTranslateEndpoint'?endpoint:glossaryValue})};
-const cacheKey=vm.runInNewContext('('+cacheMatch[0]+'; translationCacheKey)',cacheContext);
-const key1=cacheKey('source','en','ru');
-endpoint='https://two.example';
-const key2=cacheKey('source','en','ru');
-if(key1===key2)throw new Error('Different translation endpoints must not share cached translations');
-endpoint='https://two.example';glossaryValue='term = термин';
-const key3=cacheKey('source','en','ru');
-if(key2===key3)throw new Error('Different glossary settings must not share cached translations');
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
