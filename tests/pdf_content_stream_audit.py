@@ -57,12 +57,22 @@ def audit_content_operations(operations):
             # text-matrix and glyph-advance interpretation.
             matrix_changes += 1
         elif operator in TEXT_SHOW_OPS:
+            implicit_line_move = operator in (b"'", b'"')
+            if operator == b'"':
+                # PDF double-quote operator is: set Tw, set Tc, T*, then Tj.
+                if len(operands) >= 3:
+                    state["word_spacing"] = float(operands[0])
+                    state["char_spacing"] = float(operands[1])
+                else:
+                    unknown.append({"index": index, "reason": "malformed-double-quote-operator"})
+            # Both quote operators perform T* before showing the string.
             events.append({
                 "index": index,
                 "operator": operator.decode("ascii"),
                 "operands": [str(value) for value in operands],
                 "text_state": deepcopy(state),
                 "inside_text_object": in_text,
+                "implicit_line_move": implicit_line_move,
                 "text_matrix_after_show": "not-computed",
             })
         elif operator in (b"W", b"W*"):
@@ -88,6 +98,7 @@ def audit_content_operations(operations):
             "Font resources and CMaps are not resolved by this audit.",
             "Tj/TJ glyph advances and resulting text matrices are not calculated.",
             "Clipping paths, transparency groups and nested Form resources are not resolved.",
+            "Quote operators are recognized, but their implicit line movement is not composed into text matrices.",
             "This is a diagnostic report, not a PDF rewrite engine.",
         ],
     }
