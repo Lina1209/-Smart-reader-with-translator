@@ -88,4 +88,15 @@ const scaleBox=vm.runInNewContext(html.slice(scaleStart,scaleEnd)+'; scaleOcrBox
 const scaledBack=scaleBox({x0:15,y0:30,x1:90,y1:120},1.5);
 if(JSON.stringify(scaledBack)!==JSON.stringify({x0:10,y0:20,x1:60,y1:80}))throw new Error('Enhanced OCR coordinates were not mapped to original image size');
 if(!html.includes('createEnhancedOcrCanvas(canvas,1.5)'))throw new Error('Enhanced OCR fallback is not wired into recognition');
+const qualityStart=html.indexOf('function ocrQualitySummary(');
+const qualityEnd=html.indexOf('\n',qualityStart);
+if(qualityStart<0||qualityEnd<0)throw new Error('OCR quality summary helper not found');
+const qualitySummary=vm.runInNewContext(html.slice(qualityStart,qualityEnd)+'; ocrQualitySummary');
+const quality=qualitySummary({lines:[
+ {text:'clear',confidence:90,bbox:{x0:0,y0:0,x1:20,y1:10}},
+ {text:'uncertain',confidence:10,bbox:{x0:0,y0:12,x1:20,y1:22}},
+ {text:'invalid box',confidence:99,bbox:{x0:0,y0:2,x1:0,y1:5}}
+]});
+if(quality.detected!==3||quality.valid!==2||quality.accepted!==1||quality.rejected!==2||quality.averageConfidence!==90)throw new Error('OCR quality summary does not report rejected or invalid text correctly');
+if(!html.includes('Страница '+"'+pageNo+'"+': распознано'))throw new Error('PDF OCR warning for low-confidence pages is missing');
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
