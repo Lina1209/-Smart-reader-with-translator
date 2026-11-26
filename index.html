@@ -647,7 +647,6 @@ function classifyPdfPageContent(textContent,operatorList,ops){
  const chars=items.reduce((sum,item)=>sum+String(item.str||'').trim().length,0);
  const names=ops||{},imageNames=['paintImageXObject','paintInlineImageXObject','paintImageMaskXObject','paintJpegXObject','paintImageXObjectRepeat','paintImageMaskXObjectRepeat'];
  const vectorNames=['constructPath','stroke','closeStroke','fill','eoFill','fillStroke','eoFillStroke','shadingFill'];
- const codes=new Set(Object.keys(names).filter(name=>imageNames.includes(name)||vectorNames.includes(name)).map(name=>names[name]));
  const operators=operatorList&&Array.isArray(operatorList.fnArray)?operatorList.fnArray:[];
  const imageOps=operators.filter(code=>imageNames.some(name=>names[name]===code)).length;
  const vectorOps=operators.filter(code=>vectorNames.some(name=>names[name]===code)).length;
@@ -691,8 +690,6 @@ async function translatePdfPreservingFile(file,from,target,progressId){
  let ocrWorker=null,activePage=1;const pageWarnings=[],layoutWarnings=[];
  try{
   if(sourcePdf.numPages>80)throw Error('PDF больше 80 страниц. Реконструкция страниц с OCR пока ограничена 80 страницами для стабильной работы браузера.');
-  const Tesseract=await ensureTesseract(),ocrLogger=m=>{if(m.status==='recognizing text')setProgress(progressId,100*(activePage-1)/sourcePdf.numPages+Math.min(70,m.progress*70)/sourcePdf.numPages,'Распознаём PDF','Страница '+activePage+' из '+sourcePdf.numPages+' · '+Math.round(m.progress*100)+'%')},ocrWorkerInfo=await createOcrWorker(Tesseract,ocrLanguageForCode(from),ocrLogger,(p,l,d)=>setProgress(progressId,p,l,d));
-  ocrWorker=ocrWorkerInfo.worker;
   for(let pageNo=1;pageNo<=sourcePdf.numPages;pageNo++){
    activePage=pageNo;setProgress(progressId,100*(pageNo-1)/sourcePdf.numPages,'Обрабатываем PDF-страницу',pageNo+' из '+sourcePdf.numPages);
    const page=await sourcePdf.getPage(pageNo);
@@ -717,6 +714,10 @@ async function translatePdfPreservingFile(file,from,target,progressId){
      if(corrected.accepted&&corrected.canvas){rectification=corrected;rectifiedCanvas=corrected.canvas;ocrInput=rectifiedCanvas;}
      else pageWarnings.push('Страница '+pageNo+': границы листа обнаружены, но выправление для OCR не удалось; распознавание выполнено по оригиналу.');
     }else pageWarnings.push('Страница '+pageNo+': надёжные границы листа не найдены; OCR выполнен по оригиналу без перспективного выправления.');
+    if(!ocrWorker){
+     const Tesseract=await ensureTesseract(),ocrLogger=m=>{if(m.status==='recognizing text')setProgress(progressId,100*(activePage-1)/sourcePdf.numPages+Math.min(70,m.progress*70)/sourcePdf.numPages,'Распознаём PDF','Страница '+activePage+' из '+sourcePdf.numPages+' · '+Math.round(m.progress*100)+'%')},ocrWorkerInfo=await createOcrWorker(Tesseract,ocrLanguageForCode(from),ocrLogger,(p,l,d)=>setProgress(progressId,p,l,d));
+     ocrWorker=ocrWorkerInfo.worker;
+    }
     let ocr=await recognizeImageCanvas(ocrInput,(p,l,d)=>setProgress(100*(pageNo-1)/sourcePdf.numPages+Math.min(70,p*.7)/sourcePdf.numPages,l,'Страница '+pageNo+' из '+sourcePdf.numPages+' · '+d),ocrLanguageForCode(from),ocrWorker);
     if(rectification){
      ocr=mapRectifiedOcrDataToSource(ocr,rectification.outputToSource);
