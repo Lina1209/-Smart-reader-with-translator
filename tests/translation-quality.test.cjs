@@ -188,7 +188,7 @@ const languageHelperStart=html.indexOf('function ocrLanguageForCode('),languageH
 if(languageHelperStart<0||languageHelperEnd<0)throw new Error('OCR language mapping helper not found');
 const languageMapper=vm.runInNewContext(html.slice(languageHelperStart,languageHelperEnd)+'; ocrLanguageForCode');
 for(const [input,expected] of [['ru-RU','rus'],['kk-KZ','kaz'],['en','eng'],['zh-CN','chi_sim'],['ja','jpn'],['ar','ara'],['hi','hin'],['fr-FR','fra']])if(languageMapper(input)!==expected)throw new Error('Incorrect OCR model for '+input+': '+languageMapper(input));
-if(languageMapper('auto')!=='eng+rus')throw new Error('Automatic OCR fallback language changed unexpectedly');
+if(languageMapper('auto')!=='eng+rus+kaz')throw new Error('Automatic OCR fallback must include English, Russian and Kazakh');
 
 const safeOcrScaleUnderTestHelperStart=html.indexOf('function safeOcrScale('),safeOcrScaleUnderTestHelperEnd=html.indexOf('\nfunction createEnhancedOcrCanvas',safeOcrScaleUnderTestHelperStart);
 if(safeOcrScaleUnderTestHelperStart<0||safeOcrScaleUnderTestHelperEnd<0)throw new Error('Safe OCR scaling helper not found');
