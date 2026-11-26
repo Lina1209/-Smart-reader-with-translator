@@ -1314,6 +1314,12 @@ async function validateGeneratedDocumentArchive(blob,ext,JSZip){
  else throw Error('Проверка ZIP-экспорта не поддерживает формат '+kind.toUpperCase()+'.');
  return new Blob([blob],{type:mime});
 }
+function getPptxTranslatableContentPaths(filePaths){
+ const paths=Array.from(filePaths||[]);
+ const slides=paths.filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p)).sort((a,b)=>Number(a.match(/slide(\d+)/i)?.[1]||0)-Number(b.match(/slide(\d+)/i)?.[1]||0));
+ const auxiliary=paths.filter(p=>/^ppt\/(?:charts\/chart\d+|notesSlides\/notesSlide\d+|diagrams\/(?:drawing|data)\d+)\.xml$/i.test(p)).sort();
+ return [...slides,...auxiliary.filter(p=>!slides.includes(p))];
+}
 async function translatePreservingFile(file,from,target,statusId){
  const ext=(file.name.split('.').pop()||'').toLowerCase(),progressId='translatorProgress';
  resetProgress(progressId,'Перевод и сохранение файла');setProgress(progressId,0,'Подготовка оригинала',file.name);
@@ -1352,10 +1358,8 @@ async function translatePreservingFile(file,from,target,statusId){
    const chartPaths=Object.keys(zip.files).filter(p=>/^xl\/charts\/chart\d+\.xml$/i.test(p)).sort((a,b)=>Number(a.match(/chart(\d+)/i)?.[1]||0)-Number(b.match(/chart(\d+)/i)?.[1]||0));
    for(let i=0;i<chartPaths.length;i++){const path=chartPaths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось прочитать диаграмму '+path);await translateXmlParagraphs(doc,'p',from,target,progressId,78+12*i/Math.max(chartPaths.length,1),12/Math.max(chartPaths.length,1));translatedText+=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').filter(Boolean).join('\n')+'\n';zip.file(path,new XMLSerializer().serializeToString(doc));}
   }else if(ext==='pptx'){
-   const slides=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p)).sort((a,b)=>Number(a.match(/slide(\d+)/i)?.[1]||0)-Number(b.match(/slide(\d+)/i)?.[1]||0));
-   if(!slides.length)throw Error('В PPTX не найдены слайды.');
-   const auxiliaryPaths=Object.keys(zip.files).filter(p=>/^ppt\/(?:charts\/chart\d+|notesSlides\/notesSlide\d+|diagrams\/drawing\d+)\.xml$/i.test(p)).sort();
-   const contentPaths=[...slides,...auxiliaryPaths.filter(p=>!slides.includes(p))];
+   const contentPaths=getPptxTranslatableContentPaths(Object.keys(zip.files));
+   if(!contentPaths.some(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p)))throw Error('В PPTX не найдены слайды.');
    for(let i=0;i<contentPaths.length;i++){const path=contentPaths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось прочитать '+path);await translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/contentPaths.length,80/Math.max(contentPaths.length,1));translatedText+=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').filter(Boolean).join('\n\n')+'\n\n';zip.file(path,new XMLSerializer().serializeToString(doc));}
   }
   if(ext==='odt')await prepareOdtArchiveMimetype(zip);
