@@ -24,7 +24,7 @@ const doc={getElementsByTagNameNS:(ns,tag)=>ns===drawingNs&&tag==='t'?smartArtNo
  const writerEnd=html.indexOf("\n$('standaloneTranslate').addEventListener",writerStart);
  const writer=html.slice(writerStart,writerEnd);
  if(!writer.includes('translatePptxSmartArtDataText(doc,from,target,progressId)'))throw new Error('SmartArt data translation is not wired into PPTX export');
- if(!writer.includes("ppt/diagrams/data\\d+\\.xml"))throw new Error('SmartArt data XML parts are not explicitly selected for translation');
+ if(!html.includes("ppt/diagrams/data\\d+\\.xml"))throw new Error('SmartArt data XML parts are not explicitly selected for translation');
  if(!html.includes('части SmartArt с настройками макета, стиля и цвета'))throw new Error('PPTX notice must describe remaining non-text SmartArt resources');
  console.log('PowerPoint SmartArt data translation tests passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
