@@ -255,3 +255,18 @@ const outside=validateQuad([[-10,20],[900,20],[900,900],[20,900]],1000,1000);
 if(outside.accepted||outside.reason!=='corner-outside-image')throw new Error('Corners outside the image must be rejected');
 const tiny=validateQuad([[490,490],[510,490],[510,510],[490,510]],1000,1000);
 if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text block must not be accepted as a page');
+
+const detectorStart=html.indexOf('function detectPageQuadFromEdges('),detectorEnd=html.indexOf('\nfunction detectPageQuadFromCanvas',detectorStart);
+if(detectorStart<0||detectorEnd<0)throw new Error('Page boundary detector helper not found');
+const detectPage=vm.runInNewContext(html.slice(detectorStart,detectorEnd)+'; detectPageQuadFromEdges',{validatePageQuad});
+const syntheticEdges=[];
+for(let x=120;x<=880;x+=2){syntheticEdges.push({x,y:100},{x,y:900});}
+for(let y=100;y<=900;y+=2){syntheticEdges.push({x:120,y},{x:880,y});}
+// Internal text-like strokes should not displace the large page boundary.
+for(let y=180;y<820;y+=55)for(let x=190;x<790;x+=3)syntheticEdges.push({x,y});
+const detected=detectPage(syntheticEdges,1000,1000);
+if(!detected.accepted||detected.confidence<62||!detected.points||detected.points.length!==4)throw new Error('A high-contrast page boundary was not detected reliably: '+JSON.stringify(detected));
+const noPage=detectPage(Array.from({length:200},(_,i)=>({x:200+(i%20)*5,y:200+Math.floor(i/20)*5})),1000,1000);
+if(noPage.accepted)throw new Error('A compact text-like cluster must not be accepted as a page boundary');
+if(!html.includes('previewOnly:true')||!html.includes("reason:'no-reliable-page-boundary'"))throw new Error('Page detection must remain preview-only and reject uncertain candidates');
+
