@@ -157,4 +157,10 @@ if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!h
 if(!html.includes('вероятная многоколоночная структура')||!html.includes('вероятная табличная структура'))throw new Error('Complex OCR layout warnings are not surfaced');
 if(!html.includes('safeToTranslate&&i<lines.length')||!html.includes('Изображение сохранено без замены текста'))throw new Error('Low-confidence image scans are not kept unchanged');
 
+const pdfPipelineStart=html.indexOf('async function translatePdfPreservingFile(');
+const pdfPipelineEnd=html.indexOf('\nasync function translateImagePreservingFile',pdfPipelineStart);
+if(pdfPipelineStart<0||pdfPipelineEnd<0)throw new Error('PDF reconstruction pipeline not found for resource-lifecycle test');
+const pdfPipeline=html.slice(pdfPipelineStart,pdfPipelineEnd);
+if(!pdfPipeline.includes('try{const ctx=canvas.getContext')||!pdfPipeline.includes('finally{try{page.cleanup();}catch(e){}canvas.width=canvas.height=0;}'))throw new Error('PDF page canvas is not released in a per-page finally block');
+if(!pdfPipeline.includes('if(ocrWorker)await ocrWorker.terminate()'))throw new Error('Shared OCR worker is not terminated in the outer finally block');
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
