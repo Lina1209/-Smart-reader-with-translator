@@ -31,4 +31,17 @@ if(key1===key2)throw new Error('Different translation endpoints must not share c
 glossaryValue='term = термин';
 const key3=cacheKey('source','en','ru');
 if(key2===key3)throw new Error('Different glossary settings must not share cached translations');
+const runStart=html.indexOf('function distributeTranslationAcrossRuns(');
+const runEnd=html.indexOf('\n}',runStart);
+if(runStart<0||runEnd<0)throw new Error('DOCX formatted-run helper not found');
+const distribute=vm.runInNewContext(html.slice(runStart,runEnd+2)+'; distributeTranslationAcrossRuns');
+const runs=[{nodeValue:'Bold source '},{nodeValue:'and italic source'},{nodeValue:' tail'}];
+const translated='  Gras   texte\navec tab\t et fin  ';
+distribute(translated,runs);
+if(runs.map(x=>x.nodeValue).join('')!==translated)throw new Error('DOCX run redistribution changed spaces, tabs or line breaks');
+const blankRuns=[{nodeValue:'first'},{nodeValue:'second'}];
+distribute('   ',blankRuns);
+if(blankRuns.map(x=>x.nodeValue).join('')!=='   ')throw new Error('Whitespace-only translated paragraphs were not preserved');
+if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd']"))throw new Error('EPUB block coverage missing');
+if(!html.includes(".sort((a,b)=>Number(a.match(/slide(\\d+)/i)?.[1]||0)-Number(b.match(/slide(\\d+)/i)?.[1]||0))"))throw new Error('PPTX numeric slide ordering missing');
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
