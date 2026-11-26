@@ -54,5 +54,9 @@ function makeContext(openText){
  await oversized.context.runOpenFile({name:'large-scan.pdf',type:'application/pdf',size:100*1024*1024+1});
  assert.equal(oversized.calls.close,0,'an oversized file must not close an already-open reader when no load is pending');
  assert.match(oversized.calls.errors[0],/больше 100 МБ/,'PDF/image preview paths must enforce the browser file-size limit before allocating resources');
- console.log('Reader open cancellation and file-size tests passed: stale requests are cancelled, existing books remain open on rejected selections, and oversized PDF/image files are rejected early.');
+ const closeStart=html.indexOf('function closeBook(){');
+ const closeEnd=html.indexOf("$('closeBook').onclick",closeStart);
+ assert.ok(closeStart>=0&&closeEnd>closeStart,'reader close lifecycle must exist');
+ assert.match(html.slice(closeStart,closeEnd),/^function closeBook\\(\\)\\{readerOpenPending=false;/,'closing during an asynchronous file load must clear the pending state before invalidating the request');
+ console.log('Reader open cancellation and file-size tests passed: stale requests are cancelled, existing books remain open on rejected selections, oversized files are rejected early, and closing resets pending state.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
