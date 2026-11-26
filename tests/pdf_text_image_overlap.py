@@ -84,7 +84,10 @@ def compare_text_fragments_to_images(text_fragments, image_report):
         for j,image in enumerate(placements):
             image_poly=(image.get("form_clip_intersection_corners") if "form_clip_intersection_corners" in image else image.get("transformed_corners"))
             if image.get("fully_clipped_by_form_bboxes") is True:
-                image_poly = []\n            if not isinstance(image_poly,list) or len(image_poly)<3:\n                if image.get("fully_clipped_by_form_bboxes") is True:\n                    continue
+                image_poly = []
+            if not isinstance(image_poly,list) or len(image_poly)<3:
+                if image.get("fully_clipped_by_form_bboxes") is True:
+                    continue
                 unknown.append({"text_fragment_index":i,"image_index":j,"reason":"image-polygon-unavailable"})
                 continue
             overlap=_clip(text_poly,image_poly)
