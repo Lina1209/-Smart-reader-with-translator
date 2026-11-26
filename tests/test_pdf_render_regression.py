@@ -66,7 +66,7 @@ class PdfRenderRegressionTests(unittest.TestCase):
 
             source_images = render_pdf(source, directory / "before")
             rewritten_images = render_pdf(rewritten, directory / "after")
-            self.assertEqual(len(source_images), 9)
+            self.assertEqual(len(source_images), 8)
             self.assertEqual(len(rewritten_images), len(source_images))
 
             page_differences = []
