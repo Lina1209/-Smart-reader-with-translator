@@ -309,3 +309,10 @@ const noPage=detectPage(Array.from({length:200},(_,i)=>({x:200+(i%20)*5,y:200+Ma
 if(noPage.accepted)throw new Error('A compact text-like cluster must not be accepted as a page boundary');
 if(!html.includes('previewOnly:true')||!html.includes("reason:'no-reliable-page-boundary'"))throw new Error('Page detection must remain preview-only and reject uncertain candidates');
 
+
+if(!html.includes('async function openPdfScanPreview(file,ext)')||!html.includes('pdf.getTextContent()')||!html.includes('Math.min(3,pdf.numPages)'))throw new Error('PDF scan preview must distinguish scanned PDFs from PDFs with a text layer');
+if(!html.includes('async function loadPdfScanPage(pageNo)')||!html.includes('createSafePdfViewport(page,1.4)')||!html.includes('state.pageCount'))throw new Error('Scanned PDF preview must render one bounded page at a time and track page count');
+if(!html.includes('scanPreview?.pdfDocument')||!html.includes('loadPdfScanPage(next)'))throw new Error('Scanned PDF previous/next navigation is not connected to the page viewer');
+if(!html.includes('state.page.cleanup()')||!html.includes('preview.pdfLoadingTask.destroy()')||!html.includes('releaseScanPreview();$(\'scanPreviewBox\').style.display=\'none\''))throw new Error('PDF preview must release page/canvas/document resources when changing or closing files');
+if(!html.includes("$('scanViewport').addEventListener('touchstart'")||!html.includes("$('scanViewport').addEventListener('touchend'"))throw new Error('Scanned PDF viewer must support horizontal swipe navigation');
+if(!html.includes('if(!source||!source.width||!source.height||!display)return'))throw new Error('Scan preview must safely handle page transitions while a PDF canvas is being replaced');
