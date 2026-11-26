@@ -70,7 +70,7 @@ const xlsxStart=html.indexOf("}else if(ext==='xlsx'||ext==='xlsm'){");
 const xlsxEnd=html.indexOf("}else if(ext==='pptx'){",xlsxStart);
 if(xlsxStart<0||xlsxEnd<0)throw new Error('XLSX translation branch not found');
 const xlsxSource=html.slice(xlsxStart,xlsxEnd);
-const richRunCalls=(xlsxSource.match(/distributeTranslationAcrossRuns\\(trans,textNodes\\)/g)||[]).length;
+const richRunCalls=xlsxSource.split('distributeTranslationAcrossRuns(trans,textNodes)').length-1;
 if(richRunCalls!==2)throw new Error('XLSX shared and inline rich-text runs must both retain their original run structure');
 if(!xlsxSource.includes("nodes.flatMap(node=>Array.from(node.childNodes).filter(child=>child.nodeType===3))"))throw new Error('XLSX shared strings must collect all rich text nodes before translation');
 if(!xlsxSource.includes("cell.getElementsByTagNameNS('*','t')"))throw new Error('XLSX inline strings must preserve all text runs in each cell');
