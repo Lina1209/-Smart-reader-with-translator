@@ -448,6 +448,26 @@ async function translateDocumentNodeText(value,target,from,progressId){
  const text=String(value||'');if(!text.trim()||from===target)return text;
  return translatePreservedText(text,from,target,progressId);
 }
+function distributeTranslationAcrossRuns(translated,texts){
+ const value=String(translated??'');
+ if(!texts.length)return;
+ if(texts.length===1){texts[0].nodeValue=value;return;}
+ const leading=(value.match(/^\s*/u)||[''])[0],trailing=(value.match(/\s*$/u)||[''])[0];
+ const core=value.slice(leading.length,value.length-trailing.length);
+ if(!core){texts[0].nodeValue=value;for(let i=1;i<texts.length;i++)texts[i].nodeValue='';return;}
+ const tokens=core.match(/\S+(?:\s+|$)/gu)||[];
+ const weights=texts.map(node=>Math.max(1,String(node.nodeValue||'').trim().length));
+ const total=weights.reduce((sum,n)=>sum+n,0),assigned=[];
+ let cursor=0,weightBefore=0;
+ for(let i=0;i<texts.length;i++){
+  weightBefore+=weights[i];
+  const finish=i===texts.length-1?tokens.length:Math.round(tokens.length*weightBefore/total);
+  assigned.push(tokens.slice(cursor,finish).join(''));cursor=finish;
+ }
+ texts[0].nodeValue=leading+assigned[0];
+ for(let i=1;i<texts.length;i++)texts[i].nodeValue=assigned[i];
+ texts[texts.length-1].nodeValue+=(trailing||'');
+}
 function xmlTextNodes(el,ns,tag){
  const nodes=Array.from(el.getElementsByTagNameNS(ns,tag)).flatMap(n=>Array.from(n.childNodes).filter(c=>c.nodeType===3));
  return nodes;
@@ -463,9 +483,7 @@ async function translateXmlParagraphs(doc,selector,from,target,progressId,progre
   const source=texts.map(n=>n.nodeValue).join('');
   const translated=await translateDocumentNodeText(source,target,from,progressId);
   // Distribute the translated words over existing text runs to retain their styling.
-  if(texts.length===1)texts[0].nodeValue=translated;else{
-   const leading=(translated.match(/^\\s*/)||[''])[0],trailing=(translated.match(/\\s*$/)||[''])[0],core=translated.slice(leading.length,translated.length-trailing.length||undefined),words=core.split(/\\s+/).filter(Boolean),weights=texts.map(n=>Math.max(1,(n.nodeValue||'').trim().length)),total=weights.reduce((a,b)=>a+b,0);let cursor=0,assigned=[];
-   for(let k=0;k<texts.length;k++){if(k===texts.length-1){assigned.push(words.slice(cursor).join(' '));break;}const count=Math.round(words.length*weights[k]/total);assigned.push(words.slice(cursor,cursor+count).join(' '));cursor+=count;}
+  distributeTranslationAcrossRuns(translated,texts);
    texts[0].nodeValue=leading+assigned[0];for(let k=1;k<texts.length;k++)texts[k].nodeValue=assigned[k];texts[texts.length-1].nodeValue+=(trailing||'');
   }
   count++;if(count%5===0)setProgress(progressId,progressBase+progressSpan*Math.min(count/Math.max(blocks.length,1),1),'Сохраняем структуру',count+' блоков обработано');
@@ -491,13 +509,13 @@ async function translatePreservingFile(file,from,target,statusId){
   }else if(ext==='odt'){
    if(!zip.file('content.xml'))throw Error('В ODT не найден content.xml');
    const doc=new DOMParser().parseFromString(await zip.file('content.xml').async('text'),'application/xml');
-   await translateXmlParagraphs(doc,'p',from,target,statusId,5,80);await translateXmlParagraphs(doc,'h',from,target,progressId,85,10);
+   await translateXmlParagraphs(doc,'p',from,target,progressId,5,80);await translateXmlParagraphs(doc,'h',from,target,progressId,85,10);
    zip.file('content.xml',new XMLSerializer().serializeToString(doc));translatedText=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').join('\n\n');
   }else if(ext==='epub'){
    const paths=Object.keys(zip.files).filter(p=>/\.(xhtml|html|htm)$/i.test(p)&&!p.startsWith('META-INF/'));
    if(!paths.length)throw Error('В EPUB не найдены XHTML/HTML главы.');
    for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xhtml+xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось разобрать главу '+path);
-    await translateXmlParagraphs(doc,'p',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h1',from,target,progressId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h2',from,target,progressId,5+80*i/paths.length,80/paths.length);
+    const base=5+80*i/paths.length,span=80/paths.length;for(const tag of ['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd'])await translateXmlParagraphs(doc,tag,from,target,progressId,base,span);
     translatedText+=(doc.body?doc.body.textContent:doc.documentElement.textContent)+'\n\n';
     zip.file(path,new XMLSerializer().serializeToString(doc));
    }
@@ -507,7 +525,7 @@ async function translatePreservingFile(file,from,target,statusId){
    const sheets=Object.keys(zip.files).filter(p=>/^xl\/worksheets\/sheet\d+\.xml$/i.test(p));
    for(const path of sheets){const doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');const cells=Array.from(doc.getElementsByTagNameNS('*','is'));for(const cell of cells){const t=cell.getElementsByTagNameNS('*','t');if(!t.length)continue;const trans=await translateDocumentNodeText(t[0].textContent||'',target,from,progressId);t[0].textContent=trans;for(let n=1;n<t.length;n++)t[n].textContent='';}translatedText+=Array.from(doc.getElementsByTagNameNS('*','is')).map(c=>c.textContent||'').join('\n');zip.file(path,new XMLSerializer().serializeToString(doc));}
   }else if(ext==='pptx'){
-   const slides=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p));
+   const slides=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p)).sort((a,b)=>Number(a.match(/slide(\d+)/i)?.[1]||0)-Number(b.match(/slide(\d+)/i)?.[1]||0));
    if(!slides.length)throw Error('В PPTX не найдены слайды.');
    for(let i=0;i<slides.length;i++){const path=slides[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось прочитать '+path);await translateXmlParagraphs(doc,'p',from,target,statusId,5+80*i/slides.length,80/slides.length);translatedText+=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').join('\n\n')+'\n\n';zip.file(path,new XMLSerializer().serializeToString(doc));}
   }
