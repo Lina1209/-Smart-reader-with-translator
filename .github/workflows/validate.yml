@@ -88,6 +88,8 @@ jobs:
         run: node tests/pdf-text-geometry.test.cjs
       - name: Test PDF page navigation concurrency and cleanup
         run: node tests/pdf-page-navigation.test.cjs
+      - name: Test PDF preview resource cleanup lifecycle
+        run: node tests/pdf-preview-lifecycle.test.cjs
       - name: Check HTML IDs and referenced elements
         run: |
           python3 - <<'PY'
