@@ -7,6 +7,8 @@ const result=paginateByHeight(source,height,2);
 assert.ok(result.pages.length>1,'long unbroken token should span multiple pages');
 assert.ok(result.pages.every(page=>height(page)<=2),'no page may exceed the measured height');
 assert.equal(result.pages.join(''),source,'all original characters must be preserved in order');
+assert.deepEqual(result.pages.map((page,i)=>source.slice(result.offsets[i],result.offsets[i+1]??source.length)),result.pages,'page offsets must point to exact source slices');
+assert.ok(result.offsets.every((offset,i)=>Number.isInteger(offset)&&offset>=0&&(i===0||offset>result.offsets[i-1])),'page offsets must be increasing source positions');
 const unicode='Начало супердлинноесловобезпробелов😀😀 конец';
 const unicodeResult=paginateByHeight(unicode,height,2);
 assert.ok(unicodeResult.pages.every(page=>height(page)<=2));
