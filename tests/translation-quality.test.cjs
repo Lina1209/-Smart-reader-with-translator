@@ -729,5 +729,5 @@ if(!officeWriter.includes('const chartPaths=Object.keys(zip.files)')||!officeWri
 if(!officeWriter.includes('notesSlides')||!officeWriter.includes('diagrams')||!officeWriter.includes('charts'))throw new Error('PPTX export must include speaker notes, chart rich text and diagram text parts');
 if(!officeWriter.includes('const contentPaths=[...slides,...auxiliaryPaths.filter'))throw new Error('PPTX slide and auxiliary text parts must be processed together');
 
-for(const notice of ['ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки','заметки докладчика','кэшированные подписи диаграмм','встроенные объекты и редкие элементы Word'])if(!officeWriter.includes(notice))throw new Error('Office export must disclose incomplete text/layout coverage: '+notice);
+for(const notice of ['ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки','заметки докладчика','подписи из кэшей диаграмм','встроенные объекты и редкие элементы Word'])if(!officeWriter.includes(notice))throw new Error('Office export must disclose incomplete text/layout coverage: '+notice);
 if(!officeWriter.includes(String.raw`layoutNotice?'\n\n'+layoutNotice`))throw new Error('Office export coverage notice must be separated from translated text');
