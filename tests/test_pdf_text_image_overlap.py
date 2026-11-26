@@ -48,7 +48,7 @@ class TextImageOverlapTests(unittest.TestCase):
         placement = image([(0, 0), (20, 0), (20, 10), (0, 10)])
         placement["form_clip_intersection_corners"] = [(10, 0), (20, 0), (20, 10), (10, 10)]
         report = compare_text_fragments_to_images([fragment("text")], {"placements": [placement], "unknown": []})
-        self.assertEqual(report["overlaps"][0]["overlap_area"], 0.0)
+        self.assertEqual(report["overlaps"], [])
         self.assertEqual(report["status"], "clear")
 
     def test_unknown_clipping_is_not_claimed_clear(self):
