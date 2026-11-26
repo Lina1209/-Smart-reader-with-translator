@@ -344,3 +344,11 @@ if(tableLineFill.safe)throw new Error('A table/rule line beside the OCR box must
 const invalidFill=safeFill(mockBackgroundContext(),10,10,0,20,4);
 if(invalidFill.safe)throw new Error('Invalid OCR boxes must never be cleared with a solid background');
 if(!html.includes('исходная область оставлена без перезаписи'))throw new Error('Unsafe background regions must be preserved and reported');
+
+const longWordFit=draw(mockContext,'supercalifragilisticexpialidocious',0,0,45,42,'en');
+if(!longWordFit||longWordFit.lineCount<2)throw new Error('Long words must wrap by grapheme instead of being horizontally squeezed');
+if(longWordFit.overflow!==false)throw new Error('A long word that can wrap vertically should fit without horizontal compression');
+const tooNarrow=draw(mockContext,'AB',0,0,2,5,'en');
+if(!tooNarrow||tooNarrow.overflow!==true||tooNarrow.fits!==false)throw new Error('Text that cannot fit even at minimum size must be reported, not silently distorted');
+const cjkFit=draw(mockContext,'日本語の文章を翻訳します',0,0,30,90,'ja');
+if(!cjkFit||cjkFit.lineCount<2)throw new Error('CJK translations must wrap at grapheme boundaries in narrow boxes');
