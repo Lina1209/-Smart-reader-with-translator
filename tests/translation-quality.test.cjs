@@ -153,7 +153,7 @@ if(oversizedViewport.width*oversizedViewport.height>16000000.01||oversizedViewpo
 if(!html.includes('createSafePdfViewport(page,1.4)')||!html.includes('createSafePdfViewport(page,1.35)'))throw new Error('Adaptive PDF render scale is not used by both PDF OCR paths');
 
 
-if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<replacementLines.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
+if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<replacementGroups.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
 if(!html.includes('вероятная многоколоночная структура')||!html.includes('вероятная табличная структура'))throw new Error('Complex OCR layout warnings are not surfaced');
 if(!html.includes('safeToTranslate&&i<replacementLines.length')||!html.includes('Изображение сохранено без замены текста'))throw new Error('Low-confidence image scans are not kept unchanged');
 
