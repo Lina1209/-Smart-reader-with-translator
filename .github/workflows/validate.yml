@@ -48,6 +48,8 @@ jobs:
           node --check tts.js
       - name: Test translation chunk boundaries and Unicode preservation
         run: node tests/translation-chunks.test.cjs
+      - name: Test glossary protection and retry classification
+        run: node tests/translation-quality.test.cjs
       - name: Check HTML IDs and referenced elements
         run: |
           python3 - <<'PY'
