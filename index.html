@@ -890,7 +890,10 @@ async function translateXmlParagraphs(doc,selector,from,target,progressId,progre
   const texts=[];const walker=doc.createTreeWalker(block,NodeFilter.SHOW_TEXT);
   while(walker.nextNode()){const n=walker.currentNode;if(n.nodeValue)texts.push(n);}
   if(!texts.some(n=>String(n.nodeValue||'').trim()))continue;
-  if(selector!=='p'&&(block.getElementsByTagNameNS('*','p').length||block.getElementsByTagNameNS('*',selector).length))continue;
+  if(selector!=='p'){
+   const nestedBlocks=Array.from(block.getElementsByTagNameNS('*','*')).some(node=>['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'].includes(String(node.localName||node.nodeName).toLowerCase()));
+   if(nestedBlocks)continue;
+  }
   const source=texts.map(n=>n.nodeValue).join('');
   const translated=await translateDocumentNodeText(source,target,from,progressId);
   // Distribute the translated words over existing text runs to retain their styling.
@@ -924,7 +927,7 @@ async function translatePreservingFile(file,from,target,statusId){
    const paths=Object.keys(zip.files).filter(p=>/\.(xhtml|html|htm)$/i.test(p)&&!p.startsWith('META-INF/'));
    if(!paths.length)throw Error('В EPUB не найдены XHTML/HTML главы.');
    for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xhtml+xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось разобрать главу '+path);
-    const base=5+80*i/paths.length,span=80/paths.length;for(const tag of ['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd'])await translateXmlParagraphs(doc,tag,from,target,progressId,base,span);
+    const base=5+80*i/paths.length,span=80/paths.length;for(const tag of ['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'])await translateXmlParagraphs(doc,tag,from,target,progressId,base,span);
     translatedText+=(doc.body?doc.body.textContent:doc.documentElement.textContent)+'\n\n';
     zip.file(path,new XMLSerializer().serializeToString(doc));
    }
