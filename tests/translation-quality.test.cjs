@@ -62,7 +62,7 @@ const epubOpenStart=html.indexOf('async function openEpub(file,openToken)')>=0?h
 const epubOpenEnd=html.indexOf("\n$('prevBtn').onclick",epubOpenStart);
 if(epubOpenStart<0||epubOpenEnd<0)throw new Error('EPUB open workflow not found');
 const epubOpenSource=html.slice(epubOpenStart,epubOpenEnd);
-const firstDisplay=epubOpenSource.indexOf('await rendition.display()');
+const firstDisplay=Math.min(...['await rendition.display()','await openedRendition.display()'].map(value=>{const index=epubOpenSource.indexOf(value);return index<0?Number.MAX_SAFE_INTEGER:index;}));
 const relocatedHandler=epubOpenSource.indexOf("rendition.on('relocated'");
 if(firstDisplay<0||relocatedHandler<0||relocatedHandler>firstDisplay)throw new Error('EPUB relocated listener must be registered before first display so initial page state is available');
 if(!html.includes(".sort((a,b)=>Number(a.match(/slide(\\d+)/i)?.[1]||0)-Number(b.match(/slide(\\d+)/i)?.[1]||0))"))throw new Error('PPTX numeric slide ordering missing');
