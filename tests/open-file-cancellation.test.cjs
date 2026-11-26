@@ -11,6 +11,7 @@ const closeExistingStart=html.indexOf('function closeExisting(){');
 const closeExistingEnd=html.indexOf('async function readFileText(',closeExistingStart);
 assert.ok(closeExistingStart>=0&&closeExistingEnd>closeExistingStart,'reader replacement cleanup must exist');
 assert.match(html.slice(closeExistingStart,closeExistingEnd),/readerSourcePageCount=0/,'opening a non-PDF book after a PDF must clear the previous PDF page count');
+assert.match(html.slice(closeExistingStart,closeExistingEnd),/syncReaderPageSlider\(1,0\)/,'replacing a book must hide and disable the previous document page slider');
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r;});return{promise,resolve};}
 function makeContext(openText){
  const calls={close:0,errors:[],progress:[],readerTitle:'',bookMeta:''};
