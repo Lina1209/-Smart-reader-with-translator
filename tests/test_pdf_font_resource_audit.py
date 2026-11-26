@@ -142,10 +142,10 @@ class PdfToUnicodeCMapTests(unittest.TestCase):
         cmap = b"1 beginbfrange <20> <22> [<0041> <03A9> <4E2D>] endbfrange"
         report = parse_tounicode_cmap(cmap)
         self.assertEqual(report["status"], "parsed")
-        self.assertEqual(report["mappings"], {"20": "A", "21": "\\u03A9", "22": "\\u4E2D"})
+        self.assertEqual(report["mappings"], {"20": "A", "21": chr(0x03A9), "22": chr(0x4E2D)})
 
     def test_comments_whitespace_and_odd_hex_nibble_are_handled(self):
-        cmap = b"1 beginbfchar % mapping follows\\n <A> <0042> endbfchar"
+        cmap = b"1 beginbfchar % mapping follows\n <A> <0042> endbfchar"
         report = parse_tounicode_cmap(cmap)
         self.assertEqual(report["status"], "parsed")
         self.assertEqual(report["mappings"], {"A0": "B"})
