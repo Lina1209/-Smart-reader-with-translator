@@ -98,6 +98,8 @@ jobs:
         run: node tests/epub-export-integrity.test.cjs
       - name: Test RTF export integrity
         run: node tests/rtf-export-integrity.test.cjs
+      - name: Test XML 1.0 escaping integrity
+        run: node tests/xml-escaping-integrity.test.cjs
       - name: Test EPUB nested table of contents navigation
         run: node tests/epub-navigation-toc.test.cjs
       - name: Test EPUB navigation across chapter boundaries
