@@ -16,7 +16,18 @@ def dereference(value):
 def page_fonts(page):
     resources = dereference(page["/Resources"])
     fonts = dereference(resources["/Font"])
-    return [dereference(font) for font in fonts.values()]
+    return {name: dereference(font) for name, font in fonts.items()}
+
+
+def used_page_fonts(page):
+    """Resolve only font resources actually selected by Tf in this page's stream."""
+    resources = page_fonts(page)
+    used_names = {
+        str(operands[0])
+        for operands, operator in page.get_contents().operations
+        if operator == b"Tf" and operands
+    }
+    return {name: resources[name] for name in used_names if name in resources}
 
 
 class RealPdfFixtureTests(unittest.TestCase):
@@ -33,32 +44,45 @@ class RealPdfFixtureTests(unittest.TestCase):
     def test_fixture_has_four_pages(self):
         self.assertEqual(len(self.reader.pages), 4)
 
-    def test_winansi_type1_text_is_extractable(self):
+    def test_winansi_type1_text_and_encoding_are_used(self):
         page = self.reader.pages[0]
         self.assertIn("WINANSI_FIXTURE: Invoice 12345", page.extract_text())
-        fonts = page_fonts(page)
-        self.assertTrue(any(font.get("/Subtype") == "/Type1" for font in fonts))
+        fonts = used_page_fonts(page)
+        self.assertTrue(
+            any(font.get("/Subtype") == "/Type1" and font.get("/Encoding") == "/WinAnsiEncoding"
+                for font in fonts.values()),
+            "Expected the page content to select a Type1 WinAnsi font",
+        )
 
-    def test_embedded_truetype_contains_russian_and_kazakh(self):
+    def test_embedded_truetype_and_tounicode_cover_russian_and_kazakh(self):
         page = self.reader.pages[1]
         extracted = page.extract_text()
         for marker in ("Привет, мир", "Әә Ғғ Ққ Ңң Өө Ұұ Үү Һһ Іі", "Élève, façade"):
             self.assertIn(marker, extracted)
-        fonts = page_fonts(page)
-        embedded = []
-        for font in fonts:
-            descriptor = dereference(font.get("/FontDescriptor"))
-            if descriptor and descriptor.get("/FontFile2"):
-                embedded.append(font)
-        self.assertTrue(embedded, "Expected an embedded TrueType font program")
 
-    def test_type0_cid_font_and_unicode_cmap_are_present(self):
+        fonts = used_page_fonts(page)
+        embedded = []
+        for font in fonts.values():
+            descriptor = dereference(font.get("/FontDescriptor"))
+            if descriptor and descriptor.get("/FontFile2") and font.get("/ToUnicode"):
+                embedded.append((font, dereference(font["/ToUnicode"]).get_data()))
+        self.assertTrue(embedded, "Expected the selected TrueType font to be embedded with ToUnicode")
+        cmap_data = b"\n".join(data for _, data in embedded)
+        for unicode_hex in (b"04D8", b"04D9", b"049A", b"049B", b"04A2", b"04A3"):
+            self.assertIn(unicode_hex, cmap_data, f"ToUnicode should map Kazakh code point {unicode_hex.decode()}")
+
+    def test_type0_cid_font_uses_unicode_encoding_and_widths(self):
         page = self.reader.pages[2]
         self.assertIn("日本語テスト", page.extract_text())
-        fonts = page_fonts(page)
-        cid_fonts = [font for font in fonts if font.get("/Subtype") == "/Type0"]
-        self.assertTrue(cid_fonts, "Expected a Type0/CID font")
-        self.assertTrue(any(str(font.get("/Encoding", "")).startswith("/Uni") for font in cid_fonts))
+        fonts = used_page_fonts(page)
+        cid_fonts = [font for font in fonts.values() if font.get("/Subtype") == "/Type0"]
+        self.assertTrue(cid_fonts, "Expected page content to select a Type0/CID font")
+        font = cid_fonts[0]
+        self.assertEqual(str(font.get("/Encoding")), "/UniJIS-UCS2-H")
+        descendants = [dereference(item) for item in font.get("/DescendantFonts", [])]
+        self.assertTrue(descendants, "Type0 font must reference a descendant CID font")
+        self.assertTrue(any(item.get("/Subtype") == "/CIDFontType0" for item in descendants))
+        self.assertTrue(any(item.get("/W") for item in descendants), "Expected explicit CID width data")
 
     def test_table_text_and_vector_rules_coexist(self):
         page = self.reader.pages[3]
