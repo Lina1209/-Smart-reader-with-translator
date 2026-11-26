@@ -92,6 +92,8 @@ jobs:
         run: node tests/html-extraction-safety.test.cjs
       - name: Test FB2 extraction integrity
         run: node tests/fb2-extraction-integrity.test.cjs
+      - name: FB2 export integrity test
+        run: node tests/fb2-export-integrity.test.cjs
       - name: Test EPUB nested table of contents navigation
         run: node tests/epub-navigation-toc.test.cjs
       - name: Test EPUB navigation across chapter boundaries
