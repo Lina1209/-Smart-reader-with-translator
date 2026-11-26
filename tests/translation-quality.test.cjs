@@ -166,6 +166,24 @@ for(const [name,source] of [['PDF',pdfLoop],['image',imageLoop]]){
 if(!html.includes('ВНИМАНИЕ ВЁРСТКА:')||!html.includes('layoutWarnings.push'))throw new Error('OCR layout-overflow warnings are not surfaced to users');
 
 
+
+const strokeStart=html.indexOf('function detectLongStraightRuleInOcrBox('),strokeEnd=html.indexOf('function translationLayoutTokens(',strokeStart);
+if(strokeStart<0||strokeEnd<0)throw new Error('OCR straight-rule safety helper not found');
+const strokeGuard=vm.runInNewContext(html.slice(strokeStart,strokeEnd)+'; detectLongStraightRuleInOcrBox',{isValidOcrBox:box=>!!box&&Number.isFinite(box.x0)&&Number.isFinite(box.y0)&&Number.isFinite(box.x1)&&Number.isFinite(box.y1)&&box.x1>box.x0&&box.y1>box.y0});
+const makePixelContext=(width,height,marks=[])=>{
+ const pixels=new Uint8ClampedArray(width*height*4);
+ for(let i=0;i<width*height;i++){pixels[i*4]=255;pixels[i*4+1]=255;pixels[i*4+2]=255;pixels[i*4+3]=255;}
+ for(const [x,y] of marks){const k=(y*width+x)*4;pixels[k]=0;pixels[k+1]=0;pixels[k+2]=0;}
+ return{canvas:{width,height},getImageData:(left,top,w,h)=>{const data=new Uint8ClampedArray(w*h*4);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const src=((top+y)*width+left+x)*4,dst=(y*w+x)*4;data.set(pixels.slice(src,src+4),dst);}return{data};}};
+};
+const horizontalRule=[];for(let x=0;x<100;x++)horizontalRule.push([x,9]);
+if(!strokeGuard(makePixelContext(100,20,horizontalRule),{x0:0,y0:0,x1:100,y1:20},'rgb(255,255,255)').detected)throw new Error('OCR safety guard failed to detect a thin horizontal rule crossing the text region');
+const verticalRule=[];for(let y=0;y<20;y++)verticalRule.push([50,y]);
+if(!strokeGuard(makePixelContext(100,20,verticalRule),{x0:0,y0:0,x1:100,y1:20},'rgb(255,255,255)').detected)throw new Error('OCR safety guard failed to detect a vertical rule crossing the text region');
+const sparseGlyphs=[];for(let x=8;x<15;x++)for(let y=5;y<14;y++)sparseGlyphs.push([x,y]);for(let x=32;x<39;x++)for(let y=5;y<14;y++)sparseGlyphs.push([x,y]);for(let x=65;x<72;x++)for(let y=5;y<14;y++)sparseGlyphs.push([x,y]);
+if(strokeGuard(makePixelContext(100,20,sparseGlyphs),{x0:0,y0:0,x1:100,y1:20},'rgb(255,255,255)').detected)throw new Error('OCR safety guard incorrectly rejected ordinary separated glyph-like marks');
+if(!html.includes('detectLongStraightRuleInOcrBox(ctx,cellBox,bg.color)')||!html.includes('detectLongStraightRuleInOcrBox(ctx,cellBox,fill.color)'))throw new Error('PDF and image OCR must both guard against rules crossing a replacement box');
+
 const layoutStart=html.indexOf('function ocrLayoutSummary(');
 const layoutEnd=html.indexOf('\nfunction ocrQualitySummary',layoutStart);
 if(layoutStart<0||layoutEnd<0)throw new Error('OCR layout diagnostics helper not found');
