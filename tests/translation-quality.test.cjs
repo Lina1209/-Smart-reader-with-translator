@@ -200,7 +200,7 @@ if(safeOcrScaleUnderTest({width:10000,height:10000},1.5,16000000)>0.400001)throw
 
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
  
- const replacementHelperStart=html.indexOf('function ocrLines(data){'),replacementHelperEnd=html.indexOf('async function ensurePdfLib',replacementHelperStart);
+ const replacementHelperStart=html.indexOf('function isValidOcrBox('),replacementHelperEnd=html.indexOf('async function ensurePdfLib',replacementHelperStart);
  if(replacementHelperStart<0||replacementHelperEnd<0)throw new Error('OCR replacement confidence helper not found');
  const replacementHelpers=vm.runInNewContext(html.slice(replacementHelperStart,replacementHelperEnd)+'; ({ocrLines,ocrLinesForReplacement})');
  const confidenceSample={lines:[
