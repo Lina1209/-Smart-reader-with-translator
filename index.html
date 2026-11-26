@@ -642,6 +642,19 @@ function ocrLayoutSummary(data){
  const multiColumn=aligned&&columnCount>=2&&medianGap>=median*6;
  return{multiColumn,tableLike,rowCount:rows.length,columnCount,confidence:aligned?'medium':'low'};
 }
+function classifyPdfPageContent(textContent,operatorList,ops){
+ const items=(textContent&&Array.isArray(textContent.items)?textContent.items:[]).filter(item=>String(item.str||'').trim());
+ const chars=items.reduce((sum,item)=>sum+String(item.str||'').trim().length,0);
+ const names=ops||{},imageNames=['paintImageXObject','paintInlineImageXObject','paintImageMaskXObject','paintJpegXObject','paintImageXObjectRepeat','paintImageMaskXObjectRepeat'];
+ const vectorNames=['constructPath','stroke','closeStroke','fill','eoFill','fillStroke','eoFillStroke','shadingFill'];
+ const codes=new Set(Object.keys(names).filter(name=>imageNames.includes(name)||vectorNames.includes(name)).map(name=>names[name]));
+ const operators=operatorList&&Array.isArray(operatorList.fnArray)?operatorList.fnArray:[];
+ const imageOps=operators.filter(code=>imageNames.some(name=>names[name]===code)).length;
+ const vectorOps=operators.filter(code=>vectorNames.some(name=>names[name]===code)).length;
+ const hasText=chars>0,hasImages=imageOps>0;
+ const kind=hasText&&hasImages?'mixed':hasText?'text':hasImages?'scan':'graphic-or-empty';
+ return{kind,hasText,hasImages,chars,textItems:items.length,imageOps,vectorOps};
+}
 function createSafePdfViewport(page,preferredScale=1.4,maxPixels=16000000){const base=page.getViewport({scale:1}),area=Math.max(1,Number(base.width)*Number(base.height)),scale=Math.min(preferredScale,Math.sqrt(maxPixels/area));return page.getViewport({scale:Math.max(.01,scale)});}
 function ocrQualitySummary(data){const all=(data.lines||[]).filter(line=>String(line.text||'').trim()),valid=all.filter(line=>isValidOcrBox(line.bbox)),accepted=valid.filter(line=>Number(line.confidence)>=15),average=accepted.length?accepted.reduce((sum,line)=>sum+(Number(line.confidence)||0),0)/accepted.length:0;return{detected:all.length,valid:valid.length,accepted:accepted.length,rejected:all.length-accepted.length,averageConfidence:Math.round(average)};}
 function ocrLines(data){return (data.lines||[]).filter(line=>String(line.text||'').trim()&&line.confidence>=15&&isValidOcrBox(line.bbox)).map(line=>({text:String(line.text).trim(),box:line.bbox,confidence:line.confidence}));}
@@ -681,7 +694,12 @@ async function translatePdfPreservingFile(file,from,target,progressId){
   ocrWorker=ocrWorkerInfo.worker;
   for(let pageNo=1;pageNo<=sourcePdf.numPages;pageNo++){
    activePage=pageNo;setProgress(progressId,100*(pageNo-1)/sourcePdf.numPages,'Обрабатываем PDF-страницу',pageNo+' из '+sourcePdf.numPages);
-   const page=await sourcePdf.getPage(pageNo),viewport=createSafePdfViewport(page,2.0,16000000),canvas=document.createElement('canvas');
+   const page=await sourcePdf.getPage(pageNo);
+   const pageText=await page.getTextContent(),pageOperators=await page.getOperatorList(),pageKind=classifyPdfPageContent(pageText,pageOperators,pdfjs.OPS);
+   if(pageKind.kind==='text')pageWarnings.push('Страница '+pageNo+': обнаружен текстовый слой ('+pageKind.chars+' символов); текущий режим реконструкции всё равно растеризует страницу и удаляет возможность поиска/выделения текста.');
+   else if(pageKind.kind==='mixed')pageWarnings.push('Страница '+pageNo+': смешанное содержимое — текстовый слой и изображения; текущий режим OCR-реконструкции растеризует страницу целиком.');
+   else if(pageKind.kind==='graphic-or-empty')pageWarnings.push('Страница '+pageNo+': текстовый слой и растровые изображения не обнаружены; проверьте графические элементы или пустую страницу.');
+   const viewport=createSafePdfViewport(page,2.0,16000000),canvas=document.createElement('canvas');
    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);let rectifiedCanvas=null;
    try{
     const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)throw Error('Не удалось создать холст PDF-страницы.');
