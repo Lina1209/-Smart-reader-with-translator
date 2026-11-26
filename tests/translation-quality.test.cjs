@@ -154,6 +154,10 @@ draw(dryContext,'Translated',0,0,100,30,'en',{paint:true});
 if(paintCalls===0)throw new Error('OCR final render must paint after a successful fit check');
 const pdfLoop=html.slice(html.indexOf('async function translatePdfPreservingFile'),html.indexOf('async function translateImagePreservingFile'));
 const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
+if(!imageLoop.includes('detectPageQuadFromCanvas(canvas)')||!imageLoop.includes('rectifyPageCanvas(canvas,detected.points,6000000,3000)'))throw new Error('Photographed document images must attempt bounded perspective rectification before OCR');
+if(!imageLoop.includes('recognizeImageCanvas(ocrInput')||!imageLoop.includes('mapRectifiedOcrDataToSource(ocr,rectification.outputToSource)'))throw new Error('Rectified image OCR boxes must be mapped back to original image coordinates before replacement');
+if(!imageLoop.includes('if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}'))throw new Error('Temporary rectified image canvas must be released on success and failure');
+if(!imageLoop.includes('canvas.toBlob(resolve,mime'))throw new Error('Image output must be encoded from the original-size source canvas, not the rectified OCR canvas');
 for(const [name,source] of [['PDF',pdfLoop],['image',imageLoop]]){
  const preflight=source.indexOf('paint:false'),background=source.indexOf('estimateSafeBackgroundFill'),paint=source.indexOf('paint:true');
  if(preflight<0||background<0||paint<0||!(preflight<background&&background<paint))throw new Error(name+' OCR replacement must preflight fit before clearing the original background');
