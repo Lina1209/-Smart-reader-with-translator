@@ -78,6 +78,8 @@ jobs:
           node --check tts.js
       - name: Test translation chunk boundaries and Unicode preservation
         run: node tests/translation-chunks.test.cjs
+      - name: Test fixed-page reader pagination and long-token wrapping
+        run: node tests/reader-pagination.test.cjs
       - name: Test glossary protection and retry classification
         run: node tests/translation-quality.test.cjs
       - name: Test PDF rewrite preflight safety gate
