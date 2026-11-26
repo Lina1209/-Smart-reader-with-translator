@@ -380,7 +380,7 @@ if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text 
 
 
 
-if(!html.includes('async function openScanImage(file,ext)')||!html.includes('detectPageQuadFromCanvas(original)')||!html.includes('rectifyPageCanvas(original,points,6000000,3000)')||!html.includes('scanOriginalBtn')||!html.includes('scanCorrectedBtn')||!html.includes('releaseScanPreview()'))throw new Error('Scanned image reader preview must compare original and preview-only perspective correction with cleanup');
+if(!html.includes('async function openScanImage(file,ext,openToken)')||!html.includes('detectPageQuadFromCanvas(original)')||!html.includes('rectifyPageCanvas(original,points,6000000,3000)')||!html.includes('scanOriginalBtn')||!html.includes('scanCorrectedBtn')||!html.includes('releaseScanPreview()'))throw new Error('Scanned image reader preview must compare original and preview-only perspective correction with cleanup');
 if(!html.includes("'jpg','jpeg','png','webp','gif'")||!html.includes('imageFileToCanvas(file)')||!html.includes('recognizeImageCanvas(canvas,report)'))throw new Error('Common scanned-image formats must reach the OCR extraction path');
 
 if(!html.includes("flow:'paginated'")||html.includes("flow:'scrolled-doc'"))throw new Error('EPUB reader must use fixed paginated flow, not endless scrolling');
