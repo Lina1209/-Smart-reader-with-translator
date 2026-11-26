@@ -720,3 +720,11 @@ const cancellationImageBranchEnd=cancellationDocumentExtractor.indexOf("if(name.
 if(cancellationImageBranchStart<0||cancellationImageBranchEnd<0)throw new Error('Image OCR extraction branch missing');
 const cancellationImageBranch=cancellationDocumentExtractor.slice(cancellationImageBranchStart,cancellationImageBranchEnd);
 for(const guard of ['await imageFileToCanvas(file);ensureCurrent()','null,isCurrent);ensureCurrent()','finally{canvas.width=canvas.height=0;}'])if(!cancellationImageBranch.includes(guard))throw new Error('Image OCR cancellation or cleanup missing: '+guard);
+
+const officeWriterStart=html.indexOf('async function translatePreservingFile(file,from,target,statusId){');
+const officeWriterEnd=html.indexOf("\n$('standaloneTranslate').addEventListener",officeWriterStart);
+if(officeWriterStart<0||officeWriterEnd<0)throw new Error('Office document export writer missing');
+const officeWriter=html.slice(officeWriterStart,officeWriterEnd);
+if(!officeWriter.includes("xl/charts/chart")||!officeWriter.includes("translateXmlParagraphs(doc,'p'"))throw new Error('XLSX chart rich-text titles and labels must be included in translation');
+if(!officeWriter.includes('notesSlides/notesSlide')||!officeWriter.includes('diagrams/drawing')||!officeWriter.includes('charts/chart'))throw new Error('PPTX export must include speaker notes, chart rich text and diagram text parts');
+if(!officeWriter.includes('const contentPaths=[...slides,...auxiliaryPaths.filter'))throw new Error('PPTX slide and auxiliary text parts must be processed together');
