@@ -64,6 +64,13 @@ class TextImageOverlapTests(unittest.TestCase):
         self.assertEqual(report["status"], "incomplete")
         self.assertTrue(any(x["reason"] == "invalid-text-geometry" for x in report["unknown"]))
 
+    def test_form_bbox_fully_clipped_image_is_not_false_overlap(self):
+        placement = image([(0, 0), (10, 0), (10, 10), (0, 10)])
+        placement["form_clip_intersection_corners"] = []
+        placement["fully_clipped_by_form_bboxes"] = True
+        report = compare_text_fragments_to_images([fragment("text")], {"placements": [placement], "unknown": []})
+        self.assertEqual(report["status"], "clear")
+        self.assertEqual(report["overlaps"], [])
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
