@@ -1111,8 +1111,14 @@ function xmlTextNodes(el,ns,tag){
  return nodes;
 }
 function isDocxVisibleTextNode(node){
- const parent=node&&node.parentElement;
- return String(parent&&(parent.localName||parent.nodeName)||'').toLowerCase()==='t';
+ let parent=node&&node.parentElement;
+ if(String(parent&&(parent.localName||parent.nodeName)||'').toLowerCase()!=='t')return false;
+ while(parent){
+  const tag=String(parent.localName||parent.nodeName||'').toLowerCase();
+  if(['del','movefrom','instrtext','deltext'].includes(tag))return false;
+  parent=parent.parentElement;
+ }
+ return true;
 }
 async function translateXmlParagraphs(doc,selector,from,target,progressId,progressBase=0,progressSpan=100,docxVisibleTextOnly=false){
  const blocks=Array.from(doc.getElementsByTagNameNS('*',selector));
