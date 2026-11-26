@@ -65,6 +65,10 @@ for(const tag of ['instrText','delText','del','fldChar','tab']){const node={pare
 for(const tag of ['del','moveFrom']){const node={parentElement:{localName:'t',parentElement:{localName:tag,parentElement:null}}};if(isDocxVisibleTextNode(node))throw new Error('DOCX deleted/moved-from revision text must not be translated: '+tag);}
 const simpleFieldNode={parentElement:{localName:'t',parentElement:{localName:'r',parentElement:{localName:'fldSimple',parentElement:null}}}};
 if(isDocxVisibleTextNode(simpleFieldNode))throw new Error('DOCX simple-field result text must not be translated because Word can regenerate it from the field instruction');
+const complexFieldResult={parentElement:{localName:'t',parentElement:{localName:'r',parentElement:{localName:'p',getElementsByTagNameNS(ns,tag){return tag==='fldChar'?[{type:'begin'},{type:'separate'},{type:'end'}]:[];},parentElement:null}}}};
+if(isDocxVisibleTextNode(complexFieldResult))throw new Error('DOCX complex-field result text must not be translated when its paragraph contains field markers (TOC/page number/date/etc.)');
+const ordinaryParagraphText={parentElement:{localName:'t',parentElement:{localName:'r',parentElement:{localName:'p',getElementsByTagNameNS(){return [];},parentElement:null}}}};
+if(!isDocxVisibleTextNode(ordinaryParagraphText))throw new Error('Ordinary DOCX paragraph text must remain translatable when no complex field markers exist');
 const storyPattern=/^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i;
 for(const path of ['word/document.xml','word/header1.xml','word/footer2.xml','word/footnotes.xml','word/endnotes.xml','word/comments.xml'])if(!storyPattern.test(path))throw new Error('DOCX translation must include the story part '+path);
 for(const path of ['word/styles.xml','word/numbering.xml','word/settings.xml','word/theme/theme1.xml'])if(storyPattern.test(path))throw new Error('DOCX style/relationship metadata must not be treated as translatable story text: '+path);
