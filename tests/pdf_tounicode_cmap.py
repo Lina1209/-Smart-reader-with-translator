@@ -6,16 +6,15 @@ CMaps, CIDs, glyph IDs, font subsets, or perform PDF text replacement.
 import re
 
 
-_TOKEN = re.compile(rb"<([0-9A-Fa-f\\s]*)>|(\\[|\\])|(-?\\d+)|([^\\s]+)")
+_TOKEN = re.compile(rb"<([0-9A-Fa-f\s]*)>|(\[|\])|(-?\d+)|([^\s]+)")
 
 
 def _tokens(data):
-    # PDF comments run from '%' to the end of a physical line.
-    data = re.sub(rb"%[^\\r\\n]*", b"", data)
+    data = re.sub(rb"%[^\r\n]*", b"", data)
     result = []
     for match in _TOKEN.finditer(data):
         if match.group(1) is not None:
-            compact = re.sub(rb"\\s+", b"", match.group(1))
+            compact = re.sub(rb"\s+", b"", match.group(1))
             if len(compact) % 2:
                 compact += b"0"
             try:
@@ -51,10 +50,8 @@ def parse_tounicode_cmap(data, max_mappings=100000, max_range=4096):
     mappings = {}
     errors = []
     sections = 0
-    expanded = 0
 
     def add(source, destination):
-        nonlocal expanded
         key = _source_key(source)
         value = _unicode_value(destination)
         if key in mappings:
@@ -62,9 +59,8 @@ def parse_tounicode_cmap(data, max_mappings=100000, max_range=4096):
         if len(mappings) >= max_mappings:
             raise ValueError("mapping limit exceeded")
         mappings[key] = value
-        expanded += 1
 
-    for match in re.finditer(rb"\\bbeginbfchar\\b(.*?)\\bendbfchar\\b", raw, re.S):
+    for match in re.finditer(rb"\bbeginbfchar\b(.*?)\bendbfchar\b", raw, re.S):
         sections += 1
         tokens = _tokens(match.group(1))
         try:
@@ -78,7 +74,7 @@ def parse_tounicode_cmap(data, max_mappings=100000, max_range=4096):
         except (ValueError, UnicodeError) as exc:
             errors.append("bfchar: " + str(exc))
 
-    for match in re.finditer(rb"\\bbeginbfrange\\b(.*?)\\bendbfrange\\b", raw, re.S):
+    for match in re.finditer(rb"\bbeginbfrange\b(.*?)\bendbfrange\b", raw, re.S):
         sections += 1
         tokens = _tokens(match.group(1))
         index = 0
