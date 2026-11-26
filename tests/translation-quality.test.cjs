@@ -17,7 +17,7 @@ const sorted=helpers.parseTranslationGlossary();
 if(sorted[0].source!=='New York')throw new Error('Longer glossary phrases must be matched first');
 if(!helpers.isRetryableTranslationError(new Error('MyMemory недоступен (HTTP 503).')))throw new Error('HTTP 503 should be retried');
 if(helpers.isRetryableTranslationError(new Error('MyMemory ограничил запросы или дневная квота исчерпана.')))throw new Error('Quota errors must not be retried');
-const cacheMatch=html.match(/function translationCacheKey\\(chunk,from,target\\)\\{[\\s\\S]*?\\n\\}/);
+const cacheMatch=html.match(/function translationCacheKey\(chunk,from,target\)\{[\s\S]*?\n\}/);
 if(!cacheMatch)throw new Error('Translation cache key helper not found');
 let endpoint='https://one.example',glossaryValue='term = перевод';
 const cacheContext={translationEngine:'libretranslate',$:(id)=>({value:id==='libreTranslateEndpoint'?endpoint:glossaryValue})};
