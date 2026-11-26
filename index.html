@@ -1274,6 +1274,8 @@ async function prepareOdtArchiveMimetype(zip){
 async function prepareEpubArchiveMimetype(zip){
  const entry=zip&&zip.file&&zip.file('mimetype');
  if(!entry)throw Error('В EPUB не найден обязательный файл mimetype.');
+ const entries=Object.keys(zip.files||{}).filter(path=>zip.files[path]&&!zip.files[path].dir);
+ if(entries[0]!=='mimetype')throw Error('Исходный EPUB нарушает структуру: mimetype должен быть первым элементом архива.');
  const value=await entry.async('text');
  if(String(value||'').trim()!=='application/epub+zip')throw Error('Исходный EPUB содержит неверный MIME-тип в mimetype.');
  zip.file('mimetype','application/epub+zip',{compression:'STORE'});
