@@ -104,6 +104,8 @@ jobs:
         run: node tests/xml-escaping-integrity.test.cjs
       - name: Test DOCX and ODT export integrity
         run: node tests/docx-odt-export-integrity.test.cjs
+      - name: Test Office chart and embedded-resource coverage
+        run: node tests/office-resource-coverage.test.cjs
       - name: Test EPUB nested table of contents navigation
         run: node tests/epub-navigation-toc.test.cjs
       - name: Test EPUB navigation across chapter boundaries
