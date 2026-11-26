@@ -1503,7 +1503,7 @@ async function shareBookText(value,title,statusId){
   else{await copyBookText(value,statusId);$(statusId).textContent='Меню отправки недоступно — текст скопирован. Вставьте его в нужное приложение.';}
  }catch(e){if(e&&e.name==='AbortError')$(statusId).textContent='Отправка отменена.';else $(statusId).textContent='Не удалось открыть меню отправки.';}
 }
-function escapeXml(value){return String(value||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&apos;');}
+function escapeXml(value){return Array.from(String(value||'')).filter(ch=>{const cp=ch.codePointAt(0);return cp===9||cp===10||cp===13||(cp>=32&&cp<=0xD7FF)||(cp>=0xE000&&cp<=0xFFFD)||(cp>=0x10000&&cp<=0x10FFFF);}).join('').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&apos;');}
 function downloadBlob(blob,filename,statusId){
  if(!blob||!Number.isFinite(Number(blob.size))||blob.size<=0){if(statusId)$(statusId).textContent='Нельзя скачать пустой или некорректный файл.';return false;}
  let url='',anchor=null;
