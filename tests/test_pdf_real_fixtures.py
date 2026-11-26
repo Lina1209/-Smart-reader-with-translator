@@ -195,6 +195,69 @@ def add_nested_form_and_clipping_fixture(path):
     return Path(path)
 
 
+def add_transparency_image_overlay_fixture(path):
+    """Build an image XObject with a soft mask and alpha graphics state behind text."""
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+
+    def add_image(data, width, height, color_space, extra=None):
+        stream = DecodedStreamObject()
+        stream.set_data(data)
+        stream.update({
+            NameObject("/Type"): NameObject("/XObject"),
+            NameObject("/Subtype"): NameObject("/Image"),
+            NameObject("/Width"): NumberObject(width),
+            NameObject("/Height"): NumberObject(height),
+            NameObject("/ColorSpace"): NameObject(color_space),
+            NameObject("/BitsPerComponent"): NumberObject(8),
+        })
+        if extra:
+            stream.update(extra)
+        return writer._add_object(stream)
+
+    soft_mask = add_image(
+        bytes([255, 128, 0, 255]),
+        2,
+        2,
+        "/DeviceGray",
+    )
+    image = add_image(
+        bytes([220, 40, 40, 30, 90, 220, 40, 180, 80, 220, 200, 50]),
+        2,
+        2,
+        "/DeviceRGB",
+        {NameObject("/SMask"): soft_mask},
+    )
+    ext_gstate = writer._add_object(DictionaryObject({
+        NameObject("/Type"): NameObject("/ExtGState"),
+        NameObject("/ca"): FloatObject(0.55),
+        NameObject("/CA"): FloatObject(0.65),
+        NameObject("/BM"): NameObject("/Multiply"),
+    }))
+    font = writer._add_object(DictionaryObject({
+        NameObject("/Type"): NameObject("/Font"),
+        NameObject("/Subtype"): NameObject("/Type1"),
+        NameObject("/BaseFont"): NameObject("/Helvetica"),
+        NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
+    }))
+    page[NameObject("/Resources")] = DictionaryObject({
+        NameObject("/XObject"): DictionaryObject({NameObject("/Im1"): image}),
+        NameObject("/ExtGState"): DictionaryObject({NameObject("/GS1"): ext_gstate}),
+        NameObject("/Font"): DictionaryObject({NameObject("/F1"): font}),
+    })
+    content = DecodedStreamObject()
+    content.set_data(
+        b"q 0 0 160 100 re W n /GS1 gs "
+        b"0.5 0 0 0.5 100 400 cm /Im1 Do Q "
+        b"BT /F1 16 Tf 110 430 Td (TEXT_OVER_IMAGE) Tj ET"
+    )
+    page[NameObject("/Contents")] = writer._add_object(content)
+
+    with Path(path).open("wb") as output:
+        writer.write(output)
+    return Path(path)
+
+
 def used_page_fonts(page):
     """Resolve only font resources actually selected by Tf in this page's stream."""
     resources = page_fonts(page)
@@ -222,6 +285,10 @@ class RealPdfFixtureTests(unittest.TestCase):
             Path(cls.temp_dir.name) / "nested-forms-clipping.pdf"
         )
         cls.nested_reader = PdfReader(str(cls.nested_path))
+        cls.overlay_path = add_transparency_image_overlay_fixture(
+            Path(cls.temp_dir.name) / "transparency-image-overlay.pdf"
+        )
+        cls.overlay_reader = PdfReader(str(cls.overlay_path))
 
     @classmethod
     def tearDownClass(cls):
@@ -319,6 +386,29 @@ class RealPdfFixtureTests(unittest.TestCase):
         self.assertIn(b"NESTED_FORM_TEXT", inner_ops)
         inner_resources = dereference(inner["/Resources"])
         self.assertIn("/F1", {str(key) for key in dereference(inner_resources["/Font"]).keys()})
+
+    def test_transparent_image_soft_mask_and_text_overlay_are_present(self):
+        page = self.overlay_reader.pages[0]
+        self.assertIn("TEXT_OVER_IMAGE", page.extract_text())
+        resources = dereference(page["/Resources"])
+        xobjects = dereference(resources["/XObject"])
+        image = dereference(xobjects["/Im1"])
+        self.assertEqual(str(image.get("/Subtype")), "/Image")
+        self.assertEqual(str(image.get("/ColorSpace")), "/DeviceRGB")
+        self.assertTrue(image.get("/SMask"), "Expected an image soft mask")
+        soft_mask = dereference(image["/SMask"])
+        self.assertEqual(str(soft_mask.get("/ColorSpace")), "/DeviceGray")
+        self.assertEqual(soft_mask.get("/Width"), 2)
+        graphics = dereference(resources["/ExtGState"])
+        state = dereference(graphics["/GS1"])
+        self.assertAlmostEqual(float(state["/ca"]), 0.55)
+        self.assertAlmostEqual(float(state["/CA"]), 0.65)
+        self.assertEqual(str(state["/BM"]), "/Multiply")
+        operators = [operator for _, operator in page.get_contents().operations]
+        self.assertIn(b"gs", operators)
+        self.assertIn(b"Do", operators)
+        self.assertIn(b"cm", operators)
+        self.assertIn(b"W", operators)
 
     def test_table_text_and_vector_rules_coexist(self):
         page = self.reader.pages[3]
