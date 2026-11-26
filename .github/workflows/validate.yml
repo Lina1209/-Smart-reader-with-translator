@@ -88,6 +88,7 @@ jobs:
         run: node tests/epub-extraction-integrity.test.cjs
       - name: Test EPUB nested table of contents navigation
         run: node tests/epub-navigation-toc.test.cjs
+      - name: Test EPUB navigation across chapter boundaries
         run: node tests/epub-navigation-boundaries.test.cjs
       - name: Test EPUB reading position persistence
         run: node tests/epub-position-storage.test.cjs
