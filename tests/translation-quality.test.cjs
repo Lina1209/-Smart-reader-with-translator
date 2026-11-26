@@ -470,6 +470,14 @@ if(emptyPage.kind!=='graphic-or-empty')throw new Error('Graphic or empty PDF pag
 if(!html.includes('текущий режим реконструкции всё равно растеризует страницу'))throw new Error('Native PDF text-layer loss must be explicitly reported');
 if(!html.includes('текущий режим OCR-реконструкции растеризует страницу целиком'))throw new Error('Mixed PDF page rasterization must be explicitly reported');
 
+const preserveStart=html.indexOf('function shouldPreserveOriginalPdfPage('),preserveEnd=html.indexOf('function createSafePdfViewport(',preserveStart);
+if(preserveStart<0||preserveEnd<0)throw new Error('PDF original-page preservation decision helper not found');
+const shouldPreserveOriginalPdfPage=vm.runInNewContext(html.slice(preserveStart,preserveEnd)+';shouldPreserveOriginalPdfPage');
+if(!shouldPreserveOriginalPdfPage({kind:'text'})||!shouldPreserveOriginalPdfPage({kind:'mixed'})||!shouldPreserveOriginalPdfPage({kind:'graphic-or-empty'}))throw new Error('Non-scan PDF pages must be preserved instead of rasterized when safe copying is available');
+if(shouldPreserveOriginalPdfPage({kind:'scan'}))throw new Error('Image-only scan pages must continue through OCR reconstruction');
+if(!html.includes('outPdf.copyPages(sourcePdfForCopy,[pageNo-1])'))throw new Error('Original PDF pages must be copied into the output without rasterization');
+if(!html.includes('текст не переведён, чтобы не повредить шрифты'))throw new Error('Preserved original PDF pages must disclose that their text remains untranslated');
+
 const safeFillStart=html.indexOf('function estimateSafeBackgroundFill('),safeFillEnd=html.indexOf('function translationLayoutTokens(',safeFillStart);
 if(safeFillStart<0||safeFillEnd<0)throw new Error('Conservative background restoration helper not found');
 const safeFill=vm.runInNewContext(html.slice(safeFillStart,safeFillEnd)+';estimateSafeBackgroundFill');
