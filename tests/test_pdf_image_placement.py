@@ -19,8 +19,10 @@ class PdfImagePlacementTests(unittest.TestCase):
             path = add_transparency_image_overlay_fixture(Path(temp) / "image.pdf")
             page = PdfReader(str(path)).pages[0]
             report = inspect_page_image_placements(page)
-            self.assertEqual(report["status"], "ok")
+            self.assertEqual(report["status"], "incomplete")
             self.assertEqual(len(report["placements"]), 1)
+            self.assertTrue(report["placements"][0]["arbitrary_clip_unresolved"])
+            self.assertTrue(any(item["reason"] == "arbitrary-clipping-path-not-evaluated" for item in report["unknown"]))
             image = report["placements"][0]
             self.assertEqual(image["bbox"], (100.0, 400.0, 190.0, 450.0))
             self.assertEqual(image["width_pixels"], 2)
@@ -81,9 +83,9 @@ class PdfImagePlacementTests(unittest.TestCase):
             with path.open("wb") as output:
                 writer.write(output)
             report = inspect_page_image_placements(PdfReader(str(path)).pages[0])
-        self.assertEqual(report["status"], "incomplete")
+        self.assertEqual(report["status"], "ok")
         self.assertEqual(report["placements"], [])
-        self.assertEqual(report["unknown"][0]["reason"], "non-image-xobject-not-recursed")
+        self.assertEqual(report["counts"]["forms_visited"], 1)
 
 
     def _nested_form_image_fixture(self, path, clipped=False):
