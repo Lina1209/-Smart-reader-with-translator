@@ -4,7 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import (
+    ArrayObject, DecodedStreamObject, DictionaryObject, NameObject,
+    NumberObject, TextStringObject,
+)
 
 from generate_pdf_fixtures import build_fixtures
 
@@ -17,6 +21,92 @@ def page_fonts(page):
     resources = dereference(page["/Resources"])
     fonts = dereference(resources["/Font"])
     return {name: dereference(font) for name, font in fonts.items()}
+
+
+def add_identity_h_cidfonttype2_fixture(path):
+    """Build a minimal real PDF with Identity-H, ToUnicode and a CIDToGIDMap stream."""
+    from generate_pdf_fixtures import _dejavu_path
+
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=612, height=792)
+
+    def add_stream(data):
+        item = DecodedStreamObject()
+        item.set_data(data)
+        return writer._add_object(item)
+
+    font_program = Path(_dejavu_path()).read_bytes()
+    font_program_ref = add_stream(font_program)
+    descriptor = DictionaryObject({
+        NameObject("/Type"): NameObject("/FontDescriptor"),
+        NameObject("/FontName"): NameObject("/DejaVuSans"),
+        NameObject("/Flags"): NumberObject(4),
+        NameObject("/FontBBox"): ArrayObject([
+            NumberObject(-1021), NumberObject(-463),
+            NumberObject(1793), NumberObject(1233),
+        ]),
+        NameObject("/ItalicAngle"): NumberObject(0),
+        NameObject("/Ascent"): NumberObject(760),
+        NameObject("/Descent"): NumberObject(-240),
+        NameObject("/CapHeight"): NumberObject(760),
+        NameObject("/StemV"): NumberObject(80),
+        NameObject("/FontFile2"): font_program_ref,
+    })
+    descriptor_ref = writer._add_object(descriptor)
+
+    # CID 0 maps to .notdef; CID 1 maps to DejaVu Sans glyph 36 ("A").
+    cid_to_gid_ref = add_stream(b"\\x00\\x00" + (36).to_bytes(2, "big"))
+    cid_font = DictionaryObject({
+        NameObject("/Type"): NameObject("/Font"),
+        NameObject("/Subtype"): NameObject("/CIDFontType2"),
+        NameObject("/BaseFont"): NameObject("/DejaVuSans"),
+        NameObject("/CIDSystemInfo"): DictionaryObject({
+            NameObject("/Registry"): TextStringObject("Adobe"),
+            NameObject("/Ordering"): TextStringObject("Identity"),
+            NameObject("/Supplement"): NumberObject(0),
+        }),
+        NameObject("/FontDescriptor"): descriptor_ref,
+        NameObject("/DW"): NumberObject(600),
+        NameObject("/W"): ArrayObject([
+            NumberObject(1), ArrayObject([NumberObject(667)]),
+        ]),
+        NameObject("/CIDToGIDMap"): cid_to_gid_ref,
+    })
+    cid_font_ref = writer._add_object(cid_font)
+
+    unicode_cmap = b""" /CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def
+/CMapName /Fixture-UCS def
+/CMapType 2 def
+1 begincodespacerange
+<0000> <FFFF>
+endcodespacerange
+1 beginbfchar
+<0001> <0041>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end"""
+    type0_font = DictionaryObject({
+        NameObject("/Type"): NameObject("/Font"),
+        NameObject("/Subtype"): NameObject("/Type0"),
+        NameObject("/BaseFont"): NameObject("/DejaVuSans"),
+        NameObject("/Encoding"): NameObject("/Identity-H"),
+        NameObject("/DescendantFonts"): ArrayObject([cid_font_ref]),
+        NameObject("/ToUnicode"): add_stream(unicode_cmap),
+    })
+    type0_ref = writer._add_object(type0_font)
+    page[NameObject("/Resources")] = DictionaryObject({
+        NameObject("/Font"): DictionaryObject({NameObject("/F0"): type0_ref}),
+    })
+    page[NameObject("/Contents")] = add_stream(b"BT /F0 24 Tf 100 700 Td <0001> Tj ET")
+
+    with Path(path).open("wb") as output:
+        writer.write(output)
+    return Path(path)
 
 
 def used_page_fonts(page):
@@ -35,7 +125,7 @@ class RealPdfFixtureTests(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.pdf_path = build_fixtures(Path(cls.temp_dir.name) / "native-text-fixtures.pdf")
-        cls.reader = PdfReader(str(cls.pdf_path))
+        cls.reader = PdfReader(str(cls.pdf_path))\n        cls.identity_h_path = add_identity_h_cidfonttype2_fixture(\n            Path(cls.temp_dir.name) / "identity-h-cidfonttype2.pdf"\n        )\n        cls.identity_h_reader = PdfReader(str(cls.identity_h_path))
 
     @classmethod
     def tearDownClass(cls):
@@ -83,6 +173,20 @@ class RealPdfFixtureTests(unittest.TestCase):
         self.assertTrue(descendants, "Type0 font must reference a descendant CID font")
         self.assertTrue(any(item.get("/Subtype") == "/CIDFontType0" for item in descendants))
         self.assertTrue(any(item.get("/W") for item in descendants), "Expected explicit CID width data")
+
+    def test_identity_h_cidfonttype2_embeds_font_and_maps_cid_to_gid(self):
+        page = self.identity_h_reader.pages[0]
+        self.assertEqual(page.extract_text(), "A")
+        font = used_page_fonts(page)["/F0"]
+        self.assertEqual(str(font.get("/Encoding")), "/Identity-H")
+        self.assertTrue(font.get("/ToUnicode"), "Expected a ToUnicode CMap")
+        descendant = dereference(font["/DescendantFonts"][0])
+        self.assertEqual(str(descendant.get("/Subtype")), "/CIDFontType2")
+        mapping = dereference(descendant["/CIDToGIDMap"]).get_data()
+        self.assertEqual(mapping[2:4], (36).to_bytes(2, "big"))
+        descriptor = dereference(descendant["/FontDescriptor"])
+        self.assertTrue(descriptor.get("/FontFile2"), "Expected embedded TrueType font data")
+        self.assertTrue(descendant.get("/W"), "Expected explicit CID width data")
 
     def test_table_text_and_vector_rules_coexist(self):
         page = self.reader.pages[3]
