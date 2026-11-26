@@ -573,3 +573,18 @@ positionStorage.set(positionKey,'{"cfi":"javascript:alert(1)"}');
 if(positionHelpers.readEpubPosition(positionKey)!=='')throw new Error('Invalid stored EPUB positions must be rejected');
 if(!html.includes('saveEpubPosition(epubPositionStorageKey,loc)')||!html.includes('await rendition.display(savedPosition)'))throw new Error('EPUB relocation must persist its CFI and opening must restore it');
 if(!html.includes("catch(error){console.warn('Сохранённая позиция EPUB недоступна, открываем начало книги',error);await rendition.display();}"))throw new Error('Invalid or stale EPUB positions must fall back to the beginning');
+
+const epubTocStart=html.indexOf('function flattenEpubToc(');
+const epubTocEnd=html.indexOf('function updateEpubNavigationButtons()',epubTocStart);
+if(epubTocStart<0||epubTocEnd<0)throw new Error('EPUB table-of-contents helpers missing');
+const flattenToc=vm.runInNewContext(html.slice(epubTocStart,epubTocEnd)+';flattenEpubToc');
+const tocEntries=flattenToc([
+ {label:'Chapter 1',href:'chapter1.xhtml',subitems:[{label:'Section 1.1',href:'chapter1.xhtml#section1'}]},
+ {label:'Chapter 2',href:'chapter2.xhtml'},
+ {label:'Empty item',href:''}
+]);
+if(tocEntries.length!==3||tocEntries[0].depth!==0||tocEntries[1].depth!==1||tocEntries[2].href!=='chapter2.xhtml')throw new Error('EPUB nested table-of-contents entries must flatten in reading order');
+if(!html.includes('id="epubTocSelect"')||!html.includes('book.loaded.navigation')||!html.includes("await rendition.display(href)"))throw new Error('EPUB table of contents must be loaded and navigate to selected chapter hrefs');
+if(!html.includes('populateEpubToc();setProgress'))throw new Error('EPUB table of contents must populate after initial display');
+if(!html.includes("rendition.resize()"))throw new Error('EPUB viewer must recalculate page layout after viewport resizing');
+if(!html.includes("saveEpubPosition(epubPositionStorageKey,loc)"))throw new Error('EPUB position must be persisted after relocation, including layout changes');
