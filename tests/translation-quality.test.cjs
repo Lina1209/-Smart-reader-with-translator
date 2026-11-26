@@ -388,7 +388,7 @@ if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;backg
 if(!html.includes('function paginateReaderText(')||!html.includes('function moveReaderPage(')||!html.includes("e.key==='ArrowRight'"))throw new Error('Text reader pagination and keyboard navigation are missing');
 if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'))throw new Error('Touch swipe page turning is missing');
 if(!html.includes("window.addEventListener('resize'")||!html.includes('readerPageOffsets[readerPageIndex]')||!html.includes('readerPageOffsets[i]<=previousOffset'))throw new Error('Reader pagination must adapt to screen rotation/resize while retaining the same text position');
-if(!html.includes('readerPageOffsets=[]')||!html.includes('offsets.push(currentOffset)'))throw new Error('Text reader page offsets must be tracked and reset safely');
+if(!html.includes('readerPageOffsets=[]')||!html.includes('readerPageOffsets=result.offsets')||!html.includes('window.ReaderPagination.paginateByHeight'))throw new Error('Measured text-reader pagination must track page offsets and reset safely');
 if(!html.includes("epubPageState.page<=1")||!html.includes("epubPageState.page>=epubPageState.total"))throw new Error('EPUB navigation buttons must reflect first and last page');
 if(!html.includes('epubNavigationBusy')||!html.includes('updateEpubNavigationButtons()')||!html.includes("Не удалось перелистнуть EPUB"))throw new Error('EPUB navigation must serialize rapid page turns and recover button state after failures');
 if(!html.includes('epubPageState={page:p,total:t}')||!html.includes('epubNavigationBusy||!epubPageState.total'))throw new Error('EPUB relocated state must drive the disabled state of navigation controls');
