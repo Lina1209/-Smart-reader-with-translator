@@ -995,7 +995,7 @@ async function translateImagePreservingFile(file,from,target,progressId){
   const mime=file.type==='image/gif'?'image/png':file.type==='image/png'?'image/png':file.type==='image/webp'?'image/webp':'image/jpeg';
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,mime,mime==='image/jpeg'?.94:undefined));
   if(!blob)throw Error('Не удалось собрать изображение с переводом.');
-  const ext=blob.type==='image/png'?'.png':blob.type==='image/webp'?'.webp':'.jpg',filename=file.name.replace(/\.[^.]+$/i,ext);
+  const ext=blob.type==='image/png'?'.png':blob.type==='image/webp'?'.webp':'.jpg',baseName=String(file.name||'image').replace(/\.[^.]+$/i,'')||'image',filename=baseName+ext;
   return{blob,text:outputLines.join('\n')+(quality.averageConfidence<35?'\n\nВНИМАНИЕ: низкая уверенность OCR ('+quality.averageConfidence+'%). Проверьте результат вручную.':'')+(layoutWarnings.length?'\n\nВНИМАНИЕ ВЁРСТКА: '+layoutWarnings.join(' '):''),filename};
  }finally{
   if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}
