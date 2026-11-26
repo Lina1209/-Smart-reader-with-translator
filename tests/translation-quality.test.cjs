@@ -155,7 +155,7 @@ if(!html.includes('createSafePdfViewport(page,1.4)')||!html.includes('createSafe
 
 if(!html.includes('Страница '+"'+pageNo+'"+': распознано')||!html.includes('safeToTranslate&&lineNo<replacementGroups.length'))throw new Error('Low-confidence PDF pages are not explicitly kept untranslated');
 if(!html.includes('вероятная многоколоночная структура')||!html.includes('вероятная табличная структура'))throw new Error('Complex OCR layout warnings are not surfaced');
-if(!html.includes('safeToTranslate&&i<replacementLines.length')||!html.includes('Изображение сохранено без замены текста'))throw new Error('Low-confidence image scans are not kept unchanged');
+if(!html.includes('safeToTranslate&&i<replacementGroups.length')||!html.includes('Изображение сохранено без замены текста'))throw new Error('Low-confidence image scans are not kept unchanged');
 
 const pdfPipelineStart=html.indexOf('async function translatePdfPreservingFile(');
 const pdfPipelineEnd=html.indexOf('\nasync function translateImagePreservingFile',pdfPipelineStart);
