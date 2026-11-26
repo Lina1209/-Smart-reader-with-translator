@@ -412,7 +412,7 @@ const epubGestureSource=html.slice(epubGestureStart,epubGestureEnd);
 if(!epubGestureSource.includes("doc.addEventListener('touchstart'")||!epubGestureSource.includes("doc.addEventListener('touchend'"))throw new Error('EPUB iframe must listen for both swipe start and end');
 if(!epubGestureSource.includes('Math.abs(dx)>55')||!epubGestureSource.includes('Math.abs(dx)>Math.abs(dy)*1.25'))throw new Error('EPUB swipe must require a deliberate horizontal gesture and ignore vertical scrolling');
 if(!epubGestureSource.includes("moveReaderPage(dx<0?1:-1)"))throw new Error('EPUB swipe direction must map to next and previous pages');
-if(!html.includes("rendition.on('rendered',()=>{syncEpubBookText();bindEpubPageGestures();})"))throw new Error('EPUB iframe gestures must be rebound when a new page document is rendered');
+if(!html.includes("rendition.on('rendered',()=>{if(openToken!==requestId||book!==openedBook||rendition!==openedRendition)return;syncEpubBookText();bindEpubPageGestures();})"))throw new Error('EPUB iframe gestures must be rebound only for the current book when a new page document is rendered');
 const epubSyncStart=html.indexOf('function syncEpubBookText()');
 const epubSyncEnd=html.indexOf('\n}',epubSyncStart);
 if(epubSyncStart<0||epubSyncEnd<0)throw new Error('EPUB text synchronization function missing');
