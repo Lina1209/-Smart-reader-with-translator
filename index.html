@@ -151,7 +151,7 @@ body[data-theme=dark] ::selection{background:#7656c9;color:#fff}
 <div class="tool-status" id="translatorBookStatus" role="status"></div></div>
 
 <div class="tool-row"><label for="standaloneSource">С языка</label><select id="standaloneSource" aria-label="Исходный язык"></select><label for="standaloneTarget">Перевести на</label><select id="standaloneTarget" aria-label="Язык перевода"><option value="ru">Русский</option><option value="kk">Қазақша</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option><option value="tr">Türkçe</option><option value="pl">Polski</option><option value="uk">Українська</option></select><button class="btn primary" id="standaloneTranslate">Перевести →</button></div>
-<div class="tool-grid"><div class="tool-field"><label for="standaloneInput">📖 Исходный текст</label><textarea id="standaloneInput" placeholder="Загрузите EPUB, FB2, TXT, PDF, Word DOCX или Excel XLSX/XLS/XLSM либо вставьте текст…"></textarea><div class="tool-actions"><button class="btn primary" id="translatorFileButton" type="button">＋ Загрузить книгу или документ</button><input id="translatorFileInput" type="file" accept=".epub,.fb2,.txt,.pdf,.docx,.odt,.rtf,.html,.htm,.md,.markdown,.csv,.xlsx,.xls,.xlsm,.xml,.json,.log,.srt,.vtt,application/epub+zip,application/xml,text/xml,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/rtf,text/rtf,text/html,text/markdown,text/csv,application/vnd.oasis.opendocument.text" hidden><button class="btn" id="translatorFileRemove" type="button">Удалить файл / очистить</button></div><div class="tool-note" id="translatorFileName">Можно также вставить текст вручную.</div><div class="progress-panel" id="translatorProgress" role="status" aria-live="polite"><div class="progress-head"><span class="progress-label">Подготовка файла…</span><span class="progress-percent">0%</span></div><div class="progress-track"><div class="progress-fill"></div></div><div class="progress-detail">Ожидание файла</div></div></div><div class="tool-field"><label>🌐 Перевод</label><div class="tool-result" id="standaloneOutput" aria-live="polite">Здесь появится перевод загруженного текста.</div><div class="tool-actions"><button class="btn" id="standaloneCopy">Копировать перевод</button><select id="standaloneSourceFormat" aria-label="Формат оригинала"><option value="txt">TXT</option><option value="epub">EPUB</option><option value="fb2">FB2</option><option value="docx">DOCX</option><option value="odt">ODT</option><option value="rtf">RTF</option><option value="pdf">PDF</option><option value="html">HTML</option><option value="md">Markdown</option></select><button class="btn" id="standaloneSaveSource">Скачать оригинал</button><select id="standaloneResultFormat" aria-label="Формат перевода"><option value="txt">TXT</option><option value="epub">EPUB</option><option value="fb2">FB2</option><option value="docx">DOCX</option><option value="odt">ODT</option><option value="rtf">RTF</option><option value="pdf">PDF</option><option value="html">HTML</option><option value="md">Markdown</option></select><button class="btn" id="standaloneSaveResult">Скачать перевод</button></div></div></div><div class="tool-actions"><button class="btn" id="standaloneClear">Очистить оба окна</button></div><div class="tool-status" id="standaloneStatus" role="status"></div><p class="tool-note">Для перевода требуется подключение к интернету. Текст отправляется в онлайн-сервис MyMemory.</p>
+<div class="tool-grid"><div class="tool-field"><label for="standaloneInput">📖 Исходный текст</label><textarea id="standaloneInput" placeholder="Загрузите EPUB, FB2, TXT, PDF, Word DOCX или Excel XLSX/XLS/XLSM либо вставьте текст…"></textarea><div class="tool-actions"><button class="btn primary" id="translatorFileButton" type="button">＋ Загрузить книгу или документ</button><input id="translatorFileInput" type="file" accept=".epub,.fb2,.txt,.pdf,.docx,.odt,.rtf,.html,.htm,.md,.markdown,.csv,.xlsx,.xls,.xlsm,.xml,.json,.log,.srt,.vtt,application/epub+zip,application/xml,text/xml,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/rtf,text/rtf,text/html,text/markdown,text/csv,application/vnd.oasis.opendocument.text" hidden><button class="btn" id="translatorFileRemove" type="button">Удалить файл / очистить</button></div><div class="tool-note" id="translatorFileName">Можно также вставить текст вручную.</div><div class="progress-panel" id="translatorProgress" role="status" aria-live="polite"><div class="progress-head"><span class="progress-label">Подготовка файла…</span><span class="progress-percent">0%</span></div><div class="progress-track"><div class="progress-fill"></div></div><div class="progress-detail">Ожидание файла</div></div></div><div class="tool-field"><label>🌐 Перевод</label><div class="tool-result" id="standaloneOutput" aria-live="polite">Здесь появится перевод загруженного текста.</div><div class="tool-actions"><button class="btn" id="standaloneCopy">Копировать перевод</button><button class="btn primary" id="preserveDownload" disabled>Скачать перевод с сохранением формата</button><select id="standaloneSourceFormat" aria-label="Формат оригинала"><option value="txt">TXT</option><option value="epub">EPUB</option><option value="fb2">FB2</option><option value="docx">DOCX</option><option value="odt">ODT</option><option value="rtf">RTF</option><option value="pdf">PDF</option><option value="html">HTML</option><option value="md">Markdown</option></select><button class="btn" id="standaloneSaveSource">Скачать оригинал</button><select id="standaloneResultFormat" aria-label="Формат перевода"><option value="txt">TXT</option><option value="epub">EPUB</option><option value="fb2">FB2</option><option value="docx">DOCX</option><option value="odt">ODT</option><option value="rtf">RTF</option><option value="pdf">PDF</option><option value="html">HTML</option><option value="md">Markdown</option></select><button class="btn" id="standaloneSaveResult">Скачать перевод</button></div></div></div><div class="tool-actions"><button class="btn" id="standaloneClear">Очистить оба окна</button></div><div class="tool-status" id="standaloneStatus" role="status"></div><p class="tool-note">Для перевода требуется подключение к интернету. Текст отправляется в онлайн-сервис MyMemory.</p>
 </section>
 <section class="tool-panel" id="translitPanel">
 <div class="tool-intro"><div class="eyebrow">другой способ записи</div><h2>Транслитератор</h2><p>Преобразуйте русские буквы в латиницу. Удобно для имён, заметок, адресов и подготовки текста.</p></div>
@@ -308,11 +308,92 @@ function splitTranslationChunks(value,maxBytes=450){const chunks=[];let current=
 function ensureProgressAfterStatus(statusId){const status=$(statusId);if(!status)return null;const id='progress-'+statusId;let panel=$(id);if(!panel){panel=document.createElement('div');panel.id=id;panel.className='progress-panel';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');panel.innerHTML='<div class="progress-head"><span class="progress-label">Ожидание…</span><span class="progress-percent">0%</span></div><div class="progress-track"><div class="progress-fill"></div></div><div class="progress-detail"></div>';status.insertAdjacentElement('afterend',panel);}return id;}
 async function requestTranslationChunk(text,from,to){const bytes=new TextEncoder().encode(text).length;if(bytes>500)throw new Error('Фрагмент превышает ограничение MyMemory в 500 байт.');const params=new URLSearchParams({q:text,langpair:from+'|'+to,mt:'1'});const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response;try{response=await fetch('https://api.mymemory.translated.net/get?'+params.toString(),{signal:controller.signal});}catch(err){if(err.name==='AbortError')throw new Error('Сервис перевода не ответил за 20 секунд. Попробуйте повторить позже.');throw new Error('Не удалось подключиться к сервису перевода. Проверьте интернет.');}finally{clearTimeout(timer);}let data;try{data=await response.json();}catch(e){throw new Error('Сервис перевода вернул некорректный ответ (HTTP '+response.status+').');}const details=String(data.responseDetails||''),translated=String(data.responseData?.translatedText||'');if(response.status===429||data.quotaFinished||/quota|limit|allowance/i.test(details))throw new Error('Сервис ограничил запросы или дневная квота исчерпана. Уже переведённые фрагменты сохранены; попробуйте позже.');if(!response.ok)throw new Error('Сервис перевода недоступен (HTTP '+response.status+').');if(Number(data.responseStatus)!==200||/INVALID SOURCE LANGUAGE|INVALID TARGET LANGUAGE|PLEASE SELECT TWO DISTINCT/i.test(details))throw new Error(details||'Сервис отклонил языковую пару ('+from+' → '+to+').');if(!translated.trim())throw new Error('Сервис не вернул перевод.');const box=document.createElement('textarea');box.innerHTML=translated;return box.value;}
 async function translateLongText(source,target,fromOverride,statusId='standaloneStatus'){const from=fromOverride||getSourceLanguage(source,target);if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');const chunks=splitTranslationChunks(source,450),results=[],progressId=ensureProgressAfterStatus(statusId);setProgress(progressId,0,'Подготовка перевода',chunks.length+' фрагментов · '+source.length.toLocaleString('ru-RU')+' символов');for(let i=0;i<chunks.length;i++){const percent=(i/chunks.length)*100;setProgress(progressId,percent,'Переводим фрагмент '+(i+1)+' из '+chunks.length,'Языковая пара: '+from+' → '+target+' · '+Math.round(percent)+'%');if($(statusId))$(statusId).textContent='Переводим фрагмент '+(i+1)+' из '+chunks.length+'…';try{const chunk=chunks[i];if(!chunk.trim()||from===target){results.push(chunk);}else{const translated=await requestTranslationChunk(chunk,from,target),leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let preserved=translated;if(leading&&!/^\s/.test(preserved))preserved=leading+preserved;if(trailing&&!/\s$/.test(preserved))preserved+=trailing;results.push(preserved);}}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод приостановлен','Готово '+i+' из '+chunks.length+' фрагментов. '+error.message,true);throw error;}if(i<chunks.length-1)await new Promise(resolve=>setTimeout(resolve,350));}setProgress(progressId,100,'Перевод завершён',chunks.length+' из '+chunks.length+' фрагментов готово.',true);return results.join('');}
+
+let preserveSourceFile=null,preservedTranslationBlob=null,preservedTranslationName='';
+async function translateDocumentNodeText(value,target,from,statusId){
+ const text=String(value||'');if(!text.trim()||from===target)return text;
+ return translateLongText(text,target,from,statusId);
+}
+function xmlTextNodes(el,ns,tag){
+ const nodes=Array.from(el.getElementsByTagNameNS(ns,tag)).flatMap(n=>Array.from(n.childNodes).filter(c=>c.nodeType===3));
+ return nodes;
+}
+async function translateXmlParagraphs(doc,selector,from,target,statusId,progressBase=0,progressSpan=100){
+ const blocks=Array.from(doc.getElementsByTagNameNS('*',selector));
+ let count=0;
+ for(const block of blocks){
+  const texts=[];const walker=doc.createTreeWalker(block,NodeFilter.SHOW_TEXT);
+  while(walker.nextNode()){const n=walker.currentNode;if(n.nodeValue&&n.nodeValue.trim())texts.push(n);}
+  if(!texts.length)continue;
+  const source=texts.map(n=>n.nodeValue).join('');
+  const translated=await translateDocumentNodeText(source,target,from,statusId);
+  texts[0].nodeValue=translated;for(let k=1;k<texts.length;k++)texts[k].nodeValue='';
+  count++;if(count%5===0)setProgress(statusId,progressBase+progressSpan*Math.min(count/Math.max(blocks.length,1),1),'Сохраняем структуру',count+' блоков обработано');
+ }
+ return count;
+}
+async function translatePreservingFile(file,from,target,statusId){
+ const ext=(file.name.split('.').pop()||'').toLowerCase(),JSZip=await ensureZipLibrary(),progress=ensureProgressAfterStatus(statusId);
+ setProgress(progress,0,'Подготовка оригинала',file.name);
+ const binary=await readFileBuffer(file);
+ let translatedText='';
+ if(['docx','epub','odt','xlsx','xlsm'].includes(ext)){
+  const zip=await JSZip.loadAsync(binary);
+  if(ext==='docx'){
+   const paths=Object.keys(zip.files).filter(p=>/^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i.test(p));
+   if(!paths.includes('word/document.xml'))throw Error('В DOCX не найден основной документ.');
+   for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Повреждён XML в '+path);
+    await translateXmlParagraphs(doc,'p',from,target,statusId,5+75*i/paths.length,75/paths.length);
+    zip.file(path,new XMLSerializer().serializeToString(doc));
+   }
+   const main=new DOMParser().parseFromString(await zip.file('word/document.xml').async('text'),'application/xml');
+   translatedText=Array.from(main.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').filter(Boolean).join('\n\n');
+  }else if(ext==='odt'){
+   if(!zip.file('content.xml'))throw Error('В ODT не найден content.xml');
+   const doc=new DOMParser().parseFromString(await zip.file('content.xml').async('text'),'application/xml');
+   await translateXmlParagraphs(doc,'p',from,target,statusId,5,80);await translateXmlParagraphs(doc,'h',from,target,statusId,85,10);
+   zip.file('content.xml',new XMLSerializer().serializeToString(doc));translatedText=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').join('\n\n');
+  }else if(ext==='epub'){
+   const paths=Object.keys(zip.files).filter(p=>/\.(xhtml|html|htm)$/i.test(p)&&!p.startsWith('META-INF/'));
+   if(!paths.length)throw Error('В EPUB не найдены XHTML/HTML главы.');
+   for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xhtml+xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось разобрать главу '+path);
+    await translateXmlParagraphs(doc,'p',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h1',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h2',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'li',from,target,statusId,5+80*i/paths.length,80/paths.length);
+    zip.file(path,new XMLSerializer().serializeToString(doc));
+   }
+   translatedText='EPUB переведён с сохранением файлов глав, стилей, обложки, изображений, навигации и метаданных.';
+  }else if(ext==='xlsx'||ext==='xlsm'){
+   const shared=zip.file('xl/sharedStrings.xml');
+   if(shared){const doc=new DOMParser().parseFromString(await shared.async('text'),'application/xml');const sis=Array.from(doc.getElementsByTagNameNS('*','si'));for(let i=0;i<sis.length;i++){const nodes=Array.from(sis[i].getElementsByTagNameNS('*','t'));if(!nodes.length)continue;const original=nodes.map(n=>n.textContent||'').join('');const trans=await translateDocumentNodeText(original,target,from,statusId);nodes[0].textContent=trans;for(let n=1;n<nodes.length;n++)nodes[n].textContent='';}zip.file('xl/sharedStrings.xml',new XMLSerializer().serializeToString(doc));}
+   const sheets=Object.keys(zip.files).filter(p=>/^xl\/worksheets\/sheet\d+\.xml$/i.test(p));
+   for(const path of sheets){const doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');const cells=Array.from(doc.getElementsByTagNameNS('*','is'));for(const cell of cells){const t=cell.getElementsByTagNameNS('*','t');if(!t.length)continue;const trans=await translateDocumentNodeText(t[0].textContent||'',target,from,statusId);t[0].textContent=trans;for(let n=1;n<t.length;n++)t[n].textContent='';}zip.file(path,new XMLSerializer().serializeToString(doc));}
+   translatedText='Таблицы переведены. Структура книги, листы, формулы, стили, размеры ячеек и графики сохранены.';
+  }
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6},mimeType:file.type||'application/octet-stream'});
+  return {blob,text:translatedText,filename:file.name};
+ }
+ if(['fb2','html','htm','xml'].includes(ext)){
+  const source=await readFileText(file),doc=new DOMParser().parseFromString(source,ext==='fb2'||ext==='xml'?'application/xml':'text/html');
+  if(doc.getElementsByTagName('parsererror').length)throw Error('Файл содержит повреждённую XML-структуру.');
+  const selector=ext==='fb2'?'p':'p';
+  await translateXmlParagraphs(doc,selector,from,target,statusId,5,85);
+  if(ext==='fb2'){await translateXmlParagraphs(doc,'subtitle',from,target,statusId,90,5);await translateXmlParagraphs(doc,'title',from,target,statusId,90,5);}
+  const out=new XMLSerializer().serializeToString(doc);return {blob:new Blob([out],{type:file.type||'text/html;charset=utf-8'}),text:doc.body?doc.body.textContent:doc.documentElement.textContent,filename:file.name};
+ }
+ if(['txt','md','markdown','csv','json','log','srt','vtt'].includes(ext)){
+  const source=await readFileText(file),trans=await translateLongText(source,target,from,statusId);
+  return {blob:new Blob([trans],{type:file.type||'text/plain;charset=utf-8'}),text:trans,filename:file.name};
+ }
+ throw Error('Сохранение оригинального дизайна пока не поддерживается для '+ext.toUpperCase()+'. Можно получить перевод текста отдельно. PDF и RTF требуют отдельного форматно-специфичного движка для сохранения вёрстки.');
+}
+
 $('standaloneTranslate').addEventListener('click',async()=>{
  const source=$('standaloneInput').value.trim(),target=$('standaloneTarget').value,output=$('standaloneOutput');
- if(!source){$('standaloneStatus').textContent='Сначала загрузите FB2 / EPUB или введите текст.';return;}
- const button=$('standaloneTranslate');button.disabled=true;output.textContent='Выполняется перевод…';
- try{const from=getSourceLanguage(source,target,'standaloneSource');output.textContent=await translateLongText(source,target,from,'standaloneStatus');$('standaloneStatus').textContent='Перевод готов · '+source.length.toLocaleString('ru-RU')+' символов';}
+ if(!source){$('standaloneStatus').textContent='Сначала загрузите документ или введите текст.';return;}
+ const button=$('standaloneTranslate');button.disabled=true;output.textContent='Выполняется перевод…';preservedTranslationBlob=null;$('preserveDownload').disabled=true;
+ try{const from=getSourceLanguage(source,target,'standaloneSource');
+  if(preserveSourceFile){const result=await translatePreservingFile(preserveSourceFile,from,target,'translatorStatus');preservedTranslationBlob=result.blob;preservedTranslationName=result.filename.replace(/(\.[^.]+)$/,'-translated$1');output.textContent=result.text||'Перевод готов.';$('preserveDownload').disabled=false;$('standaloneStatus').textContent='Перевод выполнен. Оригинальный формат и структура файла сохранены насколько позволяет формат.';}
+  else{output.textContent=await translateLongText(source,target,from,'standaloneStatus');$('standaloneStatus').textContent='Перевод готов · '+source.length.toLocaleString('ru-RU')+' символов. Для файла загрузите оригинал.';}
+ }
  catch(error){output.textContent=error.partialResult||'Перевод не получен.';$('standaloneStatus').textContent=error.message||'Сервис перевода временно недоступен.';console.warn('Standalone translation:',error);}
  finally{button.disabled=false;}
 });
