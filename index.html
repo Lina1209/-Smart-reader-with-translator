@@ -326,7 +326,7 @@ async function translateXmlParagraphs(doc,selector,from,target,statusId,progress
   const texts=[];const walker=doc.createTreeWalker(block,NodeFilter.SHOW_TEXT);
   while(walker.nextNode()){const n=walker.currentNode;if(n.nodeValue&&n.nodeValue.trim())texts.push(n);}
   if(!texts.length)continue;
-  if(selector!=='p'&&block.getElementsByTagNameNS('*','p').length)continue;
+  if(selector!=='p'&&(block.getElementsByTagNameNS('*','p').length||block.getElementsByTagNameNS('*',selector).length))continue;
   const source=texts.map(n=>n.nodeValue).join('');
   const translated=await translateDocumentNodeText(source,target,from,statusId);
   texts[0].nodeValue=translated;for(let k=1;k<texts.length;k++)texts[k].nodeValue='';
