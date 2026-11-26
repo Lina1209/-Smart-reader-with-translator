@@ -21,7 +21,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y fonts-dejavu-core poppler-utils
-          python -m pip install --disable-pip-version-check reportlab pypdf pillow
+          python -m pip install --disable-pip-version-check reportlab pypdf pillow fonttools
       - name: Generate and inspect real PDF fixtures
         run: python -m unittest discover -s tests -p 'test_pdf_real_fixtures.py' -v
       - name: Audit PDF text-state operators
@@ -30,6 +30,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_pdf_font_resource_audit.py' -v
       - name: Audit PDF Encoding CMaps
         run: python -m unittest discover -s tests -p 'test_pdf_encoding_cmap.py' -v
+      - name: Inspect embedded TrueType glyph outlines
+        run: python -m unittest discover -s tests -p 'test_pdf_truetype_glyph_audit.py' -v
       - name: Test joined PDF character mapping chain
         run: python -m unittest discover -s tests -p 'test_pdf_character_mapping_audit.py' -v
       - name: Render PDF fixtures and compare no-op round-trip pixels
