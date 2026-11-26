@@ -272,7 +272,7 @@ if(!html.includes('readerPageIndex=0;textViewer.style.display=\'block\';paginate
 
 const rectificationStart=html.indexOf('function solvePageHomography('),rectificationEnd=html.indexOf('function detectPageQuadFromEdges',rectificationStart);
 if(rectificationStart<0||rectificationEnd<0)throw new Error('Perspective rectification helpers not found');
-const rectification=vm.runInNewContext(html.slice(rectificationStart,rectificationEnd)+'; ({solvePageHomography,mapPageHomography,createPageRectificationPlan,mapRectifiedOcrBox})');
+const rectification=vm.runInNewContext(html.slice(rectificationStart,rectificationEnd)+'; ({solvePageHomography,mapPageHomography,createPageRectificationPlan,mapRectifiedOcrBox,mapRectifiedOcrDataToSource})');
 const sourceQuad=[{x:120,y:90},{x:870,y:180},{x:790,y:900},{x:80,y:760}];
 const plan=rectification.createPageRectificationPlan(sourceQuad,16000000,4096);
 if(!plan.accepted||!plan.previewOnly||plan.pixelCount>16000000||plan.width>4096||plan.height>4096)throw new Error('Perspective rectification plan did not respect preview and pixel limits');
@@ -282,6 +282,10 @@ const mappedCenter=rectification.mapPageHomography(plan.sourceToOutput,{x:(sourc
 if(!mappedCenter||!Number.isFinite(mappedCenter.x)||!Number.isFinite(mappedCenter.y))throw new Error('Source-to-output coordinate mapping failed');
 const mappedBox=rectification.mapRectifiedOcrBox({x0:200,y0:200,x1:400,y1:300},plan.sourceToOutput);
 if(!mappedBox||!(mappedBox.x1>mappedBox.x0)||!(mappedBox.y1>mappedBox.y0))throw new Error('OCR box was not remapped using all four perspective-transformed corners');
+const mappedBack=rectification.mapRectifiedOcrBox({x0:260,y0:260,x1:360,y1:330},plan.outputToSource);
+if(!mappedBack||!(mappedBack.x1>mappedBack.x0)||!(mappedBack.y1>mappedBack.y0))throw new Error('Rectified OCR coordinates could not be mapped back to the source page');
+const restoredData=rectification.mapRectifiedOcrDataToSource({lines:[{text:'sample',confidence:92,bbox:{x0:260,y0:260,x1:360,y1:330}},{text:'bad',confidence:10,bbox:{x0:NaN,y0:0,x1:1,y1:1}}]},plan.outputToSource);
+if(restoredData.lines.length!==1||restoredData.lines[0].text!=='sample'||restoredData.lines[0].confidence!==92||restoredData.unmappedBoxCount!==1)throw new Error('OCR line mapping must preserve valid line data and reject invalid boxes');
 const permutedPlan=rectification.createPageRectificationPlan([sourceQuad[2],sourceQuad[0],sourceQuad[3],sourceQuad[1]]);
 if(!permutedPlan.accepted||permutedPlan.width!==plan.width||permutedPlan.height!==plan.height)throw new Error('Perspective rectification must normalize unordered detected corners');
 const boundedPlan=rectification.createPageRectificationPlan([{x:0,y:0},{x:10000,y:0},{x:10000,y:8000},{x:0,y:8000}],1000000,1200);
@@ -316,3 +320,8 @@ if(!html.includes('scanPreview?.pdfDocument')||!html.includes('loadPdfScanPage(n
 if(!html.includes('state.page.cleanup()')||!html.includes('preview.pdfLoadingTask.destroy()')||!html.includes('releaseScanPreview();$(\'scanPreviewBox\').style.display=\'none\''))throw new Error('PDF preview must release page/canvas/document resources when changing or closing files');
 if(!html.includes("$('scanViewport').addEventListener('touchstart'")||!html.includes("$('scanViewport').addEventListener('touchend'"))throw new Error('Scanned PDF viewer must support horizontal swipe navigation');
 if(!html.includes('if(!source||!source.width||!source.height||!display)return'))throw new Error('Scan preview must safely handle page transitions while a PDF canvas is being replaced');
+if(!html.includes('function mapRectifiedOcrDataToSource(data,outputToSource)'))throw new Error('OCR data must have an explicit rectified-to-source coordinate mapper');
+if(!html.includes('let ocrInput=canvas,rectification=null')||!html.includes('ocrInput=rectifiedCanvas'))throw new Error('PDF OCR must use the rectified scan only when a safe rectification succeeds');
+if(!html.includes('mapRectifiedOcrDataToSource(ocr,rectification.outputToSource)'))throw new Error('Rectified OCR boxes must be mapped back to original PDF render coordinates before replacement');
+if(!html.includes('rectifiedCanvas.width=rectifiedCanvas.height=0'))throw new Error('Temporary rectified OCR canvases must be released after each PDF page');
+if(!html.includes('OCR выполнен по выправленному предпросмотру'))throw new Error('PDF translation must report when perspective correction was used for OCR');
