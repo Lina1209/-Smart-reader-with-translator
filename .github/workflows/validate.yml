@@ -114,6 +114,8 @@ jobs:
         run: node tests/document-export-integrity.test.cjs
       - name: Test fixed-page reader pagination and long-token wrapping
         run: node tests/reader-pagination.test.cjs
+      - name: Test reader page slider and complete PDF page counting
+        run: node tests/reader-page-slider.test.cjs
       - name: Test glossary protection and retry classification
         run: node tests/translation-quality.test.cjs
       - name: Test PDF rewrite preflight safety gate
