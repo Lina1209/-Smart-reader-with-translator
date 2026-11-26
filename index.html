@@ -311,15 +311,21 @@ async function requestTranslationChunk(text,from,to){const bytes=new TextEncoder
 async function translateLongText(source,target,fromOverride,statusId='standaloneStatus'){const from=fromOverride||getSourceLanguage(source,target);if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');const chunks=splitTranslationChunks(source,450),results=[],progressId=ensureProgressAfterStatus(statusId);setProgress(progressId,0,'Подготовка перевода',chunks.length+' фрагментов · '+source.length.toLocaleString('ru-RU')+' символов');for(let i=0;i<chunks.length;i++){const percent=(i/chunks.length)*100;setProgress(progressId,percent,'Переводим фрагмент '+(i+1)+' из '+chunks.length,'Языковая пара: '+from+' → '+target+' · '+Math.round(percent)+'%');if($(statusId))$(statusId).textContent='Переводим фрагмент '+(i+1)+' из '+chunks.length+'…';try{const chunk=chunks[i];if(!chunk.trim()||from===target){results.push(chunk);}else{const translated=await requestTranslationChunk(chunk,from,target),leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let preserved=translated;if(leading&&!/^\s/.test(preserved))preserved=leading+preserved;if(trailing&&!/\s$/.test(preserved))preserved+=trailing;results.push(preserved);}}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод приостановлен','Готово '+i+' из '+chunks.length+' фрагментов. '+error.message,true);throw error;}if(i<chunks.length-1)await new Promise(resolve=>setTimeout(resolve,350));}setProgress(progressId,100,'Перевод завершён',chunks.length+' из '+chunks.length+' фрагментов готово.',true);return results.join('');}
 
 let preserveSourceFile=null,preservedTranslationBlob=null,preservedTranslationName='';
-async function translateDocumentNodeText(value,target,from,statusId){
+async function translatePreservedText(value,from,target,progressId){
+ const chunks=splitTranslationChunks(String(value||''),450),results=[];
+ if(from===target)return String(value||'');
+ for(let i=0;i<chunks.length;i++){const chunk=chunks[i],percent=100*(i+1)/Math.max(chunks.length,1);setProgress(progressId,percent,'Перевод блока '+(i+1)+' из '+chunks.length,'Сохраняем структуру исходного файла');if(!chunk.trim()){results.push(chunk);continue;}try{const translated=await requestTranslationChunk(chunk,from,target),leading=(chunk.match(/^\\s*/)||[''])[0],trailing=(chunk.match(/\\s*$/)||[''])[0];let value=translated;if(leading&&!/^\\s/.test(value))value=leading+value;if(trailing&&!/\\s$/.test(value))value+=trailing;results.push(value);}catch(error){error.partialResult=results.join('');throw error;}}
+ return results.join('');
+}
+async function translateDocumentNodeText(value,target,from,progressId){
  const text=String(value||'');if(!text.trim()||from===target)return text;
- return translateLongText(text,target,from,statusId);
+ return translatePreservedText(text,from,target,progressId);
 }
 function xmlTextNodes(el,ns,tag){
  const nodes=Array.from(el.getElementsByTagNameNS(ns,tag)).flatMap(n=>Array.from(n.childNodes).filter(c=>c.nodeType===3));
  return nodes;
 }
-async function translateXmlParagraphs(doc,selector,from,target,statusId,progressBase=0,progressSpan=100){
+async function translateXmlParagraphs(doc,selector,from,target,progressId,progressBase=0,progressSpan=100){
  const blocks=Array.from(doc.getElementsByTagNameNS('*',selector));
  let count=0;
  for(const block of blocks){
@@ -328,15 +334,15 @@ async function translateXmlParagraphs(doc,selector,from,target,statusId,progress
   if(!texts.length)continue;
   if(selector!=='p'&&(block.getElementsByTagNameNS('*','p').length||block.getElementsByTagNameNS('*',selector).length))continue;
   const source=texts.map(n=>n.nodeValue).join('');
-  const translated=await translateDocumentNodeText(source,target,from,statusId);
+  const translated=await translateDocumentNodeText(source,target,from,progressId);
   texts[0].nodeValue=translated;for(let k=1;k<texts.length;k++)texts[k].nodeValue='';
-  count++;if(count%5===0)setProgress(statusId,progressBase+progressSpan*Math.min(count/Math.max(blocks.length,1),1),'Сохраняем структуру',count+' блоков обработано');
+  count++;if(count%5===0)setProgress(progressId,progressBase+progressSpan*Math.min(count/Math.max(blocks.length,1),1),'Сохраняем структуру',count+' блоков обработано');
  }
  return count;
 }
 async function translatePreservingFile(file,from,target,statusId){
- const ext=(file.name.split('.').pop()||'').toLowerCase(),JSZip=await ensureZipLibrary(),progress=ensureProgressAfterStatus(statusId);
- setProgress(progress,0,'Подготовка оригинала',file.name);
+ const ext=(file.name.split('.').pop()||'').toLowerCase(),JSZip=await ensureZipLibrary(),progressId='translatorProgress';
+ resetProgress(progressId,'Перевод и сохранение файла');setProgress(progressId,0,'Подготовка оригинала',file.name);
  const binary=await readFileBuffer(file);
  let translatedText='';
  if(['docx','epub','odt','xlsx','xlsm','pptx'].includes(ext)){
@@ -345,7 +351,7 @@ async function translatePreservingFile(file,from,target,statusId){
    const paths=Object.keys(zip.files).filter(p=>/^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i.test(p));
    if(!paths.includes('word/document.xml'))throw Error('В DOCX не найден основной документ.');
    for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Повреждён XML в '+path);
-    await translateXmlParagraphs(doc,'p',from,target,statusId,5+75*i/paths.length,75/paths.length);
+    await translateXmlParagraphs(doc,'p',from,target,progressId,5+75*i/paths.length,75/paths.length);
     zip.file(path,new XMLSerializer().serializeToString(doc));
    }
    const main=new DOMParser().parseFromString(await zip.file('word/document.xml').async('text'),'application/xml');
@@ -353,21 +359,21 @@ async function translatePreservingFile(file,from,target,statusId){
   }else if(ext==='odt'){
    if(!zip.file('content.xml'))throw Error('В ODT не найден content.xml');
    const doc=new DOMParser().parseFromString(await zip.file('content.xml').async('text'),'application/xml');
-   await translateXmlParagraphs(doc,'p',from,target,statusId,5,80);await translateXmlParagraphs(doc,'h',from,target,statusId,85,10);
+   await translateXmlParagraphs(doc,'p',from,target,statusId,5,80);await translateXmlParagraphs(doc,'h',from,target,progressId,85,10);
    zip.file('content.xml',new XMLSerializer().serializeToString(doc));translatedText=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').join('\n\n');
   }else if(ext==='epub'){
    const paths=Object.keys(zip.files).filter(p=>/\.(xhtml|html|htm)$/i.test(p)&&!p.startsWith('META-INF/'));
    if(!paths.length)throw Error('В EPUB не найдены XHTML/HTML главы.');
    for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xhtml+xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось разобрать главу '+path);
-    await translateXmlParagraphs(doc,'p',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h1',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h2',from,target,statusId,5+80*i/paths.length,80/paths.length);
+    await translateXmlParagraphs(doc,'p',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h1',from,target,progressId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h2',from,target,progressId,5+80*i/paths.length,80/paths.length);
     translatedText+=(doc.body?doc.body.textContent:doc.documentElement.textContent)+'\n\n';
     translatedText+=(doc.body?doc.body.textContent:doc.documentElement.textContent)+'\\n\\n';zip.file(path,new XMLSerializer().serializeToString(doc));
    }
   }else if(ext==='xlsx'||ext==='xlsm'){
    const shared=zip.file('xl/sharedStrings.xml');
-   if(shared){const doc=new DOMParser().parseFromString(await shared.async('text'),'application/xml');const sis=Array.from(doc.getElementsByTagNameNS('*','si'));for(let i=0;i<sis.length;i++){const nodes=Array.from(sis[i].getElementsByTagNameNS('*','t'));if(!nodes.length)continue;const original=nodes.map(n=>n.textContent||'').join('');const trans=await translateDocumentNodeText(original,target,from,statusId);nodes[0].textContent=trans;for(let n=1;n<nodes.length;n++)nodes[n].textContent='';translatedText+=trans+'\n';}zip.file('xl/sharedStrings.xml',new XMLSerializer().serializeToString(doc));}
+   if(shared){const doc=new DOMParser().parseFromString(await shared.async('text'),'application/xml');const sis=Array.from(doc.getElementsByTagNameNS('*','si'));for(let i=0;i<sis.length;i++){const nodes=Array.from(sis[i].getElementsByTagNameNS('*','t'));if(!nodes.length)continue;const original=nodes.map(n=>n.textContent||'').join('');const trans=await translateDocumentNodeText(original,target,from,progressId);nodes[0].textContent=trans;for(let n=1;n<nodes.length;n++)nodes[n].textContent='';translatedText+=trans+'\n';}zip.file('xl/sharedStrings.xml',new XMLSerializer().serializeToString(doc));}
    const sheets=Object.keys(zip.files).filter(p=>/^xl\/worksheets\/sheet\d+\.xml$/i.test(p));
-   for(const path of sheets){const doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');const cells=Array.from(doc.getElementsByTagNameNS('*','is'));for(const cell of cells){const t=cell.getElementsByTagNameNS('*','t');if(!t.length)continue;const trans=await translateDocumentNodeText(t[0].textContent||'',target,from,statusId);t[0].textContent=trans;for(let n=1;n<t.length;n++)t[n].textContent='';}translatedText+=Array.from(doc.getElementsByTagNameNS('*','is')).map(c=>c.textContent||'').join('\n');zip.file(path,new XMLSerializer().serializeToString(doc));}
+   for(const path of sheets){const doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');const cells=Array.from(doc.getElementsByTagNameNS('*','is'));for(const cell of cells){const t=cell.getElementsByTagNameNS('*','t');if(!t.length)continue;const trans=await translateDocumentNodeText(t[0].textContent||'',target,from,progressId);t[0].textContent=trans;for(let n=1;n<t.length;n++)t[n].textContent='';}translatedText+=Array.from(doc.getElementsByTagNameNS('*','is')).map(c=>c.textContent||'').join('\n');zip.file(path,new XMLSerializer().serializeToString(doc));}
   }else if(ext==='pptx'){
    const slides=Object.keys(zip.files).filter(p=>/^ppt\/slides\/slide\d+\.xml$/i.test(p));
    if(!slides.length)throw Error('В PPTX не найдены слайды.');
@@ -381,12 +387,12 @@ async function translatePreservingFile(file,from,target,statusId){
   if(doc.getElementsByTagName('parsererror').length)throw Error('Файл содержит повреждённую XML-структуру.');
   const selector='p';
   await translateXmlParagraphs(doc,selector,from,target,statusId,5,85);
-  if(['html','htm'].includes(ext)){for(const tag of ['h1','h2','h3','h4','h5','h6','li','blockquote'])await translateXmlParagraphs(doc,tag,from,target,statusId,85,10);}
-  if(ext==='fb2'){await translateXmlParagraphs(doc,'subtitle',from,target,statusId,90,5);}
+  if(['html','htm'].includes(ext)){for(const tag of ['h1','h2','h3','h4','h5','h6','li','blockquote'])await translateXmlParagraphs(doc,tag,from,target,progressId,85,10);}
+  if(ext==='fb2'){await translateXmlParagraphs(doc,'subtitle',from,target,progressId,90,5);}
   const out=new XMLSerializer().serializeToString(doc);return {blob:new Blob([out],{type:file.type||'text/html;charset=utf-8'}),text:doc.body?doc.body.textContent:doc.documentElement.textContent,filename:file.name};
  }
  if(['txt','md','markdown','csv','json','log','srt','vtt'].includes(ext)){
-  const source=await readFileText(file),trans=await translateLongText(source,target,from,statusId);
+  const source=await readFileText(file),trans=await translatePreservedText(source,from,target,progressId);
   return {blob:new Blob([trans],{type:file.type||'text/plain;charset=utf-8'}),text:trans,filename:file.name};
  }
  throw Error('Для '+ext.toUpperCase()+' пока нельзя создать файл с сохранением оригинального оформления. Перевод текста доступен отдельно. PDF, RTF, старый XLS и другие форматы требуют отдельного форматного движка.');
