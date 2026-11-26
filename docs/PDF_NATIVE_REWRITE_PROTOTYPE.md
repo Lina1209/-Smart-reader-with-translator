@@ -53,3 +53,11 @@ GitHub Actions also generates temporary PDF files with ReportLab and inspects th
 The tests inspect actual PDF font dictionaries, embedded font programs, extracted text and content-stream operators. The PDF files are generated during CI and are not committed as binary fixtures.
 
 This is a real-PDF parsing and fixture-validation step, not a text-rewrite test. It does not yet use PDF.js, replace text operators, or prove visual equivalence after translation. No production PDF pipeline is connected to this prototype.
+
+## PDF.js text geometry adapter
+
+A browser-loadable helper now composes each PDF.js text item's six-value transform with the page viewport transform. It records the transformed baseline, text basis vectors, advance, height, rotation, direction and end-of-line marker. Invalid or degenerate transforms are rejected and counted.
+
+The adapter intentionally does not infer exact glyph outlines, source-font encodings, glyph IDs, clipping paths or a precise glyph bounding box. PDF.js text item geometry is useful for locating text runs, but it is not sufficient evidence that translated glyphs can be safely encoded into an existing embedded font. The helper is loaded by the app and has Node regression tests for scaling, rotation, RTL metadata, EOL and malformed inputs.
+
+This is still geometry inspection only. No PDF content stream is edited, and no visual or real-document replacement test is claimed.
