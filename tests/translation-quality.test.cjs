@@ -477,6 +477,7 @@ const shouldPreserveOriginalPdfPage=vm.runInNewContext(html.slice(preserveStart,
 if(!shouldPreserveOriginalPdfPage({kind:'text'})||!shouldPreserveOriginalPdfPage({kind:'mixed'})||!shouldPreserveOriginalPdfPage({kind:'graphic-or-empty'}))throw new Error('Non-scan PDF pages must be preserved instead of rasterized when safe copying is available');
 if(shouldPreserveOriginalPdfPage({kind:'scan'}))throw new Error('Image-only scan pages must continue through OCR reconstruction');
 if(!html.includes('outPdf.copyPages(sourcePdfForCopy,[pageNo-1])'))throw new Error('Original PDF pages must be copied into the output without rasterization');
+if(!html.includes('if(!ocrWorker){')||!html.includes('const Tesseract=await ensureTesseract()'))throw new Error('OCR engine must be initialized lazily only when a page requires OCR');
 if(!html.includes('текст не переведён, чтобы не повредить шрифты'))throw new Error('Preserved original PDF pages must disclose that their text remains untranslated');
 
 const safeFillStart=html.indexOf('function estimateSafeBackgroundFill('),safeFillEnd=html.indexOf('function translationLayoutTokens(',safeFillStart);
