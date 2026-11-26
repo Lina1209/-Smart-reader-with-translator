@@ -1,6 +1,6 @@
 import unittest
 
-from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject, NumberObject
+from pypdf.generic import DecodedStreamObject, NameObject
 from pypdf import PdfWriter
 
 from pdf_content_stream_audit import audit_content_operations
@@ -32,6 +32,7 @@ class PdfContentStreamAuditTests(unittest.TestCase):
         })
         self.assertIn("-120", event["operands"][0])
         self.assertEqual(event["text_matrix_after_show"], "not-computed")
+        self.assertFalse(event["implicit_line_move"])
 
     def test_tracks_multiple_show_ops_and_state_changes(self):
         ops = operations_for(
@@ -42,6 +43,27 @@ class PdfContentStreamAuditTests(unittest.TestCase):
         self.assertEqual([e["operator"] for e in report["events"]], ["Tj", "Tj", "TJ"])
         self.assertEqual(report["events"][0]["text_state"]["char_spacing"], 0.0)
         self.assertEqual(report["events"][1]["text_state"]["char_spacing"], 1.0)
+
+    def test_quote_operators_apply_implicit_line_move_and_spacing(self):
+        ops = operations_for(
+            b"BT /F1 11 Tf 5 TL ('single) Tj "
+            b"2 0.5 (\"double) \" ET"
+        )
+        report = audit_content_operations(ops)
+        # Include a real single-quote operator separately; the quoted text
+        # above is ordinary Tj content and must not be mistaken for an op.
+        self.assertEqual(report["events"][0]["operator"], "Tj")
+        quote_ops = operations_for(b"BT /F1 11 Tf 5 TL (line-two) ' ET")
+        quote_event = audit_content_operations(quote_ops)["events"][0]
+        self.assertEqual(quote_event["operator"], "'")
+        self.assertTrue(quote_event["implicit_line_move"])
+
+        double_ops = operations_for(b"BT /F1 11 Tf 5 TL 2 0.5 (line-three) \" ET")
+        double_event = audit_content_operations(double_ops)["events"][0]
+        self.assertEqual(double_event["operator"], '"')
+        self.assertTrue(double_event["implicit_line_move"])
+        self.assertEqual(double_event["text_state"]["word_spacing"], 2.0)
+        self.assertEqual(double_event["text_state"]["char_spacing"], 0.5)
 
     def test_reports_graphics_stack_clip_and_form_calls_without_claiming_resolution(self):
         ops = operations_for(b"q 0 0 100 100 re W n /Fm1 Do Q")
