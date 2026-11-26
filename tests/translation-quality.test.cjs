@@ -182,7 +182,7 @@ const sourceCenterX=(fineAngleOriginalBox.x0+fineAngleOriginalBox.x1)/2,sourceCe
 if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
 
 if(!html.includes('function createThresholdOcrCanvas(')||!html.includes('createThresholdOcrCanvas(ocrCanvas,1.5)'))throw new Error('Adaptive threshold OCR fallback is missing');
-if(!html.includes('enhancedScale=enhanced.width/canvas.width')||!html.includes('scaleOcrBox(line.bbox,enhancedScale)'))throw new Error('Enhanced OCR boxes do not use the actual bounded preprocessing scale');
+if(!html.includes('enhancedScale=enhanced.width/ocrCanvas.width')||!html.includes('scaleOcrBox(line.bbox,enhancedScale)'))throw new Error('Enhanced OCR boxes do not use the actual bounded preprocessing scale');
 
 const languageHelperStart=html.indexOf('function ocrLanguageForCode('),languageHelperEnd=html.indexOf('\nfunction rotateCanvasForOcr',languageHelperStart);
 if(languageHelperStart<0||languageHelperEnd<0)throw new Error('OCR language mapping helper not found');
