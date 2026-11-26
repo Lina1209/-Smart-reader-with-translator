@@ -81,3 +81,8 @@ Run the new checks with:
 ```sh
 python -m unittest discover -s tests -p 'test_pdf_content_stream_audit.py' -v
 ```
+
+
+## Related font diagnostics
+
+See [PDF font resource audit](PDF_FONT_RESOURCE_AUDIT.md) for the read-only inspection of simple-font encodings, Type 0/CID mappings, widths, embedded font programs and CID-to-GID evidence. This remains diagnostic only and does not enable native PDF rewriting.
