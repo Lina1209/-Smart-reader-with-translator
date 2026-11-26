@@ -853,13 +853,13 @@ function distributeTranslationAcrossRuns(translated,texts){
  if(!texts.length)return;
  const active=texts.map((node,index)=>({node,index})).filter(item=>String(item.node.nodeValue||'').trim());
  if(!active.length)return;
+ const weights=active.map(item=>Math.max(1,String(item.node.nodeValue||'').trim().length));
  texts.forEach(node=>{node.nodeValue='';});
  if(active.length===1){active[0].node.nodeValue=value;return;}
  const leading=(value.match(/^\s*/u)||[''])[0],trailing=(value.match(/\s*$/u)||[''])[0];
  const core=value.slice(leading.length,value.length-trailing.length);
  if(!core){active[0].node.nodeValue=value;return;}
  const tokens=core.match(/\S+(?:\s+|$)/gu)||[];
- const weights=active.map(item=>Math.max(1,String(item.node.nodeValue||'').trim().length));
  const total=weights.reduce((sum,n)=>sum+n,0),assigned=[];
  let cursor=0,weightBefore=0;
  for(let i=0;i<active.length;i++){
