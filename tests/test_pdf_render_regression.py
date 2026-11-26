@@ -57,7 +57,11 @@ class PdfWordBoxes(HTMLParser):
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
         if tag == "page":
-            self.current_page = []
+            self.current_page = {
+                "width": float(values["width"]),
+                "height": float(values["height"]),
+                "words": [],
+            }
             self.pages.append(self.current_page)
         elif tag == "word" and self.current_page is not None:
             self.current_box = tuple(float(values[key]) for key in ("xmin", "ymin", "xmax", "ymax"))
@@ -69,7 +73,7 @@ class PdfWordBoxes(HTMLParser):
 
     def handle_endtag(self, tag):
         if tag == "word" and self.current_page is not None and self.current_box is not None:
-            self.current_page.append(("".join(self.words), self.current_box))
+            self.current_page["words"].append(("".join(self.words), self.current_box))
             self.current_box = None
             self.words = []
 
@@ -108,7 +112,9 @@ class PdfRenderRegressionTests(unittest.TestCase):
             after_pages = extract_word_boxes(rewritten)
             self.assertEqual(len(before_pages), 8)
             self.assertEqual(len(after_pages), len(before_pages))
-            for page_number, (before_words, after_words) in enumerate(zip(before_pages, after_pages), start=1):
+            for page_number, (before_page, after_page) in enumerate(zip(before_pages, after_pages), start=1):
+                before_words = before_page["words"]
+                after_words = after_page["words"]
                 self.assertEqual(
                     [word for word, _ in before_words],
                     [word for word, _ in after_words],
@@ -123,6 +129,58 @@ class PdfRenderRegressionTests(unittest.TestCase):
                             0.05,
                             f"Word box moved on page {page_number}: {before_word}",
                         )
+
+
+    def test_word_boxes_stay_inside_page_boundaries(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = build_render_suite(Path(temp))
+            pages = extract_word_boxes(source)
+            self.assertEqual(len(pages), 8)
+            for page_number, page in enumerate(pages, start=1):
+                width, height = page["width"], page["height"]
+                self.assertGreater(width, 0)
+                self.assertGreater(height, 0)
+                for word, (x_min, y_min, x_max, y_max) in page["words"]:
+                    with self.subTest(page=page_number, word=word):
+                        self.assertGreaterEqual(x_min, -0.5)
+                        self.assertGreaterEqual(y_min, -0.5)
+                        self.assertLessEqual(x_max, width + 0.5)
+                        self.assertLessEqual(y_max, height + 0.5)
+                        self.assertGreater(x_max, x_min)
+                        self.assertGreater(y_max, y_min)
+
+    def test_table_words_are_located_inside_their_vector_table_region(self):
+        with tempfile.TemporaryDirectory() as temp:
+            pages = extract_word_boxes(build_render_suite(Path(temp)))
+            table_page = pages[3]
+            self.assertAlmostEqual(table_page["width"], 612, delta=0.1)
+            self.assertAlmostEqual(table_page["height"], 792, delta=0.1)
+            table_words = {
+                word: box for word, box in table_page["words"]
+                if word.startswith("TABLE_") or word in {"Item", "Amount", "Translation", "1250"}
+            }
+            for expected in ("TABLE_HEADER:", "Item", "Amount", "TABLE_CELL:", "Translation", "1250"):
+                self.assertIn(expected, table_words, "Missing table word " + expected)
+            for word, (x_min, y_min, x_max, y_max) in table_words.items():
+                with self.subTest(word=word):
+                    self.assertGreaterEqual(x_min, 53)
+                    self.assertLessEqual(x_max, 415)
+                    self.assertGreaterEqual(y_min, 70)
+                    self.assertLessEqual(y_max, 144)
+
+    def test_overlay_text_bbox_intersects_declared_image_area(self):
+        with tempfile.TemporaryDirectory() as temp:
+            pages = extract_word_boxes(build_render_suite(Path(temp)))
+            overlay_page = pages[7]
+            matches = [box for word, box in overlay_page["words"] if word == "TEXT_OVER_IMAGE"]
+            self.assertEqual(len(matches), 1, "Expected the text-over-image fixture label")
+            x_min, y_min, x_max, y_max = matches[0]
+            image_left, image_right = 100, 260
+            image_top, image_bottom = 792 - 500, 792 - 400
+            self.assertGreaterEqual(x_min, image_left - 1)
+            self.assertLessEqual(x_max, image_right + 1)
+            self.assertGreaterEqual(y_min, image_top - 2)
+            self.assertLessEqual(y_max, image_bottom + 2)
 
     def test_noop_round_trip_keeps_rendered_pages_visually_stable(self):
         with tempfile.TemporaryDirectory() as temp:
