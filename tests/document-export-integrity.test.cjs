@@ -64,7 +64,7 @@ assert.equal(downloadUrlCount,0,'Invalid downloads must not allocate object URLs
 assert.equal(downloadContext.runDownload(new Blob(['data']),'book-translated.epub','downloadStatus'),true,'Valid files must trigger a browser download');
 assert.equal(clickCount,1,'Download link must be clicked once');
 assert.equal(removedCount,1,'Temporary anchor must be removed');
-assert.match(downloadStatus,/book-translated\\.epub/);
+assert.ok(downloadStatus.includes('book-translated.epub'),'Download status must show the exact output filename');
 assert.equal(scheduled.length,1,'Object URL cleanup must be scheduled');
 assert.equal(scheduled[0].ms,10000,'Object URL must remain available while the browser starts the download');
 scheduled[0].fn();
