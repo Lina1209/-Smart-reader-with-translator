@@ -248,7 +248,7 @@ def add_transparency_image_overlay_fixture(path):
     content = DecodedStreamObject()
     content.set_data(
         b"q 0 0 160 100 re W n /GS1 gs "
-        b"0.5 0 0 0.5 100 400 cm /Im1 Do Q "
+        b"80 0 0 50 100 400 cm /Im1 Do Q "
         b"BT /F1 16 Tf 110 430 Td (TEXT_OVER_IMAGE) Tj ET"
     )
     page[NameObject("/Contents")] = writer._add_object(content)
