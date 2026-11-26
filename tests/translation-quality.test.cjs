@@ -536,6 +536,7 @@ if(!html.includes('previewOnly:true')||!html.includes("reason:'no-reliable-page-
 
 
 if(!html.includes('async function openPdfScanPreview(file,ext,openToken)')||!html.includes('page.getTextContent()')||!html.includes('Math.min(3,pdf.numPages)'))throw new Error('PDF scan preview must distinguish scanned PDFs from PDFs with a text layer');
+if(!html.includes("const page=await pdf.getPage(n);try{if(openToken!==requestId){try{await task.destroy()}catch(e){}return false;}const content=await page.getTextContent();if(openToken!==requestId){try{await task.destroy()}catch(e){}return false;}"))throw new Error('PDF scan classification must cancel promptly when a newer file is opened');
 if(!html.includes("const pages=[];let pdf=null;try{pdf=await loading.promise;"))throw new Error('PDF extraction must enter cleanup protection before awaiting the PDF document');
 if(!html.includes("if(pdf)try{await pdf.cleanup();}catch(e){}try{await loading.destroy();}catch(e){}"))throw new Error('Failed PDF document loading must still destroy the PDF loading task');
 if(!html.includes("const task=pdfjs.getDocument({data});let pdf=null;try{pdf=await task.promise;"))throw new Error('Scanned PDF preview must protect loading-task cleanup if PDF parsing fails');
