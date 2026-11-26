@@ -174,11 +174,11 @@ const deskewEnd=html.indexOf('function restoreOcrBox(',deskewStart);
 if(deskewStart<0||deskewEnd<0)throw new Error('Fine-angle deskew helpers not found');
 const deskewSource=html.slice(deskewStart,deskewEnd)+html.slice(html.indexOf('function restoreDeskewBox(',deskewEnd),html.indexOf('\nfunction scaleOcrBox',deskewEnd));
 const deskewHelpers=vm.runInNewContext(deskewSource+'; ({createDeskewCanvas,restoreDeskewBox})');
-const deskewOriginalBox={x0:30,y0:40,x1:130,y1:70},angle=3*Math.PI/180,deskewRotW=Math.ceil(200*Math.cos(angle)+100*Math.sin(angle)),deskewRotH=Math.ceil(200*Math.sin(angle)+100*Math.cos(angle));
-const deskewRotatedCorners=[[30,40],[130,40],[30,70],[130,70]].map(([x,y])=>{const dx=x-100,dy=y-50;return[dx*Math.cos(angle)-dy*Math.sin(angle)+deskewRotW/2,dx*Math.sin(angle)+dy*Math.cos(angle)+deskewRotH/2]});
+const deskewOriginalBox={x0:30,y0:40,x1:130,y1:70},deskewRadians=3*Math.PI/180,deskewRotW=Math.ceil(200*Math.cos(deskewRadians)+100*Math.sin(deskewRadians)),deskewRotH=Math.ceil(200*Math.sin(deskewRadians)+100*Math.cos(deskewRadians));
+const deskewRotatedCorners=[[30,40],[130,40],[30,70],[130,70]].map(([x,y])=>{const dx=x-100,dy=y-50;return[dx*Math.cos(deskewRadians)-dy*Math.sin(deskewRadians)+deskewRotW/2,dx*Math.sin(deskewRadians)+dy*Math.cos(deskewRadians)+deskewRotH/2]});
 const deskewRotatedBox={x0:Math.min(...deskewRotatedCorners.map(p=>p[0])),y0:Math.min(...deskewRotatedCorners.map(p=>p[1])),x1:Math.max(...deskewRotatedCorners.map(p=>p[0])),y1:Math.max(...deskewRotatedCorners.map(p=>p[1]))};
 const deskewRestored=deskewHelpers.restoreDeskewBox(deskewRotatedBox,3,200,100,deskewRotW,deskewRotH);
-if(Math.abs(deskewRestored.x0-deskewOriginalBox.x0)>2||Math.abs(deskewRestored.y0-deskewOriginalBox.y0)>2||Math.abs(deskewRestored.x1-deskewOriginalBox.x1)>2||Math.abs(deskewRestored.y1-deskewOriginalBox.y1)>2)throw new Error('Deskew bounding-box coordinates were not deskewRestored to the source image');
+if(Math.abs(deskewRestored.x0-deskewOriginalBox.x0)>2||Math.abs(deskewRestored.y0-deskewOriginalBox.y0)>2||Math.abs(deskewRestored.x1-deskewOriginalBox.x1)>2||Math.abs(deskewRestored.y1-deskewOriginalBox.y1)>2)throw new Error('Deskew bounding-box coordinates were not restored to the source image');
 if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
 
 
