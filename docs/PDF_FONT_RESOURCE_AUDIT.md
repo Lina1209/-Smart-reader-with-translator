@@ -46,3 +46,16 @@ CI runs this suite after the PDF text-state audit.
 `lookup_cid_width(descendant, cid)` supports both `/W` forms: a starting CID followed by an array of widths, and a starting/ending CID followed by one shared width. If no explicit range matches, it reports `/DW` as the default. Returned widths remain in font text-space units (normally 1000 units per em); font size, character/word spacing, horizontal scaling, glyph advances and text-matrix movement are not applied.
 
 The tests check explicit simple-font widths, both CID `/W` forms, default `/DW`, invalid inputs, and unknown metrics. This still does not decode source character codes into CIDs or glyph IDs.
+
+
+## ToUnicode CMap parser (read-only)
+
+tests/pdf_tounicode_cmap.py adds a conservative parser for the two common Unicode mapping operators:
+- beginbfchar / endbfchar pairs;
+- beginbfrange / endbfrange with either a sequential destination string or an explicit destination array.
+
+Destination strings are decoded as UTF-16BE, including surrogate pairs. Source codes are retained as byte-hex keys; odd-length PDF hex strings are padded according to PDF hex-string rules. Duplicate source codes, malformed UTF-16, malformed entries and excessive range expansion are reported as errors rather than silently accepted. Default limits are 100,000 mappings and 4,096 entries per range.
+
+The tests cover single mappings, supplementary Unicode, scalar ranges, destination arrays, comments, odd hex nibbles, malformed UTF-16, duplicate entries, unsupported sections and expansion limits.
+
+This parser does not parse codespace ranges or the font's source Encoding CMap, and it does not connect source character codes to CIDs, glyph IDs or embedded subset glyphs. A ToUnicode map remains an extraction map, not a reverse encoder. It is diagnostic only and is not integrated into PDF rewriting.
