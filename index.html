@@ -665,6 +665,8 @@ async function loadPdfScanPage(pageNo){
   if(canvas){try{canvas.width=canvas.height=0;}catch(e){}}
   if(state!==scanPreview)return;
   state.pageIndex=previousPageIndex;
+  $('pageStatus').textContent='Страница '+(previousPageIndex+1)+' из '+state.pageCount;
+  syncReaderPageSlider(previousPageIndex+1,state.pageCount);
   throw error;
  }finally{
   if(state===scanPreview){
