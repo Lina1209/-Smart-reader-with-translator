@@ -885,18 +885,24 @@ function xmlTextNodes(el,ns,tag){
 }
 async function translateXmlParagraphs(doc,selector,from,target,progressId,progressBase=0,progressSpan=100){
  const blocks=Array.from(doc.getElementsByTagNameNS('*',selector));
+ const nestedBlockTags=new Set(['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']);
  let count=0;
  for(const block of blocks){
   const texts=[];const walker=doc.createTreeWalker(block,NodeFilter.SHOW_TEXT);
-  while(walker.nextNode()){const n=walker.currentNode;if(n.nodeValue)texts.push(n);}
-  if(!texts.some(n=>String(n.nodeValue||'').trim()))continue;
-  if(selector!=='p'){
-   const nestedBlocks=Array.from(block.getElementsByTagNameNS('*','*')).some(node=>['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'].includes(String(node.localName||node.nodeName).toLowerCase()));
-   if(nestedBlocks)continue;
+  while(walker.nextNode()){
+   const node=walker.currentNode;
+   if(!node.nodeValue)continue;
+   let parent=node.parentElement,nested=false;
+   while(parent&&parent!==block){
+    if(nestedBlockTags.has(String(parent.localName||parent.nodeName).toLowerCase())){nested=true;break;}
+    parent=parent.parentElement;
+   }
+   if(!nested)texts.push(node);
   }
-  const source=texts.map(n=>n.nodeValue).join('');
+  if(!texts.some(node=>String(node.nodeValue||'').trim()))continue;
+  const source=texts.map(node=>node.nodeValue).join('');
   const translated=await translateDocumentNodeText(source,target,from,progressId);
-  // Distribute the translated words over existing text runs to retain their styling.
+  // Translate only this block's own text; nested blocks are processed separately.
   distributeTranslationAcrossRuns(translated,texts);
   count++;if(count%5===0)setProgress(progressId,progressBase+progressSpan*Math.min(count/Math.max(blocks.length,1),1),'Сохраняем структуру',count+' блоков обработано');
  }
