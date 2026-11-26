@@ -32,7 +32,7 @@ class TrueTypeGlyphAuditTests(unittest.TestCase):
         self.assertGreater(report["number_of_contours"], 0)
 
     def test_composite_glyph_resolves_component_outline(self):
-        glyph_name = self.cmap[0x00C5]
+        glyph_name = self.cmap[0x00E9]
         gid = self.name_to_gid[glyph_name]
         report = inspect_truetype_glyph(self.font_program, gid)
         self.assertEqual(report["status"], "composite-outline-present")
