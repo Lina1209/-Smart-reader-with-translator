@@ -712,3 +712,11 @@ const epubEnd=documentExtractor.indexOf("if(name.endsWith('.png')",epubStart);
 if(epubStart<0||epubEnd<0)throw new Error('EPUB extraction branch missing');
 const epubBranch=documentExtractor.slice(epubStart,epubEnd);
 for(const guard of ['await ensureEpubLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await epub.ready;ensureCurrent()','for(const item of epub.spine.items){ensureCurrent();','await epub.load(item.href);ensureCurrent()','if(!isCurrent())throw err','ensureCurrent();if(!sections.length)'])if(!epubBranch.includes(guard))throw new Error('EPUB cancellation boundary missing: '+guard);
+
+const plainTextBranch=documentExtractor.slice(documentExtractor.indexOf("if(name.endsWith('.rtf')"),documentExtractor.indexOf("if(name.endsWith('.fb2')"));
+for(const guard of ['await readFileText(file);ensureCurrent()','const html=await readFileText(file);ensureCurrent()'])if(!plainTextBranch.includes(guard))throw new Error('Text document cancellation boundary missing: '+guard);
+const imageBranchStart=documentExtractor.indexOf("if(name.endsWith('.png')||name.endsWith('.jpg')");
+const imageBranchEnd=documentExtractor.indexOf("if(name.endsWith('.xml')",imageBranchStart);
+if(imageBranchStart<0||imageBranchEnd<0)throw new Error('Image OCR extraction branch missing');
+const imageBranch=documentExtractor.slice(imageBranchStart,imageBranchEnd);
+for(const guard of ['await imageFileToCanvas(file);ensureCurrent()','null,isCurrent);ensureCurrent()','finally{canvas.width=canvas.height=0;}'])if(!imageBranch.includes(guard))throw new Error('Image OCR cancellation or cleanup missing: '+guard);
