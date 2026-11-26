@@ -477,8 +477,9 @@ if(!html.includes('для предотвращения потери содерж
 const preserveStart=html.indexOf('function shouldPreserveOriginalPdfPage('),preserveEnd=html.indexOf('function createSafePdfViewport(',preserveStart);
 if(preserveStart<0||preserveEnd<0)throw new Error('PDF original-page preservation decision helper not found');
 const shouldPreserveOriginalPdfPage=vm.runInNewContext(html.slice(preserveStart,preserveEnd)+';shouldPreserveOriginalPdfPage');
-if(!shouldPreserveOriginalPdfPage({kind:'text'})||!shouldPreserveOriginalPdfPage({kind:'mixed'})||!shouldPreserveOriginalPdfPage({kind:'graphic-or-empty'}))throw new Error('Non-scan PDF pages must be preserved instead of rasterized when safe copying is available');
-if(shouldPreserveOriginalPdfPage({kind:'scan'}))throw new Error('Image-only scan pages must continue through OCR reconstruction');
+if(!shouldPreserveOriginalPdfPage({kind:'text'})||!shouldPreserveOriginalPdfPage({kind:'graphic-or-empty'}))throw new Error('Native text and graphic-only PDF pages must be preserved instead of rasterized when safe copying is available');
+if(shouldPreserveOriginalPdfPage({kind:'scan'})||shouldPreserveOriginalPdfPage({kind:'mixed'}))throw new Error('Image-only scans and mixed image-text pages must continue through OCR reconstruction');
+if(!html.includes("if(pageKind.kind==='mixed')pageWarnings.push('Страница '+pageNo+': обнаружены одновременно изображения и текстовый слой; страница направлена на OCR-перевод."))throw new Error('Mixed PDF pages must disclose rasterization and loss of the original text/vector layer');
 if(!html.includes('outPdf.copyPages(sourcePdfForCopy,[pageNo-1])'))throw new Error('Original PDF pages must be copied into the output without rasterization');
 if(!html.includes('if(!ocrWorker){')||!html.includes('const Tesseract=await ensureTesseract()'))throw new Error('OCR engine must be initialized lazily only when a page requires OCR');
 if(!html.includes('текст не переведён, чтобы не повредить шрифты'))throw new Error('Preserved original PDF pages must disclose that their text remains untranslated');
