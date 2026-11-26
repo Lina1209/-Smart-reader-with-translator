@@ -25,7 +25,7 @@ def build_fixtures(output_path):
 
     if "FixtureDejaVu" not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont("FixtureDejaVu", _dejavu_path()))
-    if "FixtureCID" not in pdfmetrics.getRegisteredFontNames():
+    if "HeiseiMin-W3" not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(UnicodeCIDFont("HeiseiMin-W3"))
 
     doc = canvas.Canvas(str(output_path), pagesize=(612, 792), pageCompression=0)
@@ -44,7 +44,7 @@ def build_fixtures(output_path):
     doc.showPage()
 
     # Page 3: a genuine Type0/CID font resource with a Unicode CMap.
-    doc.setFont("FixtureCID", 12)
+    doc.setFont("HeiseiMin-W3", 12)
     doc.drawString(54, 730, "CID_FIXTURE: 日本語テスト")
     doc.showPage()
 
