@@ -11,8 +11,9 @@ function createContext({failAll=false}={}){
  const window={}; const scripts=[]; let shouldFail=failAll;
  const document={createElement(){return {parentNode:null,src:'',onload:null,onerror:null};},head:{appendChild(script){scripts.push(script);script.parentNode=this;queueMicrotask(()=>{if(shouldFail){script.onerror&&script.onerror();}else if(script.src.includes('jszip')){window.JSZip=function JSZip(){};script.onload&&script.onload();}else{window.ePub=function ePub(){};script.onload&&script.onload();}});},removeChild(script){script.parentNode=null;}}};
  const context={window,document,console:{warn(){}},Promise,Error};
+ context.setFail=value=>{shouldFail=value;};
  vm.createContext(context);
- vm.runInContext(source+';globalThis.ensureZip=ensureZipLibrary;globalThis.ensureEpub=ensureEpubLibrary;globalThis.setFail=value=>{shouldFail=value};',context);
+ vm.runInContext(source+';globalThis.ensureZip=ensureZipLibrary;globalThis.ensureEpub=ensureEpubLibrary;',context);
  return {context,window,scripts};
 }
 (async()=>{
