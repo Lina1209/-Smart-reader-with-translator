@@ -383,7 +383,22 @@ function mapRectifiedOcrBox(box,sourceToOutput){
  if(x1<=x0||y1<=y0)return null;
  const corners=[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}].map(point=>mapPageHomography(sourceToOutput,point));
  if(corners.some(point=>!point))return null;
- return{x0:Math.min(...corners.map(p=>p.x)),y0:Math.min(...corners.map(p=>p.y)),x1:Math.max(...corners.map(p=>p.x)),y1:Math.max(...corners.map(p=>p.y))};
+ return{x0:Math.min(...corners.map(p=>p.x)),y0:Math.min(...corners.map(p=>p.y)),x1:Math.max(...corners.map(p=>p.x)),y1:Math.max(...corners.map(p=>p.y)),polygon:corners};
+}
+function paintTranslationInOcrBox(ctx,text,box,targetCode,backgroundColor){
+ if(!ctx||!isValidOcrBox(box))return{fits:false,reason:'invalid-box'};
+ const {x0,y0,x1,y1}=box,w=x1-x0,h=y1-y0;
+ ctx.save();
+ try{
+  if(Array.isArray(box.polygon)&&box.polygon.length>=3&&box.polygon.every(point=>Number.isFinite(point.x)&&Number.isFinite(point.y))){
+   ctx.beginPath();ctx.moveTo(box.polygon[0].x,box.polygon[0].y);
+   for(let i=1;i<box.polygon.length;i++)ctx.lineTo(box.polygon[i].x,box.polygon[i].y);
+   ctx.closePath();ctx.clip();
+  }
+  ctx.fillStyle=backgroundColor;ctx.fillRect(x0,y0,w,h);
+  ctx.fillStyle='#111';
+  return drawTranslationInBox(ctx,text,x0,y0,w,h,targetCode,{paint:true});
+ }finally{ctx.restore();}
 }
 function mapRectifiedOcrDataToSource(data,outputToSource){
  if(!data||!Array.isArray(data.lines))return data;
@@ -586,7 +601,7 @@ function constrainOcrLineToTableCell(line,grid){
   if(previous&&previous.x1>x0)x0=(previous.x1+x0)/2;
   if(next&&x1>next.x0)x1=(x1+next.x0)/2;
   if(!(x1>x0))return null;
-  return{x0,y0:line.box.y0,x1,y1:line.box.y1};
+  return{x0,y0:line.box.y0,x1,y1:line.box.y1,...(Array.isArray(line.box.polygon)?{polygon:line.box.polygon}:{})};
  }
  return null;
 }
@@ -678,7 +693,7 @@ async function translatePdfPreservingFile(file,from,target,progressId){
      const fit=drawTranslationInBox(ctx,translated,x0,y0,w,h,target,{paint:false});
      if(!fit.fits){layoutWarnings.push('Страница '+pageNo+', строка '+(lineNo+1)+': перевод не помещается в исходную область; исходный текст сохранён без перезаписи.');continue;}
      const bg=estimateSafeBackgroundFill(ctx,x0,y0,w,h,pad);if(!bg.safe){layoutWarnings.push('Страница '+pageNo+', строка '+(lineNo+1)+': фон неоднородный или рядом есть элементы вёрстки; исходная область оставлена без перезаписи.');continue;}
-     ctx.fillStyle=bg.color;ctx.fillRect(x0,y0,w,h);ctx.fillStyle='#111';drawTranslationInBox(ctx,translated,x0,y0,w,h,target,{paint:true});
+     paintTranslationInOcrBox(ctx,translated,cellBox,target,bg.color);
      setProgress(progressId,100*(pageNo-1+lineNo/Math.max(replacementLines.length,1))/sourcePdf.numPages,'Переводим текст PDF','Страница '+pageNo+' · блок '+(lineNo+1)+' из '+replacementGroups.length);
     }
     const jpeg=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.94));if(!jpeg)throw Error('Не удалось сжать страницу PDF.');
@@ -733,7 +748,7 @@ async function translateImagePreservingFile(file,from,target,progressId){
    if(!fit.fits){layoutWarnings.push('Строка '+(i+1)+': перевод не помещается в исходную область; исходный текст сохранён без перезаписи.');continue;}
    const fill=estimateSafeBackgroundFill(ctx,x0,y0,w,h,pad);
    if(!fill.safe){layoutWarnings.push('Строка '+(i+1)+': фон неоднородный или рядом есть линии/рисунок; исходная область оставлена без перезаписи.');continue;}
-   ctx.fillStyle=fill.color;ctx.fillRect(x0,y0,w,h);ctx.fillStyle='#111';drawTranslationInBox(ctx,translated,x0,y0,w,h,target,{paint:true});
+   paintTranslationInOcrBox(ctx,translated,cellBox,target,fill.color);
   }
   const mime=file.type==='image/gif'?'image/png':file.type==='image/png'?'image/png':file.type==='image/webp'?'image/webp':'image/jpeg';
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,mime,mime==='image/jpeg'?.94:undefined));
