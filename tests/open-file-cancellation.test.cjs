@@ -7,6 +7,10 @@ const start=html.indexOf('async function openFile(file){');
 const end=html.indexOf('function closeExisting(){',start);
 assert.ok(start>=0&&end>start,'reader file-opening workflow must exist');
 const source=html.slice(start,end).trim();
+const closeExistingStart=html.indexOf('function closeExisting(){');
+const closeExistingEnd=html.indexOf('async function readFileText(',closeExistingStart);
+assert.ok(closeExistingStart>=0&&closeExistingEnd>closeExistingStart,'reader replacement cleanup must exist');
+assert.match(html.slice(closeExistingStart,closeExistingEnd),/readerSourcePageCount=0/,'opening a non-PDF book after a PDF must clear the previous PDF page count');
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r;});return{promise,resolve};}
 function makeContext(openText){
  const calls={close:0,errors:[],progress:[],readerTitle:'',bookMeta:''};
