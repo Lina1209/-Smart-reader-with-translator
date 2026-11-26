@@ -37,7 +37,7 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
  assert.equal(getPageCalls,1,'a second page request must not race an active render');
  pending.resolve(page);await first;
  assert.equal(state.pageIndex,1);assert.equal(state.pageLoading,false);assert.equal(state.page,page);
- assert.equal(elements.sliderSync?.current,2,'PDF preview must synchronize the slider to the current source page');assert.equal(elements.sliderSync?.total,3,'PDF preview must synchronize the slider to the actual source page count');
+ assert.equal(elements.sliderSync?.current,1,'PDF preview must synchronize the slider to the current one-based source page');assert.equal(elements.sliderSync?.total,3,'PDF preview must synchronize the slider to the actual source page count');
  assert.equal(elements.prevBtn.disabled,true);assert.equal(elements.nextBtn.disabled,false);
  assert.equal(cleanups,0,'successfully displayed page must remain owned by the preview');
  const failure=new Error('fixture render unavailable');
@@ -46,6 +46,8 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
  assert.equal(state.pageIndex,1,'failed navigation must restore the previous page index');
  assert.equal(state.pageLoading,false,'failed navigation must unlock the controls');
  assert.equal(elements.prevBtn.disabled,true);assert.equal(elements.nextBtn.disabled,false);
+ assert.equal(elements.sliderSync?.current,1,'failed PDF navigation must restore the slider to the previously displayed page');
+ assert.equal(elements.sliderSync?.total,3,'failed PDF navigation must preserve the source page count');
  const stalePending=deferred();let staleCleanups=0;
  const stalePage={cleanup(){staleCleanups++;}};
  state.pdfDocument={getPage:()=>stalePending.promise};
