@@ -1110,7 +1110,11 @@ function xmlTextNodes(el,ns,tag){
  const nodes=Array.from(el.getElementsByTagNameNS(ns,tag)).flatMap(n=>Array.from(n.childNodes).filter(c=>c.nodeType===3));
  return nodes;
 }
-async function translateXmlParagraphs(doc,selector,from,target,progressId,progressBase=0,progressSpan=100){
+function isDocxVisibleTextNode(node){
+ const parent=node&&node.parentElement;
+ return String(parent&&(parent.localName||parent.nodeName)||'').toLowerCase()==='t';
+}
+async function translateXmlParagraphs(doc,selector,from,target,progressId,progressBase=0,progressSpan=100,docxVisibleTextOnly=false){
  const blocks=Array.from(doc.getElementsByTagNameNS('*',selector));
  const nestedBlockTags=new Set(['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']);
  let count=0;
@@ -1119,6 +1123,7 @@ async function translateXmlParagraphs(doc,selector,from,target,progressId,progre
   while(walker.nextNode()){
    const node=walker.currentNode;
    if(!node.nodeValue)continue;
+   if(docxVisibleTextOnly&&!isDocxVisibleTextNode(node))continue;
    let parent=node.parentElement,nested=false;
    while(parent&&parent!==block){
     if(nestedBlockTags.has(String(parent.localName||parent.nodeName).toLowerCase())){nested=true;break;}
@@ -1146,7 +1151,7 @@ async function translatePreservingFile(file,from,target,statusId){
    const paths=Object.keys(zip.files).filter(p=>/^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i.test(p));
    if(!paths.includes('word/document.xml'))throw Error('В DOCX не найден основной документ.');
    for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Повреждён XML в '+path);
-    await translateXmlParagraphs(doc,'p',from,target,progressId,5+75*i/paths.length,75/paths.length);
+    await translateXmlParagraphs(doc,'p',from,target,progressId,5+75*i/paths.length,75/paths.length,true);
     zip.file(path,new XMLSerializer().serializeToString(doc));
    }
    const main=new DOMParser().parseFromString(await zip.file('word/document.xml').async('text'),'application/xml');
