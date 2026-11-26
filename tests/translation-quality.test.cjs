@@ -329,6 +329,10 @@ if(pdfPipelineStart<0||pdfPipelineEnd<0)throw new Error('PDF reconstruction pipe
 const pdfPipeline=html.slice(pdfPipelineStart,pdfPipelineEnd);
 if(!pdfPipeline.includes("const ctx=canvas.getContext('2d'")||!pdfPipeline.includes('finally{\n    if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}')||!pdfPipeline.includes('try{page.cleanup();}catch(e){}canvas.width=canvas.height=0;'))throw new Error('PDF source and temporary rectified canvases are not released in a per-page finally block');
 if(!pdfPipeline.includes('if(ocrWorker)await ocrWorker.terminate()'))throw new Error('Shared OCR worker is not terminated in the outer finally block');
+const recognizeStart=html.indexOf('async function recognizeImageCanvas('),recognizeEnd=html.indexOf('function releaseScanPreview',recognizeStart);
+if(recognizeStart<0||recognizeEnd<0)throw new Error('Image OCR recognition function not found for cleanup test');
+const recognizeSource=html.slice(recognizeStart,recognizeEnd);
+if(!recognizeSource.includes("if(!sharedWorker){try{await worker.terminate();}catch(error)"))throw new Error('OCR worker shutdown errors must not mask recognition results or the original OCR error');
 const imagePipelineStart=html.indexOf('async function translateImagePreservingFile(');
 const imagePipelineEnd=html.indexOf('function pdfTextItemsToPlainText',imagePipelineStart);
 if(imagePipelineStart<0||imagePipelineEnd<0)throw new Error('Image OCR pipeline not found for resource-lifecycle test');
