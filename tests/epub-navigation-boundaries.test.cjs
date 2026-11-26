@@ -17,4 +17,5 @@ assert.deepEqual(availability({page:1,total:1,atStart:false,atEnd:false}),{previ
 assert.deepEqual(availability({page:1,total:5,atStart:false,atEnd:false},true),{previousDisabled:true,nextDisabled:true},'both controls must lock while navigation is in progress');
 assert.deepEqual(availability({page:1,total:5}),{previousDisabled:true,nextDisabled:false},'legacy or incomplete location data should retain safe page-counter fallback');
 assert.deepEqual(availability({page:5,total:5}),{previousDisabled:false,nextDisabled:true});
+assert.ok(html.includes("$('pageStatus').textContent=t?'Страница '+p+' · текущий раздел'"),'EPUB page indicator must not present section-local pagination as whole-book total');
 console.log('EPUB navigation boundary tests passed');
