@@ -32,7 +32,7 @@ if(!xlsx.includes("await translateXmlParagraphs(doc,'p'"))throw new Error('Rich-
 for(const resource of ['xl/styles.xml','xl/theme/','xl/media/','xl/drawings/']){
  if(xlsx.includes("zip.file('"+resource))throw new Error('Translation must not overwrite preserved workbook resource '+resource);
 }
-if(!html.includes('кэшированные подписи диаграмм'))throw new Error('XLSX limitation notice must disclose cached chart labels');
+if(!html.includes('подписи из кэшей диаграмм'))throw new Error('XLSX limitation notice must disclose cached chart labels');
 const pptxBranch=html.slice(pptxStart,html.indexOf("if(ext==='odt')await prepareOdtArchiveMimetype",pptxStart));
 if(!pptxBranch.includes('getPptxTranslatableContentPaths(Object.keys(zip.files))'))throw new Error('PPTX translator must use the tested content-part selector');
 if(!html.includes('встроенные книги Excel'))throw new Error('PPTX limitation notice must disclose embedded Excel workbook text');
