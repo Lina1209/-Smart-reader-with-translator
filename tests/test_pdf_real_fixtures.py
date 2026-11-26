@@ -68,7 +68,7 @@ class RealPdfFixtureTests(unittest.TestCase):
                 embedded.append((font, dereference(font["/ToUnicode"]).get_data()))
         self.assertTrue(embedded, "Expected the selected TrueType font to be embedded with ToUnicode")
         cmap_data = b"\n".join(data for _, data in embedded)
-        for unicode_hex in (b"04D8", b"04D9", b"049A", b"049B", b"04A2", b"04A3"):
+        for unicode_hex in (b"04D8", b"04D9", b"0492", b"0493", b"049A", b"049B", b"04A2", b"04A3", b"04E8", b"04E9", b"04B0", b"04B1", b"04AE", b"04AF", b"04BA", b"04BB", b"0406", b"0456"):
             self.assertIn(unicode_hex, cmap_data, f"ToUnicode should map Kazakh code point {unicode_hex.decode()}")
 
     def test_type0_cid_font_uses_unicode_encoding_and_widths(self):
