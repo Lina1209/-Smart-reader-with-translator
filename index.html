@@ -844,9 +844,10 @@ async function translatePdfPreservingFile(file,from,target,progressId){
     }
     pageWarnings.push('Страница '+pageNo+': обнаружено содержимое '+pageKind.kind+', но исходную страницу нельзя безопасно скопировать; для предотвращения потери содержимого применена растровая реконструкция.');
    }
-   const viewport=createSafePdfViewport(page,2.0,16000000),canvas=document.createElement('canvas');
-   canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);let rectifiedCanvas=null;
+   let viewport=null,canvas=null,rectifiedCanvas=null;
    try{
+    viewport=createSafePdfViewport(page,2.0,16000000);canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
     const ctx=canvas.getContext('2d',{willReadFrequently:true});if(!ctx)throw Error('Не удалось создать холст PDF-страницы.');
     ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);await page.render({canvasContext:ctx,viewport,background:'#ffffff'}).promise;
     let ocrInput=canvas,rectification=null;
@@ -890,7 +891,7 @@ async function translatePdfPreservingFile(file,from,target,progressId){
     outPage.drawImage(pageImage,{x:0,y:0,width:originalSize.width,height:originalSize.height});
    }finally{
     if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}
-    try{page.cleanup();}catch(e){}canvas.width=canvas.height=0;
+    try{page.cleanup();}catch(e){}if(canvas){canvas.width=canvas.height=0;}
    }
   }
   const bytes=await outPdf.save({useObjectStreams:true}),blob=new Blob([bytes],{type:'application/pdf'});
