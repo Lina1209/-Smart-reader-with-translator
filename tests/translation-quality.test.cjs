@@ -52,4 +52,20 @@ const extracted=pdfText([{str:'First',hasEOL:false},{str:'line',hasEOL:true},{st
 if(extracted!=='First line\nSecond line')throw new Error('PDF line boundaries were not preserved: '+JSON.stringify(extracted));
 const single=pdfText([{str:'A',hasEOL:false},{str:'  B',hasEOL:true},{str:'C',hasEOL:true}]);
 if(single!=='A B\nC')throw new Error('PDF text spacing was not normalized safely: '+JSON.stringify(single));
+const boxStart=html.indexOf('function restoreOcrBox(');
+const boxEnd=html.indexOf('\n',boxStart);
+if(boxStart<0||boxEnd<0)throw new Error('OCR bounding-box transform not found');
+const restoreBox=vm.runInNewContext(html.slice(boxStart,boxEnd)+'; restoreOcrBox');
+const originalBox={x0:10,y0:20,x1:30,y1:40};
+const expectedBoxes=[
+ [0,{x0:10,y0:20,x1:30,y1:40}],
+ [90,{x0:20,y0:170,x1:40,y1:190}],
+ [180,{x0:70,y0:160,x1:90,y1:180}],
+ [270,{x0:60,y0:10,x1:80,y1:30}]
+];
+for(const [angle,expected] of expectedBoxes){
+ const actual=restoreBox(originalBox,angle,100,200);
+ if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('OCR box rotation '+angle+'° incorrect: '+JSON.stringify(actual));
+}
+if(!html.includes('image\\/(png|jpeg|webp|gif)')||!html.includes("file.type==='image/gif'?'image/png'"))throw new Error('GIF first-frame OCR and PNG output support missing');
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
