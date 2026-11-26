@@ -385,6 +385,7 @@ if(!html.includes("'jpg','jpeg','png','webp','gif'")||!html.includes('imageFileT
 
 if(!html.includes("flow:'paginated'")||html.includes("flow:'scrolled-doc'"))throw new Error('EPUB reader must use fixed paginated flow, not endless scrolling');
 if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;background:var(--paper)'))throw new Error('Reader page must keep a bounded book-page frame');
+if(!html.includes('overflow-wrap:anywhere'))throw new Error('Long unbroken words must wrap inside the fixed book-page frame');
 if(!html.includes('function paginateReaderText(')||!html.includes('function moveReaderPage(')||!html.includes("e.key==='ArrowRight'"))throw new Error('Text reader pagination and keyboard navigation are missing');
 if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'))throw new Error('Touch swipe page turning is missing');
 if(!html.includes("window.addEventListener('resize'")||!html.includes('readerPageOffsets[readerPageIndex]')||!html.includes('readerPageOffsets[i]<=previousOffset'))throw new Error('Reader pagination must adapt to screen rotation/resize while retaining the same text position');
