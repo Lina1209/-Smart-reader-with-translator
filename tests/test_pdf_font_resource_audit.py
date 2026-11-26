@@ -10,6 +10,13 @@ from generate_pdf_fixtures import build_fixtures
 from test_pdf_real_fixtures import add_identity_h_cidfonttype2_fixture, used_page_fonts
 
 
+def selected_font(page, subtype):
+    return next(
+        font for font in used_page_fonts(page).values()
+        if str(font.get("/Subtype")) == subtype
+    )
+
+
 class PdfFontResourceAuditTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -25,7 +32,7 @@ class PdfFontResourceAuditTests(unittest.TestCase):
         cls.temp_dir.cleanup()
 
     def test_simple_type1_reports_encoding_and_width_limits(self):
-        font = next(iter(used_page_fonts(self.reader.pages[0]).values()))
+        font = selected_font(self.reader.pages[0], "/Type1")
         report = audit_font_dictionary(font)
         self.assertEqual(report["subtype"], "/Type1")
         self.assertEqual(report["encoding"]["name"], "/WinAnsiEncoding")
@@ -33,7 +40,7 @@ class PdfFontResourceAuditTests(unittest.TestCase):
         self.assertFalse(report["rewrite_ready"])
 
     def test_embedded_subset_truetype_does_not_claim_target_glyph_coverage(self):
-        font = next(iter(used_page_fonts(self.reader.pages[1]).values()))
+        font = selected_font(self.reader.pages[1], "/TrueType")
         report = audit_font_dictionary(font)
         self.assertTrue(report["font_program_embedded"])
         self.assertTrue(report["to_unicode"]["present"])
@@ -42,11 +49,12 @@ class PdfFontResourceAuditTests(unittest.TestCase):
         self.assertTrue(any("subset" in item for item in report["limitations"]))
 
     def test_predefined_type0_cmap_reports_cid_descendant(self):
-        font = next(iter(used_page_fonts(self.reader.pages[2]).values()))
+        font = selected_font(self.reader.pages[2], "/Type0")
         report = audit_font_dictionary(font)
         self.assertEqual(report["subtype"], "/Type0")
         self.assertEqual(report["encoding"]["name"], "/UniJIS-UCS2-H")
         self.assertEqual(report["descendants"][0]["subtype"], "/CIDFontType0")
+        self.assertEqual(report["descendants"][0]["cid_to_gid"]["kind"], "not-applicable")
         self.assertTrue(report["descendants"][0]["widths"]["explicit_widths_present"])
 
     def test_identity_h_type0_reports_cid_to_gid_stream_and_embedded_font(self):
