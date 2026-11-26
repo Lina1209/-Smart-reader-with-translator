@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const start=html.indexOf("if(name.endsWith('.html')||name.endsWith('.htm')||type==='text/html')");
+const end=html.indexOf("if(name.endsWith('.fb2')",start);
+assert.ok(start>=0&&end>start,'HTML extraction branch must exist');
+const source=html.slice(start,end);
+assert.ok(source.includes("querySelectorAll('script,style,noscript,template').forEach(el=>el.remove())"),'Executable and non-content HTML elements must be removed');
+assert.ok(source.includes("querySelectorAll('[hidden],[aria-hidden=\"true\"]').forEach(el=>el.remove())"),'Elements explicitly hidden from accessibility or display must not be extracted');
+assert.ok(source.includes("style.display==='none'||style.visibility==='hidden'||style.visibility==='collapse'"),'Inline-hidden HTML elements must not be included');
+console.log('HTML extraction safety tests passed: scripts and hidden elements are excluded.');
