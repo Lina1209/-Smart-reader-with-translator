@@ -65,6 +65,12 @@ for(const tag of ['instrText','delText','del','fldChar','tab']){const node={pare
 for(const tag of ['del','moveFrom']){const node={parentElement:{localName:'t',parentElement:{localName:tag,parentElement:null}}};if(isDocxVisibleTextNode(node))throw new Error('DOCX deleted/moved-from revision text must not be translated: '+tag);}
 const insertedNode={parentElement:{localName:'t',parentElement:{localName:'ins',parentElement:null}}};
 if(!isDocxVisibleTextNode(insertedNode))throw new Error('Visible inserted DOCX revision text must remain translatable');
+const drawingText={parentElement:{localName:'t',namespaceURI:'http://schemas.openxmlformats.org/drawingml/2006/main',parentElement:null}};
+if(!isDocxVisibleTextNode(drawingText))throw new Error('Visible DrawingML text in DOCX shapes/text boxes must be translated');
+const wordText={parentElement:{localName:'t',namespaceURI:'http://schemas.openxmlformats.org/wordprocessingml/2006/main',parentElement:null}};
+if(!isDocxVisibleTextNode(wordText))throw new Error('Visible WordprocessingML text must remain translatable');
+const unrelatedText={parentElement:{localName:'t',namespaceURI:'urn:unrelated:test',parentElement:null}};
+if(isDocxVisibleTextNode(unrelatedText))throw new Error('Unrelated XML text nodes must not be translated as DOCX content');
 const docxBranch=html.slice(html.indexOf("if(ext==='docx'){"),html.indexOf("}else if(ext==='odt'){") );
 if(!docxBranch.includes('75/paths.length,true'))throw new Error('DOCX translation must limit extraction to visible w:t text nodes');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']"))throw new Error('EPUB block coverage missing for div-based, semantic and table content');
