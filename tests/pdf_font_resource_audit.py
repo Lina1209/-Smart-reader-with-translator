@@ -1,6 +1,7 @@
 """Read-only inspection of PDF font dictionaries and mapping evidence.
 
 This module intentionally does not encode text or rewrite PDF content streams.
+Width helpers return PDF text-space widths in the font's 1000-unit convention.
 """
 import re
 
@@ -34,17 +35,75 @@ def _simple_width_summary(font):
     first = font.get("/FirstChar")
     widths = dereference(font.get("/Widths"))
     if first is None or widths is None:
-        return {"first_char": None, "width_count": 0, "widths_available": False}
+        return {"first_char": None, "width_count": 0, "widths_available": False, "sample": []}
     try:
-        count = len(widths)
-    except TypeError:
-        count = 0
+        values = [float(value) for value in widths]
+    except (TypeError, ValueError):
+        values = []
     return {
         "first_char": int(first),
-        "width_count": count,
-        "widths_available": count > 0,
-        "last_char": int(first) + count - 1 if count else None,
+        "width_count": len(values),
+        "widths_available": bool(values),
+        "last_char": int(first) + len(values) - 1 if values else None,
+        "sample": values[:12],
     }
+
+
+def lookup_simple_width(font, character_code):
+    """Return an explicit simple-font width; never guess standard-font metrics."""
+    if not isinstance(character_code, int) or not 0 <= character_code <= 255:
+        return {"status": "invalid-code", "width": None, "source": None}
+    first = font.get("/FirstChar")
+    widths = dereference(font.get("/Widths"))
+    if first is not None and widths is not None:
+        index = character_code - int(first)
+        if 0 <= index < len(widths):
+            return {"status": "explicit", "width": float(widths[index]), "source": "/Widths"}
+    descriptor = dereference(font.get("/FontDescriptor"))
+    if descriptor is not None and descriptor.get("/MissingWidth") is not None:
+        return {
+            "status": "fallback",
+            "width": float(descriptor["/MissingWidth"]),
+            "source": "/FontDescriptor/MissingWidth",
+        }
+    return {"status": "unknown", "width": None, "source": None}
+
+
+def lookup_cid_width(descendant, cid):
+    """Resolve a CID width from /W or /DW using the PDF array grammar."""
+    if not isinstance(cid, int) or cid < 0:
+        return {"status": "invalid-cid", "width": None, "source": None}
+    widths = dereference(descendant.get("/W"))
+    if widths:
+        items = list(widths)
+        index = 0
+        while index < len(items):
+            try:
+                first = int(items[index])
+                second = dereference(items[index + 1])
+            except (IndexError, TypeError, ValueError):
+                return {"status": "malformed-width-array", "width": None, "source": "/W"}
+            if isinstance(second, (list, tuple)) or second.__class__.__name__ == "ArrayObject":
+                values = dereference(second)
+                if first <= cid < first + len(values):
+                    try:
+                        return {"status": "explicit", "width": float(values[cid - first]), "source": "/W"}
+                    except (TypeError, ValueError):
+                        return {"status": "malformed-width-array", "width": None, "source": "/W"}
+                index += 2
+            else:
+                try:
+                    last = int(second)
+                    width = float(items[index + 2])
+                except (IndexError, TypeError, ValueError):
+                    return {"status": "malformed-width-array", "width": None, "source": "/W"}
+                if first <= cid <= last:
+                    return {"status": "explicit", "width": width, "source": "/W"}
+                index += 3
+    default = descendant.get("/DW")
+    if default is not None:
+        return {"status": "default", "width": float(default), "source": "/DW"}
+    return {"status": "unknown", "width": None, "source": None}
 
 
 def _differences_summary(encoding):
@@ -95,6 +154,7 @@ def _cid_to_gid_summary(descendant):
         "kind": "stream" if data else "unknown",
         "byte_length": len(data) if data else None,
         "two_byte_entry_count": len(data) // 2 if data else None,
+        "odd_byte_length": bool(data and len(data) % 2),
     }
 
 
@@ -116,7 +176,8 @@ def audit_font_dictionary(font):
             "ToUnicode is extraction evidence, not a reverse encoder.",
             "This audit does not parse complete encoding CMaps or prove code-to-glyph coverage.",
             "Embedded font presence does not prove a requested glyph exists in a subset.",
-            "No shaping, glyph advance calculation, text-matrix composition or PDF rewrite is performed.",
+            "Widths are font text-space metrics; this audit does not apply font size, Tc, Tw, Tz or glyph advances.",
+            "No shaping, text-matrix composition or PDF rewrite is performed.",
         ],
     }
 
