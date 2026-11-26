@@ -58,7 +58,7 @@ const docxParagraphHelper=html.slice(html.indexOf('function translateXmlParagrap
 if(!docxParagraphHelper.includes('if(n.nodeValue)texts.push(n)')||!docxParagraphHelper.includes('texts.some(n=>String(n.nodeValue||\'\').trim())'))throw new Error('DOCX paragraph extraction must retain whitespace-only separators while skipping empty paragraphs');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd']"))throw new Error('EPUB block coverage missing');
 const epubOpenStart=html.indexOf('async function openEpub(file)');
-const epubOpenEnd=html.indexOf('\n$('prevBtn').onclick',epubOpenStart);
+const epubOpenEnd=html.indexOf("\n$('prevBtn').onclick",epubOpenStart);
 if(epubOpenStart<0||epubOpenEnd<0)throw new Error('EPUB open workflow not found');
 const epubOpenSource=html.slice(epubOpenStart,epubOpenEnd);
 const firstDisplay=epubOpenSource.indexOf('await rendition.display()');
