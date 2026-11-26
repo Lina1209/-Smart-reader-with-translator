@@ -49,6 +49,11 @@ if(spacedRuns[1].nodeValue!=='')throw new Error('Whitespace-only formatting runs
 const weightedRuns=[{nodeValue:'12345'},{nodeValue:' '},{nodeValue:'123456'}];
 distribute('one two three four five',weightedRuns);
 if(weightedRuns[0].nodeValue!=='one two '||weightedRuns[1].nodeValue!==''||weightedRuns[2].nodeValue!=='three four five')throw new Error('DOCX run distribution must use original non-empty run weights while skipping whitespace-only runs');
+const xmlSpace='http://www.w3.org/XML/1998/namespace';
+const xmlRuns=['first','second'].map(value=>({nodeValue:value,parentElement:{attrs:{},setAttributeNS(ns,name,val){this.attrs[name]=val;}}}));
+distribute('  translated phrase  ',xmlRuns);
+if(xmlRuns.map(x=>x.nodeValue).join('')!=='  translated phrase  ')throw new Error('DOCX leading/trailing whitespace was not preserved across runs');
+if(xmlRuns[0].parentElement.attrs['xml:space']!=='preserve'||xmlRuns[1].parentElement.attrs['xml:space']!=='preserve')throw new Error('DOCX boundary whitespace must set xml:space="preserve" on affected text runs');
 const docxParagraphHelper=html.slice(html.indexOf('function translateXmlParagraphs('),html.indexOf('async function translatePreservingFile('));
 if(!docxParagraphHelper.includes('if(n.nodeValue)texts.push(n)')||!docxParagraphHelper.includes('texts.some(n=>String(n.nodeValue||\'\').trim())'))throw new Error('DOCX paragraph extraction must retain whitespace-only separators while skipping empty paragraphs');
 if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd']"))throw new Error('EPUB block coverage missing');
