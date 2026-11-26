@@ -264,14 +264,16 @@ function flattenEpubToc(items,depth=0,result=[]){
 }
 async function populateEpubToc(){
  const control=$('epubTocSelect');
- if(!control)return;
+ const sourceBook=book;
+ if(!control||!sourceBook)return;
  control.innerHTML='';
  const placeholder=document.createElement('option');
  placeholder.value='';placeholder.textContent='Оглавление';
  control.appendChild(placeholder);
  control.hidden=true;
  try{
-  const navigation=book&&book.loaded&&book.loaded.navigation?await book.loaded.navigation:null;
+  const navigation=sourceBook.loaded&&sourceBook.loaded.navigation?await sourceBook.loaded.navigation:null;
+  if(book!==sourceBook)return;
   const entries=flattenEpubToc(navigation&&navigation.toc);
   entries.forEach(entry=>{
    const option=document.createElement('option');
@@ -288,7 +290,7 @@ function updateEpubNavigationButtons(){
  $('nextBtn').disabled=epubNavigationBusy||!epubPageState.total||epubPageState.page>=epubPageState.total;
  $('epubTocSelect').disabled=epubNavigationBusy;
 }
-async function openEpub(file,openToken){epubNavigationBusy=false;epubPageState={page:0,total:0};epubPositionStorageKey=epubPositionKey(file);const savedPosition=readEpubPosition(epubPositionStorageKey);const epubFactory=await ensureEpubLibrary();if(openToken!==requestId)return;const data=await readFileBuffer(file);if(openToken!==requestId)return;if(!data||data.byteLength<100)throw Error('Файл EPUB пустой или повреждён');if(book){try{book.destroy()}catch(e){}}$('epubViewer').innerHTML='';book=epubFactory(data);textViewer.style.display='none';epubBox.style.display='block';$('paging').style.display='flex';rendition=book.renderTo('epubViewer',{width:'100%',height:'100%',spread:'none',flow:'paginated',manager:'default'});setTheme(theme);rendition.on('selected',(cfi,contents)=>{const s=contents.window.getSelection();const value=s?s.toString().trim():'';if(value)translate(value)});rendition.on('rendered',()=>{syncEpubBookText();bindEpubPageGestures();});rendition.on('relocated',loc=>{const p=loc.start&&loc.start.displayed?loc.start.displayed.page:0;const t=loc.start&&loc.start.displayed?loc.start.displayed.total:0;epubPageState={page:p,total:t};saveEpubPosition(epubPositionStorageKey,loc);$('pageStatus').textContent=t?'Страница '+p+' из '+t:'Чтение EPUB';updateEpubNavigationButtons();setTimeout(syncEpubBookText,80)});if(savedPosition){try{await rendition.display(savedPosition);}catch(error){console.warn('Сохранённая позиция EPUB недоступна, открываем начало книги',error);await rendition.display();}}else await rendition.display();populateEpubToc();setProgress('readerProgress',92,'Отображаем страницы EPUB','Книга открыта в книжном просмотрщике.');updateEpubNavigationButtons();}
+async function openEpub(file,openToken){epubNavigationBusy=false;epubPageState={page:0,total:0};epubPositionStorageKey=epubPositionKey(file);const savedPosition=readEpubPosition(epubPositionStorageKey);const epubFactory=await ensureEpubLibrary();if(openToken!==requestId)return;const data=await readFileBuffer(file);if(openToken!==requestId)return;if(!data||data.byteLength<100)throw Error('Файл EPUB пустой или повреждён');if(book){try{book.destroy()}catch(e){}}$('epubViewer').innerHTML='';book=epubFactory(data);textViewer.style.display='none';epubBox.style.display='block';$('paging').style.display='flex';rendition=book.renderTo('epubViewer',{width:'100%',height:'100%',spread:'none',flow:'paginated',manager:'default'});setTheme(theme);rendition.on('selected',(cfi,contents)=>{const s=contents.window.getSelection();const value=s?s.toString().trim():'';if(value)translate(value)});rendition.on('rendered',()=>{syncEpubBookText();bindEpubPageGestures();});rendition.on('relocated',loc=>{const p=loc.start&&loc.start.displayed?loc.start.displayed.page:0;const t=loc.start&&loc.start.displayed?loc.start.displayed.total:0;epubPageState={page:p,total:t};saveEpubPosition(epubPositionStorageKey,loc);$('pageStatus').textContent=t?'Страница '+p+' из '+t:'Чтение EPUB';updateEpubNavigationButtons();setTimeout(syncEpubBookText,80)});if(savedPosition){try{await rendition.display(savedPosition);}catch(error){console.warn('Сохранённая позиция EPUB недоступна, открываем начало книги',error);await rendition.display();}}else await rendition.display();if(openToken!==requestId)return;populateEpubToc();setProgress('readerProgress',92,'Отображаем страницы EPUB','Книга открыта в книжном просмотрщике.');updateEpubNavigationButtons();}
 $('prevBtn').onclick=()=>moveReaderPage(-1);$('nextBtn').onclick=()=>moveReaderPage(1);
 $('epubTocSelect').addEventListener('change',async event=>{
  const href=event.target.value;
