@@ -346,7 +346,12 @@ async function translateXmlParagraphs(doc,selector,from,target,progressId,progre
   if(selector!=='p'&&(block.getElementsByTagNameNS('*','p').length||block.getElementsByTagNameNS('*',selector).length))continue;
   const source=texts.map(n=>n.nodeValue).join('');
   const translated=await translateDocumentNodeText(source,target,from,progressId);
-  texts[0].nodeValue=translated;for(let k=1;k<texts.length;k++)texts[k].nodeValue='';
+  // Distribute the translated words over existing text runs to retain their styling.
+  if(texts.length===1)texts[0].nodeValue=translated;else{
+   const leading=(translated.match(/^\\s*/)||[''])[0],trailing=(translated.match(/\\s*$/)||[''])[0],core=translated.slice(leading.length,translated.length-trailing.length||undefined),words=core.split(/\\s+/).filter(Boolean),weights=texts.map(n=>Math.max(1,(n.nodeValue||'').trim().length)),total=weights.reduce((a,b)=>a+b,0);let cursor=0,assigned=[];
+   for(let k=0;k<texts.length;k++){if(k===texts.length-1){assigned.push(words.slice(cursor).join(' '));break;}const count=Math.round(words.length*weights[k]/total);assigned.push(words.slice(cursor,cursor+count).join(' '));cursor+=count;}
+   texts[0].nodeValue=leading+assigned[0];for(let k=1;k<texts.length;k++)texts[k].nodeValue=assigned[k];texts[texts.length-1].nodeValue+=(trailing||'');
+  }
   count++;if(count%5===0)setProgress(progressId,progressBase+progressSpan*Math.min(count/Math.max(blocks.length,1),1),'Сохраняем структуру',count+' блоков обработано');
  }
  return count;
@@ -378,7 +383,7 @@ async function translatePreservingFile(file,from,target,statusId){
    for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xhtml+xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось разобрать главу '+path);
     await translateXmlParagraphs(doc,'p',from,target,statusId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h1',from,target,progressId,5+80*i/paths.length,80/paths.length);await translateXmlParagraphs(doc,'h2',from,target,progressId,5+80*i/paths.length,80/paths.length);
     translatedText+=(doc.body?doc.body.textContent:doc.documentElement.textContent)+'\n\n';
-    translatedText+=(doc.body?doc.body.textContent:doc.documentElement.textContent)+'\\n\\n';zip.file(path,new XMLSerializer().serializeToString(doc));
+    zip.file(path,new XMLSerializer().serializeToString(doc));
    }
   }else if(ext==='xlsx'||ext==='xlsm'){
    const shared=zip.file('xl/sharedStrings.xml');
