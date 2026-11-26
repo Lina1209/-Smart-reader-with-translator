@@ -5,7 +5,9 @@ from pathlib import Path
 from pypdf import PdfReader
 from pypdf.generic import DictionaryObject, NameObject, NumberObject, ArrayObject
 
-from pdf_font_resource_audit import audit_font_dictionary
+from pdf_font_resource_audit import (
+    audit_font_dictionary, lookup_cid_width, lookup_simple_width,
+)
 from generate_pdf_fixtures import build_fixtures
 from test_pdf_real_fixtures import add_identity_h_cidfonttype2_fixture, used_page_fonts
 
@@ -47,6 +49,9 @@ class PdfFontResourceAuditTests(unittest.TestCase):
         self.assertIn("/FontFile2", report["font_program_keys"])
         self.assertFalse(report["rewrite_ready"])
         self.assertTrue(any("subset" in item for item in report["limitations"]))
+        self.assertEqual(lookup_simple_width(font, 32)["status"], "explicit")
+        self.assertGreater(lookup_simple_width(font, 32)["width"], 0)
+        self.assertEqual(lookup_simple_width(font, 999)["status"], "invalid-code")
 
     def test_predefined_type0_cmap_reports_cid_descendant(self):
         font = selected_font(self.reader.pages[2], "/Type0")
@@ -60,14 +65,35 @@ class PdfFontResourceAuditTests(unittest.TestCase):
     def test_identity_h_type0_reports_cid_to_gid_stream_and_embedded_font(self):
         font = used_page_fonts(self.identity_reader.pages[0])["/F0"]
         report = audit_font_dictionary(font)
-        descendant = report["descendants"][0]
+        descendant = font["/DescendantFonts"][0].get_object()
         self.assertEqual(report["encoding"]["name"], "/Identity-H")
         self.assertTrue(report["font_program_embedded"])
-        self.assertEqual(descendant["cid_to_gid"]["kind"], "stream")
-        self.assertEqual(descendant["cid_to_gid"]["two_byte_entry_count"], 2)
-        self.assertTrue(descendant["widths"]["explicit_widths_present"])
+        self.assertEqual(report["descendants"][0]["cid_to_gid"]["kind"], "stream")
+        self.assertEqual(report["descendants"][0]["cid_to_gid"]["two_byte_entry_count"], 2)
+        self.assertTrue(report["descendants"][0]["widths"]["explicit_widths_present"])
         self.assertTrue(report["to_unicode"]["present"])
         self.assertFalse(report["rewrite_ready"])
+        self.assertEqual(lookup_cid_width(descendant, 1), {
+            "status": "explicit", "width": 667.0, "source": "/W"
+        })
+        self.assertEqual(lookup_cid_width(descendant, 2), {
+            "status": "default", "width": 600.0, "source": "/DW"
+        })
+        self.assertEqual(lookup_cid_width(descendant, -1)["status"], "invalid-cid")
+
+    def test_cid_width_array_and_range_forms_are_both_resolved(self):
+        descendant = DictionaryObject({
+            NameObject("/W"): ArrayObject([
+                NumberObject(2), ArrayObject([NumberObject(510), NumberObject(520)]),
+                NumberObject(8), NumberObject(10), NumberObject(610),
+            ]),
+            NameObject("/DW"): NumberObject(1000),
+        })
+        self.assertEqual(lookup_cid_width(descendant, 2)["width"], 510.0)
+        self.assertEqual(lookup_cid_width(descendant, 3)["width"], 520.0)
+        self.assertEqual(lookup_cid_width(descendant, 9)["width"], 610.0)
+        self.assertEqual(lookup_cid_width(descendant, 10)["width"], 610.0)
+        self.assertEqual(lookup_cid_width(descendant, 11)["status"], "default")
 
     def test_missing_maps_and_font_program_fail_closed(self):
         font = DictionaryObject({
@@ -80,6 +106,10 @@ class PdfFontResourceAuditTests(unittest.TestCase):
         self.assertFalse(report["to_unicode"]["present"])
         self.assertFalse(report["font_program_embedded"])
         self.assertEqual(report["simple_widths"]["width_count"], 1)
+        self.assertEqual(lookup_simple_width(font, 32), {
+            "status": "explicit", "width": 500.0, "source": "/Widths"
+        })
+        self.assertEqual(lookup_simple_width(font, 33)["status"], "unknown")
         self.assertFalse(report["rewrite_ready"])
 
 
