@@ -86,3 +86,12 @@ python -m unittest discover -s tests -p 'test_pdf_content_stream_audit.py' -v
 ## Related font diagnostics
 
 See [PDF font resource audit](PDF_FONT_RESOURCE_AUDIT.md) for the read-only inspection of simple-font encodings, Type 0/CID mappings, widths, embedded font programs and CID-to-GID evidence. This remains diagnostic only and does not enable native PDF rewriting.
+
+
+## PDF text/obstacle rectangle intersection diagnostic
+
+`tests/pdf_layout_overlap.py` provides a small geometry primitive for comparing a text-run rectangle with explicitly supplied obstacle rectangles. It validates finite positive rectangles, computes exact axis-aligned intersection area, treats edge-touching as non-overlap, and returns separate `overlap`, `clear`, `incomplete` and `invalid-input` states. Invalid obstacle geometry is never silently treated as clear.
+
+The unit tests cover disjoint boxes, edge contact, partial and full containment overlap, multiple obstacles, malformed rectangles and fail-closed behavior. CI runs the suite independently.
+
+This is intentionally not a PDF object walker: it does not discover image/table/shape bounds, compose Form XObject or viewport matrices, resolve clipping paths, rotation, transparency, z-order or blend modes. Its inputs must already be transformed into a common page-space coordinate system. A reported intersection is a geometric warning, not proof of visible obstruction. No text is moved and no PDF is rewritten.
