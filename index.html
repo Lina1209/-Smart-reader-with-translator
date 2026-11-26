@@ -408,14 +408,40 @@ async function requestTranslationChunk(text,from,to){
   throw err;
  }finally{clearTimeout(timer);}
 }
-async function translateLongText(source,target,fromOverride,statusId='standaloneStatus'){const from=fromOverride||getSourceLanguage(source,target);if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');const chunks=splitTranslationChunks(source,translationEngine==='mymemory'?450:4000),results=[],progressId=ensureProgressAfterStatus(statusId);setProgress(progressId,0,'Подготовка перевода',chunks.length+' фрагментов · '+source.length.toLocaleString('ru-RU')+' символов');for(let i=0;i<chunks.length;i++){const percent=(i/chunks.length)*100;setProgress(progressId,percent,'Переводим фрагмент '+(i+1)+' из '+chunks.length,'Языковая пара: '+from+' → '+target+' · '+Math.round(percent)+'%');if($(statusId))$(statusId).textContent='Переводим фрагмент '+(i+1)+' из '+chunks.length+'…';try{const chunk=chunks[i];if(!chunk.trim()||from===target){results.push(chunk);}else{const translated=await requestTranslationChunkWithRetry(chunk,from,target,(attempt,wait)=>setProgress(progressId,percent,'Повтор запроса','Временная ошибка. Повтор '+attempt+' через '+(wait/1000)+' сек.')),leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let preserved=translated;if(leading&&!/^\s/.test(preserved))preserved=leading+preserved;if(trailing&&!/\s$/.test(preserved))preserved+=trailing;results.push(preserved);}}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод приостановлен','Готово '+i+' из '+chunks.length+' фрагментов. '+error.message,true);throw error;}if(i<chunks.length-1)await new Promise(resolve=>setTimeout(resolve,350));}setProgress(progressId,100,'Перевод завершён',chunks.length+' из '+chunks.length+' фрагментов готово.',true);return results.join('');}
+async function translateLongText(source,target,fromOverride,statusId='standaloneStatus'){const from=fromOverride||getSourceLanguage(source,target);if(!from)throw new Error('Не удалось определить исходный язык. Выберите его вручную.');const chunks=splitTranslationChunks(source,translationEngine==='mymemory'?450:4000),results=[],progressId=ensureProgressAfterStatus(statusId);setProgress(progressId,0,'Подготовка перевода',chunks.length+' фрагментов · '+source.length.toLocaleString('ru-RU')+' символов');for(let i=0;i<chunks.length;i++){const percent=(i/chunks.length)*100;setProgress(progressId,percent,'Переводим фрагмент '+(i+1)+' из '+chunks.length,'Языковая пара: '+from+' → '+target+' · '+Math.round(percent)+'%');if($(statusId))$(statusId).textContent='Переводим фрагмент '+(i+1)+' из '+chunks.length+'…';try{const chunk=chunks[i];if(!chunk.trim()||from===target){results.push(chunk);}else{const translated=await translateChunkCached(chunk,from,target,progressId,percent),leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let preserved=translated;if(leading&&!/^\s/.test(preserved))preserved=leading+preserved;if(trailing&&!/\s$/.test(preserved))preserved+=trailing;results.push(preserved);}}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод приостановлен','Готово '+i+' из '+chunks.length+' фрагментов. '+error.message,true);throw error;}if(i<chunks.length-1)await new Promise(resolve=>setTimeout(resolve,350));}setProgress(progressId,100,'Перевод завершён',chunks.length+' из '+chunks.length+' фрагментов готово.',true);return results.join('');}
 
 let preserveSourceFile=null,preservedTranslationBlob=null,preservedTranslationName='';
 const preservedTranslationCache=new Map();
+function translationCacheKey(chunk,from,target){
+ const endpoint=translationEngine==='libretranslate'?String($('libreTranslateEndpoint')?.value||'').trim().replace(/\/+$/,''):'mymemory';
+ return [translationEngine,endpoint,from,target,String($('translationGlossary')?.value||''),chunk].join('\u0000');
+}
+async function translateChunkCached(chunk,from,target,progressId,percent){
+ const key=translationCacheKey(chunk,from,target);
+ if(preservedTranslationCache.has(key))return preservedTranslationCache.get(key);
+ const translated=await requestTranslationChunkWithRetry(chunk,from,target,(attempt,wait)=>setProgress(progressId,percent,'Повтор запроса','Временная ошибка. Повтор '+attempt+' через '+(wait/1000)+' сек.'));
+ preservedTranslationCache.set(key,translated);
+ if(preservedTranslationCache.size>1500)preservedTranslationCache.delete(preservedTranslationCache.keys().next().value);
+ return translated;
+}
 async function translatePreservedText(value,from,target,progressId){
  const chunks=splitTranslationChunks(String(value||''),translationEngine==='mymemory'?450:4000),results=[];
  if(from===target)return String(value||'');
- for(let i=0;i<chunks.length;i++){const chunk=chunks[i],percent=100*(i+1)/Math.max(chunks.length,1);setProgress(progressId,percent,'Перевод блока '+(i+1)+' из '+chunks.length,'Сохраняем структуру исходного файла');if(!chunk.trim()){results.push(chunk);continue;}const engineScope=translationEngine==='libretranslate'?String($('libreTranslateEndpoint')?.value||'').trim().replace(/\/+$/,''):'mymemory';const key=[translationEngine,engineScope,from,target,String($('translationGlossary')?.value||''),chunk].join('\u0000'),wasCached=preservedTranslationCache.has(key);try{let translated=preservedTranslationCache.get(key);if(!wasCached){translated=await requestTranslationChunkWithRetry(chunk,from,target,(attempt,wait)=>setProgress(progressId,percent,'Повтор запроса','Временная ошибка. Повтор '+attempt+' через '+(wait/1000)+' сек.'));preservedTranslationCache.set(key,translated);if(preservedTranslationCache.size>1500)preservedTranslationCache.delete(preservedTranslationCache.keys().next().value);}const leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let value=translated;if(leading&&!/^\s/.test(value))value=leading+value;if(trailing&&!/\s$/.test(value))value+=trailing;results.push(value);}catch(error){error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;setProgress(progressId,percent,'Перевод остановлен',i+' из '+chunks.length+' фрагментов выполнено. '+error.message,true);throw error;}if(i<chunks.length-1&&!wasCached)await new Promise(resolve=>setTimeout(resolve,350));}
+ for(let i=0;i<chunks.length;i++){
+  const chunk=chunks[i],percent=100*(i+1)/Math.max(chunks.length,1);
+  setProgress(progressId,percent,'Перевод блока '+(i+1)+' из '+chunks.length,'Сохраняем структуру исходного файла');
+  if(!chunk.trim()){results.push(chunk);continue;}
+  try{
+   const translated=await translateChunkCached(chunk,from,target,progressId,percent);
+   const leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];
+   let value=translated;if(leading&&!/^\s/.test(value))value=leading+value;if(trailing&&!/\s$/.test(value))value+=trailing;
+   results.push(value);
+  }catch(error){
+   error.partialResult=results.join('');error.completedChunks=i;error.totalChunks=chunks.length;
+   setProgress(progressId,percent,'Перевод остановлен',i+' из '+chunks.length+' фрагментов выполнено. '+error.message,true);throw error;
+  }
+  if(i<chunks.length-1)await new Promise(resolve=>setTimeout(resolve,350));
+ }
  return results.join('');
 }
 async function translateDocumentNodeText(value,target,from,progressId){
