@@ -1171,10 +1171,10 @@ async function translatePreservingFile(file,from,target,statusId){
    await translateXmlParagraphs(doc,'p',from,target,progressId,5,80);await translateXmlParagraphs(doc,'h',from,target,progressId,85,10);
    zip.file('content.xml',new XMLSerializer().serializeToString(doc));translatedText=Array.from(doc.getElementsByTagNameNS('*','p')).map(p=>p.textContent||'').join('\n\n');
   }else if(ext==='epub'){
-   const paths=Object.keys(zip.files).filter(p=>/\.(xhtml|html|htm)$/i.test(p)&&!p.startsWith('META-INF/'));
+   const paths=Object.keys(zip.files).filter(p=>/\.(xhtml|html|htm|ncx)$/i.test(p)&&!p.startsWith('META-INF/'));
    if(!paths.length)throw Error('В EPUB не найдены XHTML/HTML главы.');
-   for(let i=0;i<paths.length;i++){const path=paths[i],doc=new DOMParser().parseFromString(await zip.file(path).async('text'),'application/xhtml+xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось разобрать главу '+path);
-    const base=5+80*i/paths.length,span=80/paths.length;for(const tag of ['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'])await translateXmlParagraphs(doc,tag,from,target,progressId,base,span);
+   for(let i=0;i<paths.length;i++){const path=paths[i],isNcx=/\.ncx$/i.test(path),doc=new DOMParser().parseFromString(await zip.file(path).async('text'),isNcx?'application/xml':'application/xhtml+xml');if(doc.getElementsByTagName('parsererror').length)throw Error('Не удалось разобрать главу '+path);
+    const base=5+80*i/paths.length,span=80/paths.length;if(isNcx){await translateXmlParagraphs(doc,'text',from,target,progressId,base,span);}else{for(const tag of ['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'])await translateXmlParagraphs(doc,tag,from,target,progressId,base,span);}
     translatedText+=(doc.body?doc.body.textContent:doc.documentElement.textContent)+'\n\n';
     zip.file(path,new XMLSerializer().serializeToString(doc));
    }
