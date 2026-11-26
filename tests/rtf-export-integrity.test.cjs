@@ -12,7 +12,7 @@ vm.runInContext(html.slice(start,end)+';globalThis.makeRtf=makeRtf;',context);
 const rtf=context.makeRtf('Текст {в скобках} \\ путь\r\nВторая строка\tтабуляция 😀');
 assert.ok(rtf.startsWith('{\\rtf1\\ansi\\deff0\\uc1'),'RTF document header must be present');
 assert.ok(rtf.includes('\\u1058?'),'Cyrillic must be encoded as RTF Unicode');
-assert.ok(rtf.includes('\\\\{\\\\u1074?')&&rtf.includes('\\\\u1093?\\\\}'),'Braces must be escaped around Unicode text');
+assert.ok(rtf.includes('\\{\\u1074?')&&rtf.includes('\\u1093?\\}'),'Braces must be escaped around Unicode text');
 assert.ok(rtf.includes('\\\\ путь'),'Backslashes must be escaped');
 assert.ok(rtf.includes('\\par\nВторая строка'),'CRLF must become one RTF paragraph break');
 assert.ok(rtf.includes('\\tab табуляция'),'Tabs must use the RTF tab control');
