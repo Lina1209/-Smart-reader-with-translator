@@ -1296,7 +1296,7 @@ async function validateGeneratedDocumentArchive(blob,ext,JSZip){
   requireParts(['mimetype','META-INF/container.xml']);
   if(entries[0]!=='mimetype')throw Error('В EPUB файл mimetype должен быть первым элементом архива.');
   const mimetypeCompression=archive.files.mimetype&&archive.files.mimetype._data&&archive.files.mimetype._data.compression&&archive.files.mimetype._data.compression.magic;
-  if(mimetypeCompression!=='\\x00\\x00')throw Error('Файл mimetype в EPUB должен храниться без сжатия.');
+  if(mimetypeCompression!=='\x00\x00')throw Error('Файл mimetype в EPUB должен храниться без сжатия.');
   if(!entries.some(path=>/\.opf$/i.test(path))||!entries.some(path=>/\.(xhtml|html|htm)$/i.test(path)))throw Error('В собранном EPUB отсутствует пакетная OPF-структура или глава.');
   const value=await archive.file('mimetype').async('text');if(value.trim()!=='application/epub+zip')throw Error('В собранном EPUB указан неверный MIME-тип.');
  }
