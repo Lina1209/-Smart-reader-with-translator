@@ -1239,6 +1239,14 @@ function isDocxVisibleTextNode(node){
  while(parent){
   const ancestorTag=String(parent.localName||parent.nodeName||'').toLowerCase();
   if(['del','movefrom','instrtext','deltext','fldsimple'].includes(ancestorTag))return false;
+  // A complex Word field can store its computed result in ordinary w:t nodes
+  // between fldChar(separate) and fldChar(end). Skip the entire paragraph
+  // when field markers are present so page numbers, TOCs and field results
+  // are not overwritten by a translation.
+  if(ancestorTag==='p'&&typeof parent.getElementsByTagNameNS==='function'){
+   const fieldMarkers=parent.getElementsByTagNameNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','fldChar');
+   if(fieldMarkers&&fieldMarkers.length)return false;
+  }
   parent=parent.parentElement;
  }
  return true;
