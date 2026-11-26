@@ -49,9 +49,9 @@ GitHub Actions generates temporary PDF files with ReportLab and inspects them wi
 - an embedded subset TrueType page containing Russian, all tested Kazakh-specific letters and accented Latin;
 - a predefined Type0/CID page using `UniJIS-UCS2-H`;
 - a hand-built Type0/CIDFontType2 page using `Identity-H`, an embedded TrueType font, a `ToUnicode` CMap, explicit widths and a binary `CIDToGIDMap`;
-- a page combining selectable table text, vector rules and a rotated text run.
+- a page combining selectable table text, vector rules and a rotated text run;\n- a separate text page with a `TJ` kerning array and non-default character spacing, word spacing, horizontal scaling and text rise.
 
-The tests inspect the font resources actually selected by each page's `Tf` operators, embedded font programs, the explicit Kazakh Unicode mappings, Type0 descendant fonts, CID widths, CID-to-glyph mapping bytes, extracted text and content-stream operators. This avoids treating unused font entries in a shared ReportLab resource dictionary as fonts used by a page.
+The tests inspect the font resources actually selected by each page's `Tf` operators, embedded font programs, the explicit Kazakh Unicode mappings, Type0 descendant fonts, CID widths, CID-to-glyph mapping bytes, `TJ` array members and text-state operators, extracted text and content-stream operators. This avoids treating unused font entries in a shared ReportLab resource dictionary as fonts used by a page.
 
 The ReportLab Type0 fixture uses a predefined Japanese Unicode CMap and a CIDFontType0 descendant with explicit widths. A second hand-built PDF fixture exercises Identity-H, an embedded CIDFontType2 TrueType program, a ToUnicode mapping and a binary CIDToGIDMap stream. The latter validates one known CID-to-glyph mapping; it is not a broad font-shaping or rendering test.
 
