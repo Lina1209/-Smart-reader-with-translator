@@ -43,16 +43,19 @@ The adapter must re-open each output with PDF.js and verify that the old text is
 
 ## Real PDF fixture gate
 
-GitHub Actions also generates temporary PDF files with ReportLab and inspects them with pypdf. The fixtures cover:
+GitHub Actions generates temporary PDF files with ReportLab and inspects them with pypdf. The fixtures cover:
 
 - a simple Type1 / WinAnsi page;
-- an embedded subset TrueType page containing Russian, Kazakh-specific letters and accented Latin;
-- a predefined Type0/CID page using `UniJIS-UCS2-H`;\n- a hand-built Type0/CIDFontType2 page using `Identity-H`, an embedded TrueType font, a `ToUnicode` CMap, explicit widths and a binary `CIDToGIDMap`;
+- an embedded subset TrueType page containing Russian, all tested Kazakh-specific letters and accented Latin;
+- a predefined Type0/CID page using `UniJIS-UCS2-H`;
+- a hand-built Type0/CIDFontType2 page using `Identity-H`, an embedded TrueType font, a `ToUnicode` CMap, explicit widths and a binary `CIDToGIDMap`;
 - a page combining selectable table text, vector rules and a rotated text run.
 
-The tests inspect actual PDF font dictionaries, embedded font programs, extracted text and content-stream operators. The PDF files are generated during CI and are not committed as binary fixtures.
+The tests inspect the font resources actually selected by each page's `Tf` operators, embedded font programs, the explicit Kazakh Unicode mappings, Type0 descendant fonts, CID widths, CID-to-glyph mapping bytes, extracted text and content-stream operators. This avoids treating unused font entries in a shared ReportLab resource dictionary as fonts used by a page.
 
-This is a real-PDF parsing and fixture-validation step, not a text-rewrite test. It does not yet use PDF.js, replace text operators, or prove visual equivalence after translation. No production PDF pipeline is connected to this prototype.
+The ReportLab Type0 fixture uses a predefined Japanese Unicode CMap and a CIDFontType0 descendant with explicit widths. A second hand-built PDF fixture exercises Identity-H, an embedded CIDFontType2 TrueType program, a ToUnicode mapping and a binary CIDToGIDMap stream. The latter validates one known CID-to-glyph mapping; it is not a broad font-shaping or rendering test.
+
+The PDF files are generated during CI and are not committed as binary fixtures. This is a real-PDF parsing and fixture-validation step, not a text-rewrite test. It does not yet use PDF.js, replace text operators, or prove visual equivalence after translation. No production PDF pipeline is connected to this prototype.
 
 ## PDF.js text geometry adapter
 
