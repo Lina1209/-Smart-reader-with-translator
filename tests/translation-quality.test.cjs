@@ -164,7 +164,7 @@ const pdfPipeline=html.slice(pdfPipelineStart,pdfPipelineEnd);
 if(!pdfPipeline.includes('try{const ctx=canvas.getContext')||!pdfPipeline.includes('finally{try{page.cleanup();}catch(e){}canvas.width=canvas.height=0;}'))throw new Error('PDF page canvas is not released in a per-page finally block');
 if(!pdfPipeline.includes('if(ocrWorker)await ocrWorker.terminate()'))throw new Error('Shared OCR worker is not terminated in the outer finally block');
 const imagePipelineStart=html.indexOf('async function translateImagePreservingFile(');
-const imagePipelineEnd=html.indexOf('\nfunction pdfTextItemsToPlainText',imagePipelineStart);
+const imagePipelineEnd=html.indexOf('function pdfTextItemsToPlainText',imagePipelineStart);
 if(imagePipelineStart<0||imagePipelineEnd<0)throw new Error('Image OCR pipeline not found for resource-lifecycle test');
 const imagePipeline=html.slice(imagePipelineStart,imagePipelineEnd);
 if(!imagePipeline.includes('try{const ocr=await recognizeImageCanvas')||!imagePipeline.includes('finally{canvas.width=canvas.height=0;}'))throw new Error('Image OCR canvas is not released in a finally block');
