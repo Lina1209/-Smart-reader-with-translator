@@ -200,6 +200,19 @@ if(safeOcrScaleUnderTest({width:10000,height:10000},1.5,16000000)>0.400001)throw
 
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
 
+const boundedStart=html.indexOf('function createBoundedOcrCanvas('),boundedEnd=html.indexOf('async function recognizeImageCanvas(',boundedStart);
+if(boundedStart<0||boundedEnd<0)throw new Error('Bounded OCR input helper not found');
+const boundedHelpers=vm.runInNewContext(html.slice(boundedStart,boundedEnd)+'; ({createBoundedOcrCanvas,restoreBoundedOcrBoxes})',{
+ document:{createElement:()=>({width:0,height:0,getContext:()=>({drawImage(){}})})}
+});
+const boundedSource={width:8000,height:6000},bounded=boundedHelpers.createBoundedOcrCanvas(boundedSource,16000000);
+if(!bounded.owned||bounded.canvas.width*bounded.canvas.height>16000000||bounded.scaleX>=1||bounded.scaleY>=1)throw new Error('Large source images must be downscaled before the first OCR pass');
+const restored=boundedHelpers.restoreBoundedOcrBoxes({lines:[{bbox:{x0:10,y0:20,x1:30,y1:40}}]},bounded.scaleX,bounded.scaleY).lines[0].bbox;
+if(Math.abs(restored.x0-10/bounded.scaleX)>.001||Math.abs(restored.y1-40/bounded.scaleY)>.001)throw new Error('OCR bounding boxes were not mapped back to original image coordinates');
+const ordinary=boundedHelpers.createBoundedOcrCanvas({width:1000,height:1000},16000000);
+if(ordinary.owned||ordinary.canvas.width!==1000)throw new Error('Small images should not be copied unnecessarily');
+if(!html.includes('createBoundedOcrCanvas(canvas)')||!html.includes('restoreBoundedOcrBoxes(best,boundedInput.scaleX,boundedInput.scaleY)'))throw new Error('Bounded OCR input is not connected to recognition and source-coordinate restoration');
+
 const workerStart=html.indexOf('async function createOcrWorker('),workerEnd=html.indexOf('\nfunction ocrLanguageForCode',workerStart);
 if(workerStart<0||workerEnd<0)throw new Error('OCR worker fallback helper not found');
 const workerFactory=vm.runInNewContext(html.slice(workerStart,workerEnd)+'; createOcrWorker');
