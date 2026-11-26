@@ -34,7 +34,7 @@ def inspect_truetype_glyph(font_program, gid, max_component_depth=16, max_compon
 
         glyph_name = order[gid]
         glyph_table = font["glyf"]
-        visited = set()
+        active = set()
         component_count = 0
         errors = []
 
@@ -43,25 +43,26 @@ def inspect_truetype_glyph(font_program, gid, max_component_depth=16, max_compon
             if depth > max_component_depth:
                 errors.append("composite-depth-limit")
                 return
-            if name in visited:
-                errors.append("composite-cycle-or-repeated-component")
+            if name in active:
+                errors.append("composite-cycle")
                 return
             if name not in glyph_table:
                 errors.append("missing-component-glyph:" + name)
                 return
-            visited.add(name)
-            glyph = glyph_table[name]
-            contours = getattr(glyph, "numberOfContours", 0)
-            if contours == 0:
-                return
-            if contours > 0:
-                return
-            for component in getattr(glyph, "components", []):
-                component_count += 1
-                if component_count > max_components:
-                    errors.append("composite-component-limit")
+            active.add(name)
+            try:
+                glyph = glyph_table[name]
+                contours = getattr(glyph, "numberOfContours", 0)
+                if contours >= 0:
                     return
-                inspect(component.glyphName, depth + 1)
+                for component in getattr(glyph, "components", []):
+                    component_count += 1
+                    if component_count > max_components:
+                        errors.append("composite-component-limit")
+                        return
+                    inspect(component.glyphName, depth + 1)
+            finally:
+                active.remove(name)
 
         inspect(glyph_name, 0)
         glyph = glyph_table[glyph_name]
