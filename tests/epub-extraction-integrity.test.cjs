@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const start=html.indexOf("if(name.endsWith('.epub')||type.includes('epub'))");
+const end=html.indexOf("if(name.endsWith('.png')",start);
+assert.ok(start>=0&&end>start,'EPUB extraction branch must exist');
+const source=html.slice(start,end);
+assert.ok(source.includes("catch(err){if(!isCurrent())throw err;throw Error('Не удалось прочитать главу EPUB '"),'A failed EPUB spine chapter must stop extraction with a useful error instead of silently skipping content');
+assert.ok(!source.includes("console.warn('Пропущен раздел EPUB:'"),'EPUB extraction must not silently omit a failed chapter');
+assert.ok(source.includes("finally{try{epub.destroy()}catch(e){}}"),'EPUB resources must still be released when a chapter fails');
+console.log('EPUB extraction integrity tests passed: failed spine chapters are reported and EPUB resources are released.');
