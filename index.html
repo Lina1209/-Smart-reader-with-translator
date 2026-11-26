@@ -851,22 +851,25 @@ async function translateDocumentNodeText(value,target,from,progressId){
 function distributeTranslationAcrossRuns(translated,texts){
  const value=String(translated??'');
  if(!texts.length)return;
- if(texts.length===1){texts[0].nodeValue=value;return;}
+ const active=texts.map((node,index)=>({node,index})).filter(item=>String(item.node.nodeValue||'').trim());
+ if(!active.length)return;
+ texts.forEach(node=>{node.nodeValue='';});
+ if(active.length===1){active[0].node.nodeValue=value;return;}
  const leading=(value.match(/^\s*/u)||[''])[0],trailing=(value.match(/\s*$/u)||[''])[0];
  const core=value.slice(leading.length,value.length-trailing.length);
- if(!core){texts[0].nodeValue=value;for(let i=1;i<texts.length;i++)texts[i].nodeValue='';return;}
+ if(!core){active[0].node.nodeValue=value;return;}
  const tokens=core.match(/\S+(?:\s+|$)/gu)||[];
- const weights=texts.map(node=>Math.max(1,String(node.nodeValue||'').trim().length));
+ const weights=active.map(item=>Math.max(1,String(item.node.nodeValue||'').trim().length));
  const total=weights.reduce((sum,n)=>sum+n,0),assigned=[];
  let cursor=0,weightBefore=0;
- for(let i=0;i<texts.length;i++){
+ for(let i=0;i<active.length;i++){
   weightBefore+=weights[i];
-  const finish=i===texts.length-1?tokens.length:Math.round(tokens.length*weightBefore/total);
+  const finish=i===active.length-1?tokens.length:Math.round(tokens.length*weightBefore/total);
   assigned.push(tokens.slice(cursor,finish).join(''));cursor=finish;
  }
- texts[0].nodeValue=leading+assigned[0];
- for(let i=1;i<texts.length;i++)texts[i].nodeValue=assigned[i];
- texts[texts.length-1].nodeValue+=(trailing||'');
+ active[0].node.nodeValue=leading+assigned[0];
+ for(let i=1;i<active.length;i++)active[i].node.nodeValue=assigned[i];
+ active[active.length-1].node.nodeValue+=(trailing||'');
 }
 function xmlTextNodes(el,ns,tag){
  const nodes=Array.from(el.getElementsByTagNameNS(ns,tag)).flatMap(n=>Array.from(n.childNodes).filter(c=>c.nodeType===3));
@@ -877,8 +880,8 @@ async function translateXmlParagraphs(doc,selector,from,target,progressId,progre
  let count=0;
  for(const block of blocks){
   const texts=[];const walker=doc.createTreeWalker(block,NodeFilter.SHOW_TEXT);
-  while(walker.nextNode()){const n=walker.currentNode;if(n.nodeValue&&n.nodeValue.trim())texts.push(n);}
-  if(!texts.length)continue;
+  while(walker.nextNode()){const n=walker.currentNode;if(n.nodeValue)texts.push(n);}
+  if(!texts.some(n=>String(n.nodeValue||'').trim()))continue;
   if(selector!=='p'&&(block.getElementsByTagNameNS('*','p').length||block.getElementsByTagNameNS('*',selector).length))continue;
   const source=texts.map(n=>n.nodeValue).join('');
   const translated=await translateDocumentNodeText(source,target,from,progressId);
