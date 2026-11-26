@@ -475,7 +475,7 @@ if(noPage.accepted)throw new Error('A compact text-like cluster must not be acce
 if(!html.includes('previewOnly:true')||!html.includes("reason:'no-reliable-page-boundary'"))throw new Error('Page detection must remain preview-only and reject uncertain candidates');
 
 
-if(!html.includes('async function openPdfScanPreview(file,ext)')||!html.includes('page.getTextContent()')||!html.includes('Math.min(3,pdf.numPages)'))throw new Error('PDF scan preview must distinguish scanned PDFs from PDFs with a text layer');
+if(!html.includes('async function openPdfScanPreview(file,ext,openToken)')||!html.includes('page.getTextContent()')||!html.includes('Math.min(3,pdf.numPages)'))throw new Error('PDF scan preview must distinguish scanned PDFs from PDFs with a text layer');
 if(!html.includes('async function loadPdfScanPage(pageNo)')||!html.includes('createSafePdfViewport(page,1.4)')||!html.includes('state.pageCount'))throw new Error('Scanned PDF preview must render one bounded page at a time and track page count');
 if(!html.includes('scanPreview?.pdfDocument')||!html.includes('loadPdfScanPage(next)'))throw new Error('Scanned PDF previous/next navigation is not connected to the page viewer');
 if(!html.includes('state.page.cleanup()')||!html.includes('preview.pdfLoadingTask.destroy()')||!html.includes('releaseScanPreview();$(\'scanPreviewBox\').style.display=\'none\''))throw new Error('PDF preview must release page/canvas/document resources when changing or closing files');
