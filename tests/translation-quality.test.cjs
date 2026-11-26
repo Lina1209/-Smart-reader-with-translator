@@ -115,7 +115,7 @@ const richRunCalls=xlsxSource.split('distributeTranslationAcrossRuns(trans,textN
 if(richRunCalls!==2)throw new Error('XLSX shared and inline rich-text runs must both retain their original run structure');
 if(!xlsxSource.includes("nodes.flatMap(node=>Array.from(node.childNodes).filter(child=>child.nodeType===3))"))throw new Error('XLSX shared strings must collect all rich text nodes before translation');
 if(!xlsxSource.includes("cell.getElementsByTagNameNS('*','t')"))throw new Error('XLSX inline strings must preserve all text runs in each cell');
-if(!html.includes("translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/slides.length,80/slides.length)"))throw new Error('PPTX progress updates must use the active translator progress panel');
+if(!html.includes("translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/contentPaths.length,80/Math.max(contentPaths.length,1))"))throw new Error('PPTX slide and auxiliary text translation must update the active progress panel');
 const pdfStart=html.indexOf('function pdfTextItemsToPlainText(');
 const pdfEnd=html.indexOf('\n}',pdfStart);
 if(pdfStart<0||pdfEnd<0)throw new Error('PDF text extraction helper not found');
