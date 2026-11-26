@@ -223,3 +223,26 @@ def audit_font_dictionary(font):
         result["font_program_embedded"] = bool(result["font_program_keys"])
 
     return result
+
+
+
+def lookup_cid_to_gid(mapping, cid, descendant_subtype="/CIDFontType2"):
+    """Resolve one CIDToGIDMap entry; return a GID only from explicit evidence."""
+    if descendant_subtype != "/CIDFontType2":
+        return {"status": "not-applicable", "gid": None, "source": None}
+    if not isinstance(cid, int) or cid < 0 or cid > 0xFFFF:
+        return {"status": "invalid-cid", "gid": None, "source": None}
+    if mapping is None:
+        return {"status": "identity-default", "gid": cid, "source": "PDF default"}
+    if _name(mapping) == "/Identity":
+        return {"status": "identity", "gid": cid, "source": "/Identity"}
+    data = _stream_bytes(mapping) if not isinstance(mapping, (bytes, bytearray)) else bytes(mapping)
+    if not data:
+        return {"status": "empty-or-unreadable", "gid": None, "source": "CIDToGIDMap stream"}
+    if len(data) % 2:
+        return {"status": "malformed-odd-length", "gid": None, "source": "CIDToGIDMap stream"}
+    offset = cid * 2
+    if offset + 2 > len(data):
+        return {"status": "cid-out-of-range", "gid": None, "source": "CIDToGIDMap stream"}
+    gid = int.from_bytes(data[offset:offset + 2], "big")
+    return {"status": "explicit", "gid": gid, "source": "CIDToGIDMap stream"}
