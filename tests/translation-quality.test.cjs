@@ -197,6 +197,8 @@ const pdfLoop=html.slice(html.indexOf('async function translatePdfPreservingFile
 if(!pdfLoop.includes("loading=pdfjs.getDocument({data:pdfBytes});let sourcePdf=null,outPdf=null,sourcePdfForCopy=null;"))throw new Error('PDF reconstruction must declare cleanup state before parsing');
 if(!pdfLoop.includes("sourcePdf=await loading.promise;\n  outPdf=await PDFLib.PDFDocument.create();"))throw new Error('PDF reconstruction must protect document loading and output creation with cleanup');
 if(!pdfLoop.includes("if(sourcePdf)await sourcePdf.cleanup();}catch(e){}try{await loading.destroy();}"))throw new Error('PDF reconstruction must clean up even when PDF parsing fails');
+if(!pdfLoop.includes("catch(error){try{page.cleanup();}catch(cleanupError){}throw error;}"))throw new Error('PDF pages must be released when text or operator inspection fails');
+if(!pdfLoop.includes("}finally{try{page.cleanup();}catch(cleanupError){}}"))throw new Error('Copied native PDF pages must be released even when page copying fails');
 const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
 if(!imageLoop.includes('detectPageQuadFromCanvas(canvas)')||!imageLoop.includes('rectifyPageCanvas(canvas,detected.points,6000000,3000)'))throw new Error('Photographed document images must attempt bounded perspective rectification before OCR');
 if(!imageLoop.includes('recognizeImageCanvas(ocrInput')||!imageLoop.includes('mapRectifiedOcrDataToSource(ocr,rectification.outputToSource)'))throw new Error('Rectified image OCR boxes must be mapped back to original image coordinates before replacement');
