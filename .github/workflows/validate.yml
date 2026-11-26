@@ -46,6 +46,8 @@ jobs:
           PY
           for file in /tmp/readtranslate-*.js; do node --check "$file"; done
           node --check tts.js
+      - name: Test translation chunk boundaries and Unicode preservation
+        run: node tests/translation-chunks.test.cjs
       - name: Check HTML IDs and referenced elements
         run: |
           python3 - <<'PY'
