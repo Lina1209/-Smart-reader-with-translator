@@ -735,5 +735,7 @@ if(!officeWriter.includes('const chartPaths=Object.keys(zip.files)')||!officeWri
 if(!officeWriter.includes('getPptxTranslatableContentPaths(Object.keys(zip.files))'))throw new Error('PPTX export must use the shared slide and auxiliary-content path selector');
 if(!officeWriter.includes('const contentPaths=getPptxTranslatableContentPaths(Object.keys(zip.files))'))throw new Error('PPTX slide and auxiliary text parts must be processed together');
 
-for(const notice of ['ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки','заметки докладчика','подписи из кэшей диаграмм','встроенные объекты и редкие элементы Word'])if(!officeWriter.includes(notice))throw new Error('Office export must disclose incomplete text/layout coverage: '+notice);
+for(const notice of ['ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки','заметки докладчика','встроенные объекты и редкие элементы Word'])if(!officeWriter.includes(notice))throw new Error('Office export must disclose incomplete text/layout coverage: '+notice);
+if(!officeWriter.includes('translateXlsxChartStringCaches(doc,from,target,progressId)'))throw new Error('Excel chart string caches must be translated in addition to rich-text chart titles');
+if(officeWriter.includes('подписи из кэшей диаграмм'))throw new Error('Translated Excel chart caches must not be listed as untranslated content');
 if(!officeWriter.includes(String.raw`layoutNotice?'\n\n'+layoutNotice`))throw new Error('Office export coverage notice must be separated from translated text');
