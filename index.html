@@ -831,13 +831,16 @@ async function translatePdfPreservingFile(file,from,target,progressId){
   for(let pageNo=1;pageNo<=sourcePdf.numPages;pageNo++){
    activePage=pageNo;setProgress(progressId,100*(pageNo-1)/sourcePdf.numPages,'Обрабатываем PDF-страницу',pageNo+' из '+sourcePdf.numPages);
    const page=await sourcePdf.getPage(pageNo);
-   const pageText=await page.getTextContent(),pageOperators=await page.getOperatorList(),pageKind=classifyPdfPageContent(pageText,pageOperators,pdfjs.OPS);
+   let pageText,pageOperators,pageKind;
+   try{pageText=await page.getTextContent();pageOperators=await page.getOperatorList();pageKind=classifyPdfPageContent(pageText,pageOperators,pdfjs.OPS);}catch(error){try{page.cleanup();}catch(cleanupError){}throw error;}
    if(pageKind.kind==='mixed')pageWarnings.push('Страница '+pageNo+': обнаружены одновременно изображения и текстовый слой; страница направлена на OCR-перевод. При сборке она станет растровой, поэтому исходные векторные элементы и выделяемый текстовый слой не сохранятся.');
    if(shouldPreserveOriginalPdfPage(pageKind)){
     if(sourcePdfForCopy){
-     const copiedPages=await outPdf.copyPages(sourcePdfForCopy,[pageNo-1]);outPdf.addPage(copiedPages[0]);preservedNativePages++;
-     pageWarnings.push('Страница '+pageNo+': исходная PDF-страница сохранена без растеризации ('+pageKind.kind+'); текст не переведён, чтобы не повредить шрифты, графику и текстовый слой.');
-     page.cleanup();setProgress(progressId,100*pageNo/sourcePdf.numPages,'Сохраняем исходную PDF-страницу',pageNo+' из '+sourcePdf.numPages);continue;
+     try{
+      const copiedPages=await outPdf.copyPages(sourcePdfForCopy,[pageNo-1]);outPdf.addPage(copiedPages[0]);preservedNativePages++;
+      pageWarnings.push('Страница '+pageNo+': исходная PDF-страница сохранена без растеризации ('+pageKind.kind+'); текст не переведён, чтобы не повредить шрифты, графику и текстовый слой.');
+      setProgress(progressId,100*pageNo/sourcePdf.numPages,'Сохраняем исходную PDF-страницу',pageNo+' из '+sourcePdf.numPages);continue;
+     }finally{try{page.cleanup();}catch(cleanupError){}}
     }
     pageWarnings.push('Страница '+pageNo+': обнаружено содержимое '+pageKind.kind+', но исходную страницу нельзя безопасно скопировать; для предотвращения потери содержимого применена растровая реконструкция.');
    }
