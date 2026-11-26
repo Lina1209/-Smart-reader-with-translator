@@ -213,7 +213,7 @@ async function extractOdtText(file){const JSZip=await ensureZipLibrary();const z
 let readerFullText='',readerPages=[],readerPageOffsets=[],readerPageIndex=0,epubNavigationBusy=false,epubPageState={page:0,total:0};
 function paginateReaderText(value){
  const previousOffset=readerPageOffsets[readerPageIndex]??0;readerFullText=String(value||'');if(!readerFullText.trim()){readerPages=[];readerPageOffsets=[];readerPageIndex=0;renderReaderPage();return;}
- const width=Math.max(240,textViewer.clientWidth||Math.min(760,window.innerWidth-32)),height=Math.max(320,textViewer.clientHeight||Math.min(window.innerHeight*.72,900));
+ const width=Math.max(1,textViewer.clientWidth||Math.min(760,Math.max(1,window.innerWidth-32))),height=Math.max(1,textViewer.clientHeight||Math.min(window.innerHeight*.72,900));
  const measure=document.createElement('div');measure.className='page';measure.style.cssText='position:fixed;left:-10000px;top:0;width:'+width+'px;height:'+height+'px;max-height:none;min-height:0;overflow:hidden;font-size:'+fontSize+'px;visibility:hidden;';
  document.body.appendChild(measure);
  try{
