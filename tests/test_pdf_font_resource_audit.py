@@ -6,7 +6,7 @@ from pypdf import PdfReader
 from pypdf.generic import DictionaryObject, NameObject, NumberObject, ArrayObject
 
 from pdf_font_resource_audit import (
-    audit_font_dictionary, lookup_cid_width, lookup_simple_width,
+    audit_font_dictionary, lookup_cid_width, lookup_cid_to_gid, lookup_simple_width,
 )
 from generate_pdf_fixtures import build_fixtures
 from test_pdf_real_fixtures import add_identity_h_cidfonttype2_fixture, used_page_fonts
@@ -112,6 +112,35 @@ class PdfFontResourceAuditTests(unittest.TestCase):
         self.assertEqual(lookup_simple_width(font, 33)["status"], "unknown")
         self.assertFalse(report["rewrite_ready"])
 
+
+
+    def test_cid_to_gid_identity_default_and_explicit_mapping(self):
+        self.assertEqual(
+            lookup_cid_to_gid(None, 12),
+            {"status": "identity-default", "gid": 12, "source": "PDF default"},
+        )
+        self.assertEqual(
+            lookup_cid_to_gid("/Identity", 12),
+            {"status": "identity", "gid": 12, "source": "/Identity"},
+        )
+        mapping = bytes([0, 0, 0, 36, 0, 91])
+        self.assertEqual(
+            lookup_cid_to_gid(mapping, 1),
+            {"status": "explicit", "gid": 36, "source": "CIDToGIDMap stream"},
+        )
+        self.assertEqual(lookup_cid_to_gid(mapping, 2)["gid"], 91)
+
+    def test_cid_to_gid_rejects_odd_stream_and_out_of_range_cid(self):
+        self.assertEqual(lookup_cid_to_gid(b"\x00\x01\x00", 0)["status"], "malformed-odd-length")
+        self.assertEqual(lookup_cid_to_gid(b"\x00\x01", 1)["status"], "cid-out-of-range")
+
+    def test_cid_to_gid_rejects_invalid_cid_and_non_type2_descendant(self):
+        self.assertEqual(lookup_cid_to_gid(b"\x00\x01", -1)["status"], "invalid-cid")
+        self.assertEqual(lookup_cid_to_gid(b"\x00\x01", 65536)["status"], "invalid-cid")
+        self.assertEqual(
+            lookup_cid_to_gid(b"\x00\x01", 0, "/CIDFontType0")["status"],
+            "not-applicable",
+        )
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
