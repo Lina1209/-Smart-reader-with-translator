@@ -37,7 +37,7 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
  assert.equal(getPageCalls,1,'a second page request must not race an active render');
  pending.resolve(page);await first;
  assert.equal(state.pageIndex,1);assert.equal(state.pageLoading,false);assert.equal(state.page,page);
- assert.deepEqual(context.sliderSync,{current:2,total:3},'PDF preview must synchronize the slider with the actual source page count');
+ assert.equal(elements.sliderSync?.current,2,'PDF preview must synchronize the slider to the current source page');assert.equal(elements.sliderSync?.total,3,'PDF preview must synchronize the slider to the actual source page count');
  assert.equal(elements.prevBtn.disabled,true);assert.equal(elements.nextBtn.disabled,false);
  assert.equal(cleanups,0,'successfully displayed page must remain owned by the preview');
  const failure=new Error('fixture render unavailable');
