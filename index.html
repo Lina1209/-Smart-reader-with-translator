@@ -484,8 +484,6 @@ async function translateXmlParagraphs(doc,selector,from,target,progressId,progre
   const translated=await translateDocumentNodeText(source,target,from,progressId);
   // Distribute the translated words over existing text runs to retain their styling.
   distributeTranslationAcrossRuns(translated,texts);
-   texts[0].nodeValue=leading+assigned[0];for(let k=1;k<texts.length;k++)texts[k].nodeValue=assigned[k];texts[texts.length-1].nodeValue+=(trailing||'');
-  }
   count++;if(count%5===0)setProgress(progressId,progressBase+progressSpan*Math.min(count/Math.max(blocks.length,1),1),'Сохраняем структуру',count+' блоков обработано');
  }
  return count;
