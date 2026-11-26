@@ -115,6 +115,19 @@ const overflow=draw(mockContext,'abcdefghijklmnopqrst',0,0,10,5,'en');
 if(!overflow||overflow.overflow!==true||overflow.lineCount<2)throw new Error('OCR translation overflow was not detected for a box that cannot contain the translated text');
 const fit=draw(mockContext,'OK',0,0,100,30,'en');
 if(!fit||fit.overflow!==false)throw new Error('OCR translation helper incorrectly flagged a text that fits its source box');
+let paintCalls=0;
+const dryContext={...mockContext,fillText(){paintCalls++;}};
+const dryFit=draw(dryContext,'Translated',0,0,100,30,'en',{paint:false});
+if(!dryFit.fits||paintCalls!==0)throw new Error('OCR preflight must measure translated text without painting it');
+draw(dryContext,'Translated',0,0,100,30,'en',{paint:true});
+if(paintCalls===0)throw new Error('OCR final render must paint after a successful fit check');
+const pdfLoop=html.slice(html.indexOf('async function translatePdfPreservingFile'),html.indexOf('async function translateImagePreservingFile'));
+const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
+for(const [name,source] of [['PDF',pdfLoop],['image',imageLoop]]){
+ const preflight=source.indexOf('paint:false'),background=source.indexOf('estimateSafeBackgroundFill'),paint=source.indexOf('paint:true');
+ if(preflight<0||background<0||paint<0||!(preflight<background&&background<paint))throw new Error(name+' OCR replacement must preflight fit before clearing the original background');
+ if(!source.includes('исходный текст сохранён без перезаписи'))throw new Error(name+' OCR overflow must preserve original source text and warn the user');
+}
 if(!html.includes('ВНИМАНИЕ ВЁРСТКА:')||!html.includes('layoutWarnings.push'))throw new Error('OCR layout-overflow warnings are not surfaced to users');
 
 
