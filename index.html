@@ -314,7 +314,7 @@ let preserveSourceFile=null,preservedTranslationBlob=null,preservedTranslationNa
 async function translatePreservedText(value,from,target,progressId){
  const chunks=splitTranslationChunks(String(value||''),450),results=[];
  if(from===target)return String(value||'');
- for(let i=0;i<chunks.length;i++){const chunk=chunks[i],percent=100*(i+1)/Math.max(chunks.length,1);setProgress(progressId,percent,'Перевод блока '+(i+1)+' из '+chunks.length,'Сохраняем структуру исходного файла');if(!chunk.trim()){results.push(chunk);continue;}try{const translated=await requestTranslationChunk(chunk,from,target),leading=(chunk.match(/^\\s*/)||[''])[0],trailing=(chunk.match(/\\s*$/)||[''])[0];let value=translated;if(leading&&!/^\\s/.test(value))value=leading+value;if(trailing&&!/\\s$/.test(value))value+=trailing;results.push(value);}catch(error){error.partialResult=results.join('');throw error;}}
+ for(let i=0;i<chunks.length;i++){const chunk=chunks[i],percent=100*(i+1)/Math.max(chunks.length,1);setProgress(progressId,percent,'Перевод блока '+(i+1)+' из '+chunks.length,'Сохраняем структуру исходного файла');if(!chunk.trim()){results.push(chunk);continue;}try{const translated=await requestTranslationChunk(chunk,from,target),leading=(chunk.match(/^\s*/)||[''])[0],trailing=(chunk.match(/\s*$/)||[''])[0];let value=translated;if(leading&&!/^\s/.test(value))value=leading+value;if(trailing&&!/\s$/.test(value))value+=trailing;results.push(value);}catch(error){error.partialResult=results.join('');throw error;}}
  return results.join('');
 }
 async function translateDocumentNodeText(value,target,from,progressId){
