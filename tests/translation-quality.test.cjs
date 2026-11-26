@@ -198,6 +198,8 @@ if(!pdfLoop.includes("loading=pdfjs.getDocument({data:pdfBytes});let sourcePdf=n
 if(!pdfLoop.includes("sourcePdf=await loading.promise;\n  outPdf=await PDFLib.PDFDocument.create();"))throw new Error('PDF reconstruction must protect document loading and output creation with cleanup');
 if(!pdfLoop.includes("if(sourcePdf)await sourcePdf.cleanup();}catch(e){}try{await loading.destroy();}"))throw new Error('PDF reconstruction must clean up even when PDF parsing fails');
 if(!pdfLoop.includes("catch(error){try{page.cleanup();}catch(cleanupError){}throw error;}"))throw new Error('PDF pages must be released when text or operator inspection fails');
+if(!pdfLoop.includes("let viewport=null,canvas=null,rectifiedCanvas=null;\n   try{\n    viewport=createSafePdfViewport(page,2.0,16000000);canvas=document.createElement('canvas');"))throw new Error('PDF page resources must be protected if viewport creation or canvas allocation fails');
+if(!pdfLoop.includes("if(canvas){canvas.width=canvas.height=0;}"))throw new Error('PDF page canvas cleanup must tolerate viewport or allocation failures');
 if(!pdfLoop.includes("}finally{try{page.cleanup();}catch(cleanupError){}}"))throw new Error('Copied native PDF pages must be released even when page copying fails');
 const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
 if(!imageLoop.includes('detectPageQuadFromCanvas(canvas)')||!imageLoop.includes('rectifyPageCanvas(canvas,detected.points,6000000,3000)'))throw new Error('Photographed document images must attempt bounded perspective rectification before OCR');
