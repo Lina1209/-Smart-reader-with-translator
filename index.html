@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="lib/pdf-text-geometry.js"></script>
+<script src="lib/reader-pagination.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 <style>
 :root{color-scheme:light;--bg:#f3f0e8;--paper:#fffdf7;--ink:#28342d;--muted:#788078;--line:#e4dfd2;--accent:#526c58;--accent2:#3e5745;--soft:#e8ede5;--shadow:0 18px 55px #28372f12}
@@ -215,10 +216,11 @@ function paginateReaderText(value){
  const width=Math.max(240,textViewer.clientWidth||Math.min(760,window.innerWidth-32)),height=Math.max(320,textViewer.clientHeight||Math.min(window.innerHeight*.72,900));
  const measure=document.createElement('div');measure.className='page';measure.style.cssText='position:fixed;left:-10000px;top:0;width:'+width+'px;height:'+height+'px;max-height:none;min-height:0;overflow:hidden;font-size:'+fontSize+'px;visibility:hidden;';
  document.body.appendChild(measure);
- const tokens=readerFullText.match(/\s+|[^\s]+/g)||[],pages=[],offsets=[];let current='',currentOffset=0,sourceOffset=0;
- try{for(const token of tokens){const tokenOffset=sourceOffset;sourceOffset+=token.length;const candidate=current+token;measure.textContent=candidate;if(measure.scrollHeight>measure.clientHeight&&current.trim()){pages.push(current.trim());offsets.push(currentOffset);const leading=(token.match(/^\s+/)||[''])[0].length;current=token.replace(/^\s+/,'');currentOffset=tokenOffset+leading;measure.textContent=current;}else{if(!current)currentOffset=tokenOffset;current=candidate;}}if(current.trim()){pages.push(current.trim());offsets.push(currentOffset);}}
- finally{measure.remove();}
- readerPages=pages.length?pages:[''];readerPageOffsets=pages.length?offsets:[0];readerPageIndex=0;for(let i=0;i<readerPageOffsets.length;i++){if(readerPageOffsets[i]<=previousOffset)readerPageIndex=i;else break;}renderReaderPage();
+ try{
+  const result=window.ReaderPagination.paginateByHeight(readerFullText,text=>{measure.textContent=text;return measure.scrollHeight;},measure.clientHeight);
+  readerPages=result.pages;readerPageOffsets=result.offsets;
+ }finally{measure.remove();}
+ readerPageIndex=0;for(let i=0;i<readerPageOffsets.length;i++){if(readerPageOffsets[i]<=previousOffset)readerPageIndex=i;else break;}renderReaderPage();
 }
 function renderReaderPage(){if(!readerPages.length)return;textViewer.textContent=readerPages[readerPageIndex]||'';$('paging').style.display='flex';$('pageStatus').textContent='Страница '+(readerPageIndex+1)+' из '+readerPages.length;$('prevBtn').disabled=readerPageIndex<=0;$('nextBtn').disabled=readerPageIndex>=readerPages.length-1;textViewer.scrollTop=0;}
 function moveReaderPage(delta){if(scanPreview?.pdfDocument){const next=Math.max(1,Math.min(scanPreview.pageCount,scanPreview.pageIndex+delta));if(next!==scanPreview.pageIndex)loadPdfScanPage(next).catch(error=>showError('Не удалось открыть страницу PDF: '+(error.message||error)));return;}if(rendition){if(epubNavigationBusy)return;epubNavigationBusy=true;updateEpubNavigationButtons();Promise.resolve(delta<0?rendition.prev():rendition.next()).catch(error=>showError('Не удалось перелистнуть EPUB: '+(error.message||error))).finally(()=>{epubNavigationBusy=false;updateEpubNavigationButtons();});return;}if(!readerPages.length)return;readerPageIndex=Math.max(0,Math.min(readerPages.length-1,readerPageIndex+delta));renderReaderPage();}
