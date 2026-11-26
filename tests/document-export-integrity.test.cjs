@@ -7,6 +7,10 @@ const start=html.indexOf('function documentArchiveMimeType(ext){');
 const end=html.indexOf('async function translatePreservingFile(file,from,target,statusId){',start);
 assert.ok(start>=0&&end>start,'Document archive validation helpers must exist');
 const source=html.slice(start,end);
+const epubPrepStart=html.indexOf('async function prepareEpubArchiveMimetype(zip){');
+const epubPrepEnd=html.indexOf('function documentArchiveMimeType(ext){',epubPrepStart);
+assert.ok(epubPrepStart>=0&&epubPrepEnd>epubPrepStart,'EPUB mimetype preparation helper must exist');
+const epubPrepSource=html.slice(epubPrepStart,epubPrepEnd);
 const pdfStart=html.indexOf('function createValidatedPdfBlob(bytes){');
 const pdfEnd=html.indexOf('async function translatePdfPreservingFile(file,from,target,progressId){',pdfStart);
 assert.ok(pdfStart>=0&&pdfEnd>pdfStart,'PDF output validation helper must exist');
@@ -15,11 +19,13 @@ let safetyChecks=0;
 const context={Blob,Error,Number,String,Object,RegExp,Promise,assertZipArchiveSafe(archive){safetyChecks++;assert.ok(archive&&archive.files,'Archive safety check must receive a loaded archive');}};
 vm.createContext(context);
 vm.runInContext(source+';globalThis.mimeFor=documentArchiveMimeType;globalThis.validateArchive=validateGeneratedDocumentArchive;',context);
+vm.runInContext(epubPrepSource+';globalThis.prepareEpub=prepareEpubArchiveMimetype;',context);
 vm.runInContext(pdfSource+';globalThis.validatePdf=createValidatedPdfBlob;',context);
-function makeArchive(paths,mimetype){
+function makeArchive(paths,mimetype,compressionMagic){
  const files={};
  for(const path of paths)files[path]={dir:false};
- if(mimetype!==undefined)files.mimetype={dir:false};
+ if(mimetype!==undefined&&!files.mimetype)files.mimetype={dir:false};
+ if(compressionMagic!==undefined&&files.mimetype)files.mimetype._data={compression:{magic:compressionMagic}};
  return {files,file(path){if(!files[path])return null;return {async:async()=>path==='mimetype'?mimetype:''};}};
 }
 function fakeZip(archive,{fail=false}={}){
@@ -35,13 +41,21 @@ const cases=[
 ];
 (async()=>{
  for(const [ext,paths,mime] of cases){
-  const archive=makeArchive(paths,ext==='odt'?'application/vnd.oasis.opendocument.text':ext==='epub'?'application/epub+zip':undefined);
+  const archive=makeArchive(paths,ext==='odt'?'application/vnd.oasis.opendocument.text':ext==='epub'?'application/epub+zip':undefined,ext==='epub'?String.fromCharCode(0,0):undefined);
   const blob=await context.validateArchive(new Blob(['archive']),ext,fakeZip(archive));
   assert.equal(blob.type,mime,ext+' must use its canonical output MIME type');
   assert.ok(blob.size>0,ext+' output must be non-empty');
  }
  assert.equal(context.mimeFor('docx'),cases[0][2]);
  assert.equal(context.mimeFor('pptx'),cases[5][2]);
+ let prepared=null;
+ const prepZip={file(path,value,options){if(arguments.length===1)return{async:async()=> 'application/epub+zip'};prepared={path,value,options};return this;}};
+ await context.prepareEpub(prepZip);
+ assert.equal(prepared.path,'mimetype');
+ assert.equal(prepared.value,'application/epub+zip');
+ assert.equal(prepared.options.compression,'STORE','EPUB mimetype must be stored without compression');
+ await assert.rejects(context.validateArchive(new Blob(['zip']),'epub',fakeZip(makeArchive(['mimetype','META-INF/container.xml','OEBPS/content.opf','OEBPS/ch.xhtml'],'application/epub+zip',String.fromCharCode(8,0)))),/без сжатия/);
+ await assert.rejects(context.validateArchive(new Blob(['zip']),'epub',fakeZip(makeArchive(['META-INF/container.xml','mimetype','OEBPS/content.opf','OEBPS/ch.xhtml'],'application/epub+zip',String.fromCharCode(0,0)))),/первым элементом/);
  const validPdf=context.validatePdf(new Uint8Array([37,80,68,70,45,49,46,55,10]));
  assert.equal(validPdf.type,'application/pdf');
  assert.ok(validPdf.size>=8);
