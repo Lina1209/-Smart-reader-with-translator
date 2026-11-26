@@ -51,7 +51,7 @@ const cases=[
 ];
 (async()=>{
  for(const [ext,paths,mime] of cases){
-  const archive=makeArchive(paths,ext==='odt'?'application/vnd.oasis.opendocument.text':ext==='epub'?'application/epub+zip':undefined,ext==='epub'?String.fromCharCode(0,0):undefined);
+  const archive=makeArchive(paths,ext==='odt'?'application/vnd.oasis.opendocument.text':ext==='epub'?'application/epub+zip':undefined,ext==='epub'||ext==='odt'?String.fromCharCode(0,0):undefined);
   const blob=await context.validateArchive(new Blob(['archive']),ext,fakeZip(archive));
   assert.equal(blob.type,mime.toLowerCase(),ext+' must use its canonical output MIME type (Blob normalizes MIME casing)');
   assert.ok(blob.size>0,ext+' output must be non-empty');
