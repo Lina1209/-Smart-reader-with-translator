@@ -236,7 +236,7 @@ bindReaderPageGestures();
 let readerResizeFrame=0;window.addEventListener('resize',()=>{if(readerResizeFrame)cancelAnimationFrame(readerResizeFrame);readerResizeFrame=requestAnimationFrame(()=>{readerResizeFrame=0;if(reader.style.display==='none')return;if(readerFullText&&textViewer.style.display!=='none')paginateReaderText(readerFullText);if(rendition)try{rendition.resize()}catch(error){console.warn('EPUB resize failed',error);}});},{passive:true});
 document.addEventListener('keydown',e=>{if(reader.style.display==='none'||!e.target)return;const target=e.target;if(target.closest&&target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="textbox"]'))return;if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;const selection=window.getSelection&&window.getSelection();if(selection&&!selection.isCollapsed)return;if(e.key==='ArrowLeft'){e.preventDefault();moveReaderPage(-1);}else if(e.key==='ArrowRight'){e.preventDefault();moveReaderPage(1);}});
 
-async function openText(file,ext,openToken){setProgress('readerProgress',35,'Извлекаем текст',ext.toUpperCase());const content=await extractDocumentText(file,'readerProgress');if(openToken!==requestId)return;const normalized=String(content||'').replace(/^\uFEFF/,'').trim();if(!normalized)throw Error('В файле не найден текст.');readerPageIndex=0;textViewer.style.display='block';paginateReaderText(normalized);setFont(fontSize);textViewer.scrollTop=0;setBookSource(normalized,ext);}
+async function openText(file,ext,openToken){setProgress('readerProgress',35,'Извлекаем текст',ext.toUpperCase());const content=await extractDocumentText(file,'readerProgress',openToken);if(openToken!==requestId)return;const normalized=String(content||'').replace(/^\uFEFF/,'').trim();if(!normalized)throw Error('В файле не найден текст.');readerPageIndex=0;textViewer.style.display='block';paginateReaderText(normalized);setFont(fontSize);textViewer.scrollTop=0;setBookSource(normalized,ext);}
 function assertZipArchiveSafe(zip){
  const entries=Object.values(zip&&zip.files||{}).filter(entry=>entry&&!entry.dir);
  if(entries.length>5000)throw Error('В архиве слишком много файлов (более 5000). Обработка остановлена для защиты памяти.');
@@ -959,17 +959,18 @@ async function translateImagePreservingFile(file,from,target,progressId){
   return value+(item?.hasEOL?'\n':' ');
  }).join('').replace(/[ \t]+\n/g,'\n').replace(/[ \t]{2,}/g,' ').replace(/\n[ \t]+/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
 }
-async function extractDocumentText(file,progressId){const report=(p,label,detail)=>{if(progressId)setProgress(progressId,p,label,detail);};if(file.size>100*1024*1024)throw Error('Файл больше 100 МБ. Это слишком большой размер для обработки в браузере.');report(12,'Определяем формат',file.name||'Файл');const name=(file.name||'').toLowerCase(),type=(file.type||'').toLowerCase();if(name.endsWith('.xlsx')||name.endsWith('.xls')||name.endsWith('.xlsm')||type.includes('spreadsheetml')||type.includes('ms-excel'))return await extractSpreadsheetText(file,report);if(name.endsWith('.pdf')||type==='application/pdf'){
- const pdfjs=await ensurePdfLibrary();
- const loading=pdfjs.getDocument({data:await readFileBuffer(file)});
- const pages=[];let pdf=null;try{pdf=await loading.promise;
+async function extractDocumentText(file,progressId,openToken){const isCurrent=()=>openToken===undefined||openToken===requestId;const ensureCurrent=()=>{if(!isCurrent())throw Error('Открытие файла отменено');};const report=(p,label,detail)=>{if(progressId&&isCurrent())setProgress(progressId,p,label,detail);};if(file.size>100*1024*1024)throw Error('Файл больше 100 МБ. Это слишком большой размер для обработки в браузере.');report(12,'Определяем формат',file.name||'Файл');const name=(file.name||'').toLowerCase(),type=(file.type||'').toLowerCase();if(name.endsWith('.xlsx')||name.endsWith('.xls')||name.endsWith('.xlsm')||type.includes('spreadsheetml')||type.includes('ms-excel'))return await extractSpreadsheetText(file,report);if(name.endsWith('.pdf')||type==='application/pdf'){
+ const pdfjs=await ensurePdfLibrary();ensureCurrent();
+ const pdfBuffer=await readFileBuffer(file);ensureCurrent();
+ const loading=pdfjs.getDocument({data:pdfBuffer});
+ const pages=[];let pdf=null;try{pdf=await loading.promise;ensureCurrent();
   if(pdf.numPages>2000)throw Error('В PDF больше 2000 страниц — слишком большой объём для браузерной обработки.');
   for(let i=1;i<=pdf.numPages;i++){
-   report(20+70*i/pdf.numPages,'Извлекаем текст PDF','Страница '+i+' из '+pdf.numPages);
-   const page=await pdf.getPage(i);
+   ensureCurrent();report(20+70*i/pdf.numPages,'Извлекаем текст PDF','Страница '+i+' из '+pdf.numPages);
+   const page=await pdf.getPage(i);ensureCurrent();
    let canvas=null;
    try{
-    const data=await page.getTextContent();
+    const data=await page.getTextContent();ensureCurrent();
     const value=pdfTextItemsToPlainText(data.items);
     if(value)pages.push(value);
     else{
@@ -980,8 +981,8 @@ async function extractDocumentText(file,progressId){const report=(p,label,detail
      canvas.height=Math.ceil(viewport.height);
      const context=canvas.getContext('2d',{willReadFrequently:true});
      if(!context)throw Error('Не удалось создать холст для OCR страницы PDF.');
-     await page.render({canvasContext:context,viewport,background:'#ffffff'}).promise;
-     const recognized=await recognizeImageCanvas(canvas,(p,l,d)=>report(20+70*i/pdf.numPages,l,'Страница '+i+' из '+pdf.numPages+' · '+d),ocrLanguageForCode($('standaloneSource')?.value||'auto'));
+     await page.render({canvasContext:context,viewport,background:'#ffffff'}).promise;ensureCurrent();
+     const recognized=await recognizeImageCanvas(canvas,(p,l,d)=>report(20+70*i/pdf.numPages,l,'Страница '+i+' из '+pdf.numPages+' · '+d),ocrLanguageForCode($('standaloneSource')?.value||'auto'));ensureCurrent();
      pages.push(ocrLines(recognized).map(line=>line.text).join('\\n'));
     }
    }finally{
@@ -989,7 +990,7 @@ async function extractDocumentText(file,progressId){const report=(p,label,detail
     try{page.cleanup();}catch(e){}
    }
   }
-  if(!pages.join('').trim())throw new Error('В PDF не удалось извлечь текст. Проверьте, что страницы содержат читаемый текст или качественный скан. Повторное OCR не запускается, чтобы не расходовать память и время браузера.');
+  ensureCurrent();if(!pages.join('').trim())throw new Error('В PDF не удалось извлечь текст. Проверьте, что страницы содержат читаемый текст или качественный скан. Повторное OCR не запускается, чтобы не расходовать память и время браузера.');
   return pages.join('\\n\\n');
  }finally{if(pdf)try{await pdf.cleanup();}catch(e){}try{await loading.destroy();}catch(e){}}
 }
