@@ -269,6 +269,8 @@ const mappedCenter=rectification.mapPageHomography(plan.sourceToOutput,{x:(sourc
 if(!mappedCenter||!Number.isFinite(mappedCenter.x)||!Number.isFinite(mappedCenter.y))throw new Error('Source-to-output coordinate mapping failed');
 const mappedBox=rectification.mapRectifiedOcrBox({x0:200,y0:200,x1:400,y1:300},plan.sourceToOutput);
 if(!mappedBox||!(mappedBox.x1>mappedBox.x0)||!(mappedBox.y1>mappedBox.y0))throw new Error('OCR box was not remapped using all four perspective-transformed corners');
+const permutedPlan=rectification.createPageRectificationPlan([sourceQuad[2],sourceQuad[0],sourceQuad[3],sourceQuad[1]]);
+if(!permutedPlan.accepted||permutedPlan.width!==plan.width||permutedPlan.height!==plan.height)throw new Error('Perspective rectification must normalize unordered detected corners');
 const boundedPlan=rectification.createPageRectificationPlan([{x:0,y:0},{x:10000,y:0},{x:10000,y:8000},{x:0,y:8000}],1000000,1200);
 if(!boundedPlan.accepted||boundedPlan.pixelCount>1000000||Math.max(boundedPlan.width,boundedPlan.height)>1200)throw new Error('Rectification output did not obey pixel and side limits');
 if(rectification.createPageRectificationPlan([{x:1,y:1},{x:1,y:1},{x:1,y:1},{x:1,y:1}]).accepted)throw new Error('Degenerate page corners must be rejected');
