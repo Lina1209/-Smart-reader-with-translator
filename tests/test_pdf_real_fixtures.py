@@ -126,7 +126,10 @@ class RealPdfFixtureTests(unittest.TestCase):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.pdf_path = build_fixtures(Path(cls.temp_dir.name) / "native-text-fixtures.pdf")
         cls.reader = PdfReader(str(cls.pdf_path))
-        cls.identity_h_path = add_identity_h_cidfonttype2_fixture(\n            Path(cls.temp_dir.name) / "identity-h-cidfonttype2.pdf"\n        )\n        cls.identity_h_reader = PdfReader(str(cls.identity_h_path))
+        cls.identity_h_path = add_identity_h_cidfonttype2_fixture(
+            Path(cls.temp_dir.name) / "identity-h-cidfonttype2.pdf"
+        )
+        cls.identity_h_reader = PdfReader(str(cls.identity_h_path))
 
     @classmethod
     def tearDownClass(cls):
