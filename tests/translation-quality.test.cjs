@@ -256,6 +256,23 @@ if(outside.accepted||outside.reason!=='corner-outside-image')throw new Error('Co
 const tiny=validateQuad([[490,490],[510,490],[510,510],[490,510]],1000,1000);
 if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text block must not be accepted as a page');
 
+
+const rectificationStart=html.indexOf('function solvePageHomography('),rectificationEnd=html.indexOf('function detectPageQuadFromEdges',rectificationStart);
+if(rectificationStart<0||rectificationEnd<0)throw new Error('Perspective rectification helpers not found');
+const rectification=vm.runInNewContext(html.slice(rectificationStart,rectificationEnd)+'; ({solvePageHomography,mapPageHomography,createPageRectificationPlan,mapRectifiedOcrBox})');
+const sourceQuad=[{x:120,y:90},{x:870,y:180},{x:790,y:900},{x:80,y:760}];
+const plan=rectification.createPageRectificationPlan(sourceQuad,16000000,4096);
+if(!plan.accepted||!plan.previewOnly||plan.pixelCount>16000000||plan.width>4096||plan.height>4096)throw new Error('Perspective rectification plan did not respect preview and pixel limits');
+const outputCorners=[{x:0,y:0},{x:plan.width-1,y:0},{x:plan.width-1,y:plan.height-1},{x:0,y:plan.height-1}];
+for(let i=0;i<4;i++){const mapped=rectification.mapPageHomography(plan.outputToSource,outputCorners[i]);if(!mapped||Math.hypot(mapped.x-sourceQuad[i].x,mapped.y-sourceQuad[i].y)>.01)throw new Error('Inverse perspective mapping missed a source corner');}
+const mappedCenter=rectification.mapPageHomography(plan.sourceToOutput,{x:(sourceQuad[0].x+sourceQuad[2].x)/2,y:(sourceQuad[0].y+sourceQuad[2].y)/2});
+if(!mappedCenter||!Number.isFinite(mappedCenter.x)||!Number.isFinite(mappedCenter.y))throw new Error('Source-to-output coordinate mapping failed');
+const mappedBox=rectification.mapRectifiedOcrBox({x0:200,y0:200,x1:400,y1:300},plan.sourceToOutput);
+if(!mappedBox||!(mappedBox.x1>mappedBox.x0)||!(mappedBox.y1>mappedBox.y0))throw new Error('OCR box was not remapped using all four perspective-transformed corners');
+const boundedPlan=rectification.createPageRectificationPlan([{x:0,y:0},{x:10000,y:0},{x:10000,y:8000},{x:0,y:8000}],1000000,1200);
+if(!boundedPlan.accepted||boundedPlan.pixelCount>1000000||Math.max(boundedPlan.width,boundedPlan.height)>1200)throw new Error('Rectification output did not obey pixel and side limits');
+if(rectification.createPageRectificationPlan([{x:1,y:1},{x:1,y:1},{x:1,y:1},{x:1,y:1}]).accepted)throw new Error('Degenerate page corners must be rejected');
+
 const detectorStart=html.indexOf('function detectPageQuadFromEdges('),detectorEnd=html.indexOf('\nfunction detectPageQuadFromCanvas',detectorStart);
 if(detectorStart<0||detectorEnd<0)throw new Error('Page boundary detector helper not found');
 const detectPage=vm.runInNewContext(html.slice(detectorStart,detectorEnd)+'; detectPageQuadFromEdges',{validatePageQuad:validateQuad});
