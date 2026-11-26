@@ -259,7 +259,7 @@ const imagePipelineStart=html.indexOf('async function translateImagePreservingFi
 const imagePipelineEnd=html.indexOf('function pdfTextItemsToPlainText',imagePipelineStart);
 if(imagePipelineStart<0||imagePipelineEnd<0)throw new Error('Image OCR pipeline not found for resource-lifecycle test');
 const imagePipeline=html.slice(imagePipelineStart,imagePipelineEnd);
-if(!imagePipeline.includes('try{const ocr=await recognizeImageCanvas')||!imagePipeline.includes('finally{canvas.width=canvas.height=0;}'))throw new Error('Image OCR canvas is not released in a finally block');
+if(!imagePipeline.includes('try{\n  let ocrInput=canvas,rectification=null;')||!imagePipeline.includes('finally{\n  if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}\n  canvas.width=canvas.height=0;\n }'))throw new Error('Image OCR source and temporary rectification canvases must be released in a finally block');
 
 const deskewStart=html.indexOf('function createDeskewCanvas(');
 const deskewEnd=html.indexOf('function restoreOcrBox(',deskewStart);
