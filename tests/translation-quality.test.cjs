@@ -81,4 +81,11 @@ const ocrHelpers=vm.runInNewContext(html.slice(validStart,validEnd)+'; ({isValid
 if(!ocrHelpers.isValidOcrBox({x0:0,y0:0,x1:10,y1:10})||ocrHelpers.isValidOcrBox({x0:5,y0:0,x1:2,y1:10})||ocrHelpers.isValidOcrBox({x0:0,y0:0,x1:NaN,y1:10}))throw new Error('OCR bounding-box validation failed');
 const filtered=ocrHelpers.ocrLines({lines:[{text:'valid',confidence:90,bbox:{x0:0,y0:0,x1:10,y1:10}},{text:'invalid box',confidence:99,bbox:{x0:5,y0:5,x1:2,y1:2}}]});
 if(filtered.length!==1||filtered[0].text!=='valid')throw new Error('OCR accepted an invalid bounding box');
+const scaleStart=html.indexOf('function scaleOcrBox(');
+const scaleEnd=html.indexOf('\n',scaleStart);
+if(scaleStart<0||scaleEnd<0)throw new Error('OCR coordinate scaling helper not found');
+const scaleBox=vm.runInNewContext(html.slice(scaleStart,scaleEnd)+'; scaleOcrBox');
+const scaledBack=scaleBox({x0:15,y0:30,x1:90,y1:120},1.5);
+if(JSON.stringify(scaledBack)!==JSON.stringify({x0:10,y0:20,x1:60,y1:80}))throw new Error('Enhanced OCR coordinates were not mapped to original image size');
+if(!html.includes('createEnhancedOcrCanvas(canvas,1.5)'))throw new Error('Enhanced OCR fallback is not wired into recognition');
 console.log('Translation quality tests passed: glossary parsing, longest-first matching, exact term restoration and retry classification.');
