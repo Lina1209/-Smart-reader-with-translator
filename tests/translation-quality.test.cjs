@@ -437,6 +437,11 @@ if(!html.includes('openScanImage(file,ext,openToken)')||!html.includes('openPdfS
 if(!html.includes('aspect-ratio:210/297')||!html.includes('overflow:hidden;background:var(--paper)'))throw new Error('Reader page must keep a bounded book-page frame');
 if(!html.includes('overflow-wrap:anywhere'))throw new Error('Long unbroken words must wrap inside the fixed book-page frame');
 if(!html.includes('function paginateReaderText(')||!html.includes('function moveReaderPage(')||!html.includes("e.key==='ArrowRight'"))throw new Error('Text reader pagination and keyboard navigation are missing');
+if(!html.includes("readerPages=[];readerPageOffsets=[];readerPageIndex=0;renderReaderPage();"))throw new Error('Empty reader content must reset page state and refresh the visible empty state');
+if(!html.includes("if(!readerPages.length){textViewer.textContent='';$('paging').style.display='none';$('pageStatus').textContent='Нет страниц';$('prevBtn').disabled=true;$('nextBtn').disabled=true;"))throw new Error('Empty reader state must clear stale page text and disable page navigation');
+if(!html.includes("target.closest('input,textarea,select,button,a,[contenteditable=\"true\"],[role=\"textbox\"]')"))throw new Error('Keyboard page turns must not steal arrow keys from interactive controls');
+if(!html.includes("if(selection&&!selection.isCollapsed)return;"))throw new Error('Keyboard page turns must not interrupt text selection');
+if(!html.includes("readerFullText='';readerPages=[];readerPageOffsets=[];readerPageIndex=0;textViewer.textContent=''"))throw new Error('Closing or switching books must clear stale page offsets');
 if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'))throw new Error('Touch swipe page turning is missing');
 if(!html.includes("addEventListener('touchcancel'")||!html.includes('e.touches.length!==1')||!html.includes('selection&&!selection.isCollapsed'))throw new Error('Reader swipe handling must ignore multi-touch, cancelled gestures and text selection');
 if(!html.includes("window.addEventListener('resize'")||!html.includes('const previousOffset=readerPageOffsets[readerPageIndex]??0')||!html.includes('findPageIndexForOffset(readerPageOffsets,previousOffset)'))throw new Error('Reader pagination must adapt to screen rotation/resize while retaining the same text position');
