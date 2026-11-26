@@ -252,8 +252,41 @@ function assertZipArchiveSafe(zip){
  }
  return true;
 }
-async function ensureZipLibrary(){if(window.JSZip)return window.JSZip;const urls=['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'];for(const src of urls){try{await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(Error('Не удалось загрузить JSZip: '+src));document.head.appendChild(script)});if(window.JSZip)return window.JSZip;}catch(err){console.warn(err)}}throw Error('Не удалось загрузить JSZip — библиотеку распаковки EPUB. Проверьте интернет или откройте сайт в Chrome.');}
-async function ensureEpubLibrary(){await ensureZipLibrary();if(typeof window.ePub==='function')return window.ePub;const urls=['https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js','https://unpkg.com/epubjs@0.3.93/dist/epub.min.js'];for(const src of urls){try{await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>reject(Error('Не удалось загрузить EPUB.js: '+src));document.head.appendChild(script)});if(typeof window.ePub==='function')return window.ePub;}catch(err){console.warn(err)}}throw Error('Не загрузилась библиотека EPUB. Проверьте подключение к интернету и обновите страницу.')}
+ let zipLibraryPromise=null,epubLibraryPromise=null;
+ async function ensureZipLibrary(){
+  if(window.JSZip)return window.JSZip;
+  if(zipLibraryPromise)return zipLibraryPromise;
+  zipLibraryPromise=(async()=>{
+   const urls=['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js','https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'];
+   for(const src of urls){
+    try{
+     await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>{if(script.parentNode)script.parentNode.removeChild(script);reject(Error('Не удалось загрузить JSZip: '+src));};document.head.appendChild(script);});
+     if(window.JSZip)return window.JSZip;
+     throw Error('JSZip script loaded but did not expose window.JSZip');
+    }catch(err){console.warn(err);}
+   }
+   throw Error('Не удалось загрузить JSZip — библиотеку распаковки EPUB. Проверьте интернет или откройте сайт в Chrome.');
+  })();
+  try{return await zipLibraryPromise;}catch(error){zipLibraryPromise=null;throw error;}
+ }
+ async function ensureEpubLibrary(){
+  if(typeof window.ePub==='function')return window.ePub;
+  if(epubLibraryPromise)return epubLibraryPromise;
+  epubLibraryPromise=(async()=>{
+   await ensureZipLibrary();
+   if(typeof window.ePub==='function')return window.ePub;
+   const urls=['https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js','https://unpkg.com/epubjs@0.3.93/dist/epub.min.js'];
+   for(const src of urls){
+    try{
+     await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.onload=resolve;script.onerror=()=>{if(script.parentNode)script.parentNode.removeChild(script);reject(Error('Не удалось загрузить EPUB.js: '+src));};document.head.appendChild(script);});
+     if(typeof window.ePub==='function')return window.ePub;
+     throw Error('EPUB.js script loaded but did not expose window.ePub');
+    }catch(err){console.warn(err);}
+   }
+   throw Error('Не загрузилась библиотека EPUB. Проверьте подключение к интернету и обновите страницу.');
+  })();
+  try{return await epubLibraryPromise;}catch(error){epubLibraryPromise=null;throw error;}
+ }
 function epubPositionKey(file){
  const identity=[String(file&&file.name||''),Number(file&&file.size||0),Number(file&&file.lastModified||0)].join('|');
  return 'read-translate:epub-position:'+identity;
