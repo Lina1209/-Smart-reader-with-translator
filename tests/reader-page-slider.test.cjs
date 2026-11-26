@@ -10,4 +10,5 @@ assert.match(html,/syncReaderPageSlider\(pageNo,state\.pageCount\)/,'scanned PDF
 assert.match(html,/readerPageSlider'\)\.addEventListener\('change'/,'dragging should not launch a PDF render for every intermediate slider tick');
 assert.match(html,/if\(pdf\.numPages>2000\)throw Error\('В PDF больше 2000 страниц/,'PDF page limit must be explicit instead of silently truncating');
 assert.match(html,/for\(let i=1;i<=pdf\.numPages;i\+\+\)/,'PDF text extraction must iterate through every source page within the documented limit');
+assert.match(html,/if\(openToken!==undefined\)readerSourcePageCount=pdf\.numPages/,'standalone PDF translation must not overwrite the open reader book page count');
 console.log('Reader page slider and PDF page-count checks passed.');
