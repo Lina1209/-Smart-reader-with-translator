@@ -23,6 +23,15 @@ const graphemeResult=paginateByHeight(graphemeSource,graphemeHeight,1);
 assert.deepEqual(graphemeResult.pages,expectedGraphemes,'pagination must never split emoji ZWJ sequences, skin tones, regional-indicator flags or combining marks');
 assert.deepEqual(graphemeResult.offsets,graphemeOffsets,'grapheme-safe page offsets must remain UTF-16 source offsets');
 assert.equal(graphemeResult.pages.join(''),graphemeSource,'grapheme-safe pagination must preserve the exact source text');
+const fallbackSource='👩🏽‍💻🇰🇿🇺🇸🇨🇦🇯e\u0301x';
+const fallbackExpected=Array.from(segmenter.segment(fallbackSource),part=>part.segment);
+const originalSegmenter=Intl.Segmenter;
+try{
+ Intl.Segmenter=undefined;
+ const fallbackResult=paginateByHeight(fallbackSource,text=>Array.from(segmenter.segment(text)).length,1);
+ assert.deepEqual(fallbackResult.pages,fallbackExpected,'fallback pagination must preserve emoji modifiers, ZWJ sequences, paired regional indicators and combining marks');
+ assert.equal(fallbackResult.pages.join(''),fallbackSource,'fallback pagination must preserve every UTF-16 source character');
+}finally{Intl.Segmenter=originalSegmenter;}
 assert.equal(paginateByHeight('one two three four',text=>text.length,5).pages.join('|'),'one |two |three| four','whitespace and page content should remain stable');
 const {findPageIndexForOffset}=require('../lib/reader-pagination');
 const offsets=[0,12,28,45];
