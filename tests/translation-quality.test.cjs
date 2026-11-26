@@ -697,3 +697,18 @@ const pptxExtractorEnd=html.indexOf("if(name.endsWith('.docx')",pptxExtractorSta
 if(pptxExtractorStart<0||pptxExtractorEnd<0)throw new Error('PPTX extraction branch missing');
 const pptxExtractor=html.slice(pptxExtractorStart,pptxExtractorEnd);
 for(const guard of ['await ensureZipLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await JSZip.loadAsync(buffer);ensureCurrent()','for(let i=0;i<slides.length;i++){ensureCurrent();', "await entry.async('text');ensureCurrent()", 'ensureCurrent();return out.join'])if(!pptxExtractor.includes(guard))throw new Error('PPTX cancellation boundary missing: '+guard);
+
+const documentExtractorStart=html.indexOf('async function extractDocumentText(file,progressId,openToken){');
+const documentExtractorEnd=html.indexOf('\nfunction bindDocumentUpload(',documentExtractorStart);
+if(documentExtractorStart<0||documentExtractorEnd<0)throw new Error('Document extraction dispatcher missing');
+const documentExtractor=html.slice(documentExtractorStart,documentExtractorEnd);
+const docxStart=documentExtractor.indexOf("if(name.endsWith('.docx')||type.includes('wordprocessingml')){");
+const docxEnd=documentExtractor.indexOf("if(name.endsWith('.odt')",docxStart);
+if(docxStart<0||docxEnd<0)throw new Error('DOCX extraction branch missing');
+const docxBranch=documentExtractor.slice(docxStart,docxEnd);
+for(const guard of ['await ensureMammothLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await mammoth.extractRawText({arrayBuffer:buffer});ensureCurrent()'])if(!docxBranch.includes(guard))throw new Error('DOCX cancellation boundary missing: '+guard);
+const epubStart=documentExtractor.indexOf("if(name.endsWith('.epub')||type.includes('epub')){");
+const epubEnd=documentExtractor.indexOf("if(name.endsWith('.png')",epubStart);
+if(epubStart<0||epubEnd<0)throw new Error('EPUB extraction branch missing');
+const epubBranch=documentExtractor.slice(epubStart,epubEnd);
+for(const guard of ['await ensureEpubLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await epub.ready;ensureCurrent()','for(const item of epub.spine.items){ensureCurrent();','await epub.load(item.href);ensureCurrent()','if(!isCurrent())throw err','ensureCurrent();if(!sections.length)'])if(!epubBranch.includes(guard))throw new Error('EPUB cancellation boundary missing: '+guard);
