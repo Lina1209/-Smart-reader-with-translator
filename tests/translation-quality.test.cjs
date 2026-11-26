@@ -575,7 +575,7 @@ if(!positionHelpers.saveEpubPosition(positionKey,{start:{cfi:'epubcfi(/6/4[chapt
 if(positionHelpers.readEpubPosition(positionKey)!=='epubcfi(/6/4[chapter]!/4/2/1:0)')throw new Error('Saved EPUB CFI position was not restored');
 positionStorage.set(positionKey,'{"cfi":"javascript:alert(1)"}');
 if(positionHelpers.readEpubPosition(positionKey)!=='')throw new Error('Invalid stored EPUB positions must be rejected');
-if(!html.includes('saveEpubPosition(epubPositionStorageKey,loc)')||!html.includes('await rendition.display(savedPosition)'))throw new Error('EPUB relocation must persist its CFI and opening must restore it');
+if(!html.includes('saveEpubPosition(epubPositionStorageKey,loc)')||!html.includes('await openedRendition.display(savedPosition)'))throw new Error('EPUB relocation must persist its CFI and opening must restore it');
 if(!html.includes("catch(error){console.warn('Сохранённая позиция EPUB недоступна, открываем начало книги',error);await rendition.display();}"))throw new Error('Invalid or stale EPUB positions must fall back to the beginning');
 
 const epubTocStart=html.indexOf('function flattenEpubToc(');
