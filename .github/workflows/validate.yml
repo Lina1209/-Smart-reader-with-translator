@@ -82,6 +82,8 @@ jobs:
         run: node tests/translation-chunks.test.cjs
       - name: Test reader file-open cancellation and stale requests
         run: node tests/open-file-cancellation.test.cjs
+      - name: Test concurrent document upload cancellation
+        run: node tests/document-upload-race.test.cjs
       - name: Test PDF OCR text extraction separators
         run: node tests/pdf-text-extraction-separators.test.cjs
       - name: Test mixed scanned and text PDF classification
