@@ -821,9 +821,12 @@ function ocrLines(data){return (data.lines||[]).filter(line=>String(line.text||'
  function ocrLinesForReplacement(data,minConfidence=35){return ocrLines(data).filter(line=>Number.isFinite(Number(line.confidence))&&Number(line.confidence)>=minConfidence);}
 async function ensurePdfLib(){if(window.PDFLib)return window.PDFLib;return new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js';script.onload=()=>window.PDFLib?resolve(window.PDFLib):reject(Error('PDF-сборщик не загрузился'));script.onerror=()=>reject(Error('Не удалось загрузить библиотеку PDF-сборки.'));document.head.appendChild(script);});}
 async function translatePdfPreservingFile(file,from,target,progressId){
- const pdfjs=await ensurePdfLibrary(),PDFLib=await ensurePdfLib(),pdfBytes=await readFileBuffer(file),loading=pdfjs.getDocument({data:pdfBytes}),sourcePdf=await loading.promise,outPdf=await PDFLib.PDFDocument.create();let sourcePdfForCopy=null;try{sourcePdfForCopy=await PDFLib.PDFDocument.load(pdfBytes);}catch(error){/* Keep the OCR route available when the source PDF cannot be copied safely. */}
+ const pdfjs=await ensurePdfLibrary(),PDFLib=await ensurePdfLib(),pdfBytes=await readFileBuffer(file),loading=pdfjs.getDocument({data:pdfBytes});let sourcePdf=null,outPdf=null,sourcePdfForCopy=null;
  let ocrWorker=null,activePage=1,preservedNativePages=0,rasterPages=0,translatedRasterPages=0,untranslatedRasterPages=0;const pageWarnings=[],layoutWarnings=[];
  try{
+  sourcePdf=await loading.promise;
+  outPdf=await PDFLib.PDFDocument.create();
+  try{sourcePdfForCopy=await PDFLib.PDFDocument.load(pdfBytes);}catch(error){/* Keep the OCR route available when the source PDF cannot be copied safely. */}
   if(sourcePdf.numPages>80)throw Error('PDF больше 80 страниц. Реконструкция страниц с OCR пока ограничена 80 страницами для стабильной работы браузера.');
   for(let pageNo=1;pageNo<=sourcePdf.numPages;pageNo++){
    activePage=pageNo;setProgress(progressId,100*(pageNo-1)/sourcePdf.numPages,'Обрабатываем PDF-страницу',pageNo+' из '+sourcePdf.numPages);
@@ -892,7 +895,7 @@ async function translatePdfPreservingFile(file,from,target,progressId){
   setProgress(progressId,100,'PDF собран',summary+(pageWarnings.length||layoutWarnings.length?' · предупреждений: '+(pageWarnings.length+layoutWarnings.length):''),true);
   return{blob,text:'PDF обработан постранично. '+summary+' На сохранённых электронных страницах текст оставлен оригинальным и не переведён; на OCR-страницах перевод выполнен только там, где распознавание и восстановление фона прошли проверки. Исходные размеры страниц сохранены.'+(pageWarnings.length?' ВНИМАНИЕ ПО СТРАНИЦАМ: '+pageWarnings.join(' '):'')+(layoutWarnings.length?' ВНИМАНИЕ ВЁРСТКА: '+layoutWarnings.join(' '):''),filename:file.name};
  }finally{
-  try{if(ocrWorker)await ocrWorker.terminate();}catch(e){}try{await sourcePdf.cleanup();}catch(e){}try{await loading.destroy();}catch(e){}
+  try{if(ocrWorker)await ocrWorker.terminate();}catch(e){}try{if(sourcePdf)await sourcePdf.cleanup();}catch(e){}try{await loading.destroy();}catch(e){}
  }
 }
 async function translateImagePreservingFile(file,from,target,progressId){
