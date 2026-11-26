@@ -13,6 +13,7 @@ function makeContext(){
  const context={
   scanPreview:null,scanShowingCorrected:false,
   $:id=>elements[id]||(elements[id]=makeElement()),
+  syncReaderPageSlider(current,total){elements.sliderSync={current,total};},
   setProgress(){},createSafePdfViewport:()=>({width:100,height:140}),
   document:{createElement:()=>({width:0,height:0,getContext:()=>({fillStyle:'',fillRect(){}})})},
   detectPageQuadFromCanvas:()=>({accepted:false,confidence:0}),
@@ -36,6 +37,7 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
  assert.equal(getPageCalls,1,'a second page request must not race an active render');
  pending.resolve(page);await first;
  assert.equal(state.pageIndex,1);assert.equal(state.pageLoading,false);assert.equal(state.page,page);
+ assert.equal(elements.sliderSync?.current,1,'PDF preview must synchronize the slider to the current one-based source page');assert.equal(elements.sliderSync?.total,3,'PDF preview must synchronize the slider to the actual source page count');
  assert.equal(elements.prevBtn.disabled,true);assert.equal(elements.nextBtn.disabled,false);
  assert.equal(cleanups,0,'successfully displayed page must remain owned by the preview');
  const failure=new Error('fixture render unavailable');
@@ -44,6 +46,9 @@ function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve
  assert.equal(state.pageIndex,1,'failed navigation must restore the previous page index');
  assert.equal(state.pageLoading,false,'failed navigation must unlock the controls');
  assert.equal(elements.prevBtn.disabled,true);assert.equal(elements.nextBtn.disabled,false);
+ assert.equal(elements.sliderSync?.current,1,'failed PDF navigation must restore the slider to the previously displayed page');
+ assert.equal(elements.sliderSync?.total,3,'failed PDF navigation must preserve the source page count');
+ assert.equal(elements.pageStatus.textContent,'Страница 1 из 3','failed PDF navigation must restore the visible page counter');
  const stalePending=deferred();let staleCleanups=0;
  const stalePage={cleanup(){staleCleanups++;}};
  state.pdfDocument={getPage:()=>stalePending.promise};

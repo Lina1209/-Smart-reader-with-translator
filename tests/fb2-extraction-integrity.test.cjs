@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const start=html.indexOf("if(name.endsWith('.fb2')||type.includes('fictionbook'))");
+const end=html.indexOf("if(name.endsWith('.epub')",start);
+assert.ok(start>=0&&end>start,'FB2 extraction branch must exist');
+const source=html.slice(start,end);
+assert.ok(source.includes("if(tag==='p'||tag==='subtitle'||tag==='v'||tag==='text-author'||tag==='date')return true;"),'Paragraphs, subtitles, verse lines, text authors, and dates must be retained');
+assert.ok(source.includes("if(tag==='title'&&!el.querySelector('p'))return true;"),'Titles containing paragraphs must not duplicate nested text');
+assert.ok(source.includes("const lines=blocks.map(el=>(el.textContent||'').trim()).filter(Boolean);"),'Extracted non-empty blocks must be kept in source order');
+assert.ok(source.includes("return lines.join('\\n\\n')||(body.textContent||'').trim();"),'Blocks must be joined without deduplicating identical adjacent paragraphs');
+assert.ok(!source.includes('lines.filter((line,i)=>i===0||line!==lines[i-1])'),'Repeated adjacent paragraphs are meaningful and must not be dropped');
+console.log('FB2 extraction integrity tests passed: paragraph repetition and nested titles are preserved.');

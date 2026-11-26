@@ -76,16 +76,58 @@ jobs:
           PY
           for file in /tmp/readtranslate-*.js; do node --check "$file"; done
           node --check tts.js
+      - name: Test TTS pause and stale-session timer safety
+        run: node tests/tts-cancellation.test.cjs
       - name: Test translation chunk boundaries and Unicode preservation
         run: node tests/translation-chunks.test.cjs
+      - name: Test reader file-open cancellation and stale requests
+        run: node tests/open-file-cancellation.test.cjs
+      - name: Test concurrent document upload cancellation
+        run: node tests/document-upload-race.test.cjs
+      - name: Test PDF OCR text extraction separators
+        run: node tests/pdf-text-extraction-separators.test.cjs
+      - name: Test mixed scanned and text PDF classification
+        run: node tests/pdf-mixed-page-classification.test.cjs
+      - name: Test EPUB extraction integrity
+        run: node tests/epub-extraction-integrity.test.cjs
+      - name: HTML extraction safety test
+        run: node tests/html-extraction-safety.test.cjs
+      - name: Test FB2 extraction integrity
+        run: node tests/fb2-extraction-integrity.test.cjs
+      - name: FB2 export integrity test
+        run: node tests/fb2-export-integrity.test.cjs
+      - name: Test EPUB export integrity
+        run: node tests/epub-export-integrity.test.cjs
+      - name: Test RTF export integrity
+        run: node tests/rtf-export-integrity.test.cjs
+      - name: Test XML 1.0 escaping integrity
+        run: node tests/xml-escaping-integrity.test.cjs
+      - name: Test DOCX and ODT export integrity
+        run: node tests/docx-odt-export-integrity.test.cjs
+      - name: Test Office chart and embedded-resource coverage
+        run: node tests/office-resource-coverage.test.cjs
+      - name: Test EPUB nested table of contents navigation
+        run: node tests/epub-navigation-toc.test.cjs
+      - name: Test EPUB navigation across chapter boundaries
+        run: node tests/epub-navigation-boundaries.test.cjs
+      - name: Test EPUB reading position persistence
+        run: node tests/epub-position-storage.test.cjs
+      - name: Test EPUB dependency loader concurrency and retries
+        run: node tests/epub-library-loader.test.cjs
+      - name: Test generated document archive integrity and MIME types
+        run: node tests/document-export-integrity.test.cjs
       - name: Test fixed-page reader pagination and long-token wrapping
         run: node tests/reader-pagination.test.cjs
+      - name: Test reader page slider and complete PDF page counting
+        run: node tests/reader-page-slider.test.cjs
       - name: Test glossary protection and retry classification
         run: node tests/translation-quality.test.cjs
       - name: Test PDF rewrite preflight safety gate
         run: node tests/pdf-rewrite-preflight.test.cjs
       - name: Test PDF.js text geometry
         run: node tests/pdf-text-geometry.test.cjs
+      - name: Test PDF extraction cleanup after cancellation
+        run: node tests/pdf-extraction-page-cleanup.test.cjs
       - name: Test PDF page navigation concurrency and cleanup
         run: node tests/pdf-page-navigation.test.cjs
       - name: Test PDF preview resource cleanup lifecycle

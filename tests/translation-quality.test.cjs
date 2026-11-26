@@ -65,6 +65,10 @@ for(const tag of ['instrText','delText','del','fldChar','tab']){const node={pare
 for(const tag of ['del','moveFrom']){const node={parentElement:{localName:'t',parentElement:{localName:tag,parentElement:null}}};if(isDocxVisibleTextNode(node))throw new Error('DOCX deleted/moved-from revision text must not be translated: '+tag);}
 const simpleFieldNode={parentElement:{localName:'t',parentElement:{localName:'r',parentElement:{localName:'fldSimple',parentElement:null}}}};
 if(isDocxVisibleTextNode(simpleFieldNode))throw new Error('DOCX simple-field result text must not be translated because Word can regenerate it from the field instruction');
+const complexFieldResult={parentElement:{localName:'t',parentElement:{localName:'r',parentElement:{localName:'p',getElementsByTagNameNS(ns,tag){return tag==='fldChar'?[{type:'begin'},{type:'separate'},{type:'end'}]:[];},parentElement:null}}}};
+if(isDocxVisibleTextNode(complexFieldResult))throw new Error('DOCX complex-field result text must not be translated when its paragraph contains field markers (TOC/page number/date/etc.)');
+const ordinaryParagraphText={parentElement:{localName:'t',parentElement:{localName:'r',parentElement:{localName:'p',getElementsByTagNameNS(){return [];},parentElement:null}}}};
+if(!isDocxVisibleTextNode(ordinaryParagraphText))throw new Error('Ordinary DOCX paragraph text must remain translatable when no complex field markers exist');
 const storyPattern=/^word\/(document|header\d+|footer\d+|footnotes|endnotes|comments)\.xml$/i;
 for(const path of ['word/document.xml','word/header1.xml','word/footer2.xml','word/footnotes.xml','word/endnotes.xml','word/comments.xml'])if(!storyPattern.test(path))throw new Error('DOCX translation must include the story part '+path);
 for(const path of ['word/styles.xml','word/numbering.xml','word/settings.xml','word/theme/theme1.xml'])if(storyPattern.test(path))throw new Error('DOCX style/relationship metadata must not be treated as translatable story text: '+path);
@@ -115,7 +119,7 @@ const richRunCalls=xlsxSource.split('distributeTranslationAcrossRuns(trans,textN
 if(richRunCalls!==2)throw new Error('XLSX shared and inline rich-text runs must both retain their original run structure');
 if(!xlsxSource.includes("nodes.flatMap(node=>Array.from(node.childNodes).filter(child=>child.nodeType===3))"))throw new Error('XLSX shared strings must collect all rich text nodes before translation');
 if(!xlsxSource.includes("cell.getElementsByTagNameNS('*','t')"))throw new Error('XLSX inline strings must preserve all text runs in each cell');
-if(!html.includes("translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/slides.length,80/slides.length)"))throw new Error('PPTX progress updates must use the active translator progress panel');
+if(!html.includes("translateXmlParagraphs(doc,'p',from,target,progressId,5+80*i/contentPaths.length,80/Math.max(contentPaths.length,1))"))throw new Error('PPTX slide and auxiliary text translation must update the active progress panel');
 const pdfStart=html.indexOf('function pdfTextItemsToPlainText(');
 const pdfEnd=html.indexOf('\n}',pdfStart);
 if(pdfStart<0||pdfEnd<0)throw new Error('PDF text extraction helper not found');
@@ -140,6 +144,9 @@ for(const [angle,expected] of expectedBoxes){
  if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('OCR box rotation '+angle+'° incorrect: '+JSON.stringify(actual));
 }
 if(!html.includes('image\\/(png|jpeg|webp|gif)')||!html.includes("file.type==='image/gif'?'image/png'"))throw new Error('GIF first-frame OCR and PNG output support missing');
+if(!html.includes("['png','jpg','jpeg','webp','gif'].includes(ext)"))throw new Error('GIF files must be routed through the image translation pipeline and exported as PNG');
+const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
+if(!imageLoop.includes("String(file.name||'image').replace(/\\.[^.]+$/i,'')||'image'")||!imageLoop.includes('filename=baseName+ext'))throw new Error('Image exports without a filename extension must receive the correct output extension');
 const tokenStart=html.indexOf('function translationLayoutTokens(');
 const tokenEnd=html.indexOf('\n',tokenStart);
 if(tokenStart<0||tokenEnd<0)throw new Error('CJK layout tokenizer not found');
@@ -201,7 +208,6 @@ if(!pdfLoop.includes("catch(error){try{page.cleanup();}catch(cleanupError){}thro
 if(!pdfLoop.includes("let viewport=null,canvas=null,rectifiedCanvas=null;\n   try{\n    viewport=createSafePdfViewport(page,2.0,16000000);canvas=document.createElement('canvas');"))throw new Error('PDF page resources must be protected if viewport creation or canvas allocation fails');
 if(!pdfLoop.includes("if(canvas){canvas.width=canvas.height=0;}"))throw new Error('PDF page canvas cleanup must tolerate viewport or allocation failures');
 if(!pdfLoop.includes("}finally{try{page.cleanup();}catch(cleanupError){}}"))throw new Error('Copied native PDF pages must be released even when page copying fails');
-const imageLoop=html.slice(html.indexOf('async function translateImagePreservingFile'),html.indexOf('function pdfTextItemsToPlainText'));
 if(!imageLoop.includes('detectPageQuadFromCanvas(canvas)')||!imageLoop.includes('rectifyPageCanvas(canvas,detected.points,6000000,3000)'))throw new Error('Photographed document images must attempt bounded perspective rectification before OCR');
 if(!imageLoop.includes('recognizeImageCanvas(ocrInput')||!imageLoop.includes('mapRectifiedOcrDataToSource(ocr,rectification.outputToSource)'))throw new Error('Rectified image OCR boxes must be mapped back to original image coordinates before replacement');
 if(!imageLoop.includes('if(rectifiedCanvas){rectifiedCanvas.width=rectifiedCanvas.height=0;}'))throw new Error('Temporary rectified image canvas must be released on success and failure');
@@ -433,7 +439,7 @@ if(tiny.accepted||tiny.reason!=='implausible-area')throw new Error('A tiny text 
 
 
 if(!html.includes('async function openScanImage(file,ext,openToken)')||!html.includes('detectPageQuadFromCanvas(original)')||!html.includes('rectifyPageCanvas(original,points,6000000,3000)')||!html.includes('scanOriginalBtn')||!html.includes('scanCorrectedBtn')||!html.includes('releaseScanPreview()'))throw new Error('Scanned image reader preview must compare original and preview-only perspective correction with cleanup');
-if(!html.includes("'jpg','jpeg','png','webp','gif'")||!html.includes('imageFileToCanvas(file)')||!html.includes('recognizeImageCanvas(canvas,report)'))throw new Error('Common scanned-image formats must reach the OCR extraction path');
+if(!html.includes("'jpg','jpeg','png','webp','gif'")||!html.includes('imageFileToCanvas(file)')||!html.includes('recognizeImageCanvas(canvas,report,ocrLanguageForCode'))throw new Error('Common scanned-image formats must reach the OCR extraction path');
 
 if(!html.includes("flow:'paginated'")||html.includes("flow:'scrolled-doc'"))throw new Error('EPUB reader must use fixed paginated flow, not endless scrolling');
 if(!html.includes("spread:'none'"))throw new Error('EPUB must display one page at a time without facing-page spreads');
@@ -452,15 +458,15 @@ if(!html.includes("readerPages=[];readerPageOffsets=[];readerPageIndex=0;renderR
 if(!html.includes("if(!readerPages.length){textViewer.textContent='';$('paging').style.display='none';$('pageStatus').textContent='Нет страниц';$('prevBtn').disabled=true;$('nextBtn').disabled=true;"))throw new Error('Empty reader state must clear stale page text and disable page navigation');
 if(!html.includes("target.closest('input,textarea,select,button,a,[contenteditable=\"true\"],[role=\"textbox\"]')"))throw new Error('Keyboard page turns must not steal arrow keys from interactive controls');
 if(!html.includes("if(selection&&!selection.isCollapsed)return;"))throw new Error('Keyboard page turns must not interrupt text selection');
-if(!html.includes("readerFullText='';readerPages=[];readerPageOffsets=[];readerPageIndex=0;textViewer.textContent=''"))throw new Error('Closing or switching books must clear stale page offsets');
+if(!html.includes("readerFullText='';readerPages=[];readerPageOffsets=[];readerPageIndex=0;readerSourcePageCount=0;"))throw new Error('Closing or switching books must clear stale page offsets and source PDF page count');
 if(!html.includes('Math.abs(dx)>55')||!html.includes('moveReaderPage(dx<0?1:-1)'))throw new Error('Touch swipe page turning is missing');
 if(!html.includes("addEventListener('touchcancel'")||!html.includes('e.touches.length!==1')||!html.includes('selection&&!selection.isCollapsed'))throw new Error('Reader swipe handling must ignore multi-touch, cancelled gestures and text selection');
 if(!html.includes("window.addEventListener('resize'")||!html.includes('const previousOffset=readerPageOffsets[readerPageIndex]??0')||!html.includes('findPageIndexForOffset(readerPageOffsets,previousOffset)'))throw new Error('Reader pagination must adapt to screen rotation/resize while retaining the same text position');
 if(!html.includes('readerPageOffsets=[]')||!html.includes('readerPageOffsets=result.offsets')||!html.includes('window.ReaderPagination.paginateByHeight'))throw new Error('Measured text-reader pagination must track page offsets and reset safely');
 if(!html.includes("$('demoBtn').onclick")||!html.includes('paginateReaderText(sample)'))throw new Error('The demo book must use the same fixed-page pagination as uploaded reading files');
-if(!html.includes("epubPageState.page<=1")||!html.includes("epubPageState.page>=epubPageState.total"))throw new Error('EPUB navigation buttons must reflect first and last page');
+if(!html.includes('function getEpubNavigationAvailability(')||!html.includes('current.atStart')||!html.includes('current.atEnd'))throw new Error('EPUB navigation buttons must follow whole-book start and end boundaries, not chapter-local page counts');
 if(!html.includes('epubNavigationBusy')||!html.includes('updateEpubNavigationButtons()')||!html.includes("Не удалось перелистнуть EPUB"))throw new Error('EPUB navigation must serialize rapid page turns and recover button state after failures');
-if(!html.includes('epubPageState={page:p,total:t}')||!html.includes('epubNavigationBusy||!epubPageState.total'))throw new Error('EPUB relocated state must drive the disabled state of navigation controls');
+if(!html.includes('epubPageState={page:p,total:t,atStart:loc.atStart===true,atEnd:loc.atEnd===true}')||!html.includes('epubNavigationBusy'))throw new Error('EPUB relocated state must preserve whole-book navigation boundaries and busy state');
 if(!html.includes("$('epubTocSelect').disabled=epubNavigationBusy")||!html.includes('!href||!rendition||epubNavigationBusy'))throw new Error('EPUB TOC navigation must be serialized with page turns');
 if(!html.includes('async function moveReaderPage(delta)')||!html.includes('await (delta<0?activeRendition.prev():activeRendition.next())')||!html.includes("Не удалось перелистнуть EPUB")||!html.includes('if(activeToken===requestId&&rendition===activeRendition){epubNavigationBusy=false;updateEpubNavigationButtons();}'))throw new Error('EPUB page turns must catch failures and restore controls only for the still-active reader session');
 if(!html.includes('rendition.getContents()')||!html.includes('doc.__readerSwipeBound'))throw new Error('EPUB iframe touch gestures must be bound inside its document');
@@ -535,10 +541,10 @@ if(noPage.accepted)throw new Error('A compact text-like cluster must not be acce
 if(!html.includes('previewOnly:true')||!html.includes("reason:'no-reliable-page-boundary'"))throw new Error('Page detection must remain preview-only and reject uncertain candidates');
 
 
-if(!html.includes('async function openPdfScanPreview(file,ext,openToken)')||!html.includes('page.getTextContent()')||!html.includes('Math.min(3,pdf.numPages)'))throw new Error('PDF scan preview must distinguish scanned PDFs from PDFs with a text layer');
+if(!html.includes('async function openPdfScanPreview(file,ext,openToken)')||!html.includes('page.getTextContent()')||!html.includes('n<=pdf.numPages')||!html.includes('pdf.numPages>2000'))throw new Error('PDF scan preview must inspect all pages for text and respect the 2000-page safety limit');
 if(!html.includes("const page=await pdf.getPage(n);try{if(openToken!==requestId){try{await task.destroy()}catch(e){}return false;}const content=await page.getTextContent();if(openToken!==requestId){try{await task.destroy()}catch(e){}return false;}"))throw new Error('PDF scan classification must cancel promptly when a newer file is opened');
 if(!html.includes("const pages=[];let pdf=null;try{pdf=await loading.promise;"))throw new Error('PDF extraction must enter cleanup protection before awaiting the PDF document');
-if(!html.includes("async function extractDocumentText(file,progressId,openToken){const isCurrent=()=>openToken===undefined||openToken===requestId;"))throw new Error('Document extraction must accept a request token for cancellation');
+if(!html.includes("async function extractDocumentText(file,progressId,openToken,isCurrentOverride){const isCurrent=typeof isCurrentOverride==='function'?isCurrentOverride:()=>openToken===undefined||openToken===requestId;"))throw new Error('Document extraction must support reader tokens and per-upload cancellation guards');
 if(!html.includes("extractDocumentText(file,'readerProgress',openToken)"))throw new Error('Reader text extraction must pass its active request token');
 if(!html.includes("const pdfBuffer=await readFileBuffer(file);ensureCurrent();"))throw new Error('PDF extraction must cancel after reading the file buffer and before creating a PDF task');
 if(!html.includes("const data=await page.getTextContent();ensureCurrent();"))throw new Error('PDF extraction must stop after asynchronous text-layer reads when a newer book is opened');
@@ -649,7 +655,7 @@ if(positionHelpers.readEpubPosition(positionKey)!=='epubcfi(/6/4[chapter]!/4/2/1
 positionStorage.set(positionKey,'{"cfi":"javascript:alert(1)"}');
 if(positionHelpers.readEpubPosition(positionKey)!=='')throw new Error('Invalid stored EPUB positions must be rejected');
 if(!html.includes('saveEpubPosition(epubPositionStorageKey,loc)')||!html.includes('await openedRendition.display(savedPosition)'))throw new Error('EPUB relocation must persist its CFI and opening must restore it');
-if(!html.includes("catch(error){if(openToken!==requestId)return;console.warn('Сохранённая позиция EPUB недоступна, открываем начало книги',error);await openedRendition.display();}"))throw new Error('Invalid or stale EPUB positions must fall back to the beginning');
+if(!html.includes("catch(error){if(openToken!==requestId)return;console.warn('Сохранённая позиция EPUB недоступна, открываем начало книги',error);clearEpubPosition(epubPositionStorageKey);await openedRendition.display();}"))throw new Error('Invalid or stale EPUB positions must be cleared before falling back to the beginning');
 
 const epubTocStart=html.indexOf('function flattenEpubToc(');
 const epubTocEnd=html.indexOf('function updateEpubNavigationButtons()',epubTocStart);
@@ -668,7 +674,7 @@ if(!html.includes('await (delta<0?activeRendition.prev():activeRendition.next())
 if(!html.includes('const sourceBook=expectedBook||book;')||!html.includes('book!==sourceBook||(openToken!==undefined&&openToken!==requestId)')||!html.includes('populateEpubToc(openedBook,openToken)')||!html.includes('book!==openedBook||rendition!==openedRendition'))throw new Error('Late EPUB loading must not overwrite the table of contents or UI after another book is opened');
 if(!html.includes('if(state!==scanPreview){try{page.cleanup();}catch(e){}return;}')||!html.includes('if(state!==scanPreview){try{page.cleanup();}catch(e){}canvas.width=canvas.height=0;return;}'))throw new Error('Stale PDF page renders must release resources without updating the active reader');
 if(!html.includes("rendition.on('selected',(cfi,contents)=>{if(openToken!==requestId||book!==openedBook||rendition!==openedRendition)return;")||!html.includes("rendition.on('rendered',()=>{if(openToken!==requestId||book!==openedBook||rendition!==openedRendition)return;")||!html.includes("rendition.on('relocated',loc=>{if(openToken!==requestId||book!==openedBook||rendition!==openedRendition)return;"))throw new Error('Stale EPUB rendition events must not mutate the active book UI or saved position');
-if(!html.includes("function closeExisting(){const tocControl=$('epubTocSelect')")||!html.includes("tocControl.hidden=true;tocControl.disabled=false")||!html.includes("epubPositionStorageKey='';epubNavigationBusy=false;epubPageState={page:0,total:0}"))throw new Error('Switching away from EPUB must clear its table of contents, saved-position key, and navigation state');
+if(!html.includes("function closeExisting(){readerOpenPending=false;const tocControl=$('epubTocSelect')")||!html.includes("tocControl.hidden=true;tocControl.disabled=false")||!html.includes("epubPositionStorageKey='';epubNavigationBusy=false;epubPageState={page:0,total:0,atStart:true,atEnd:true}"))throw new Error('Switching away from EPUB must clear its table of contents, saved-position key, pending file-open state, and navigation state');
 if(!html.includes("rendition.resize()"))throw new Error('EPUB viewer must recalculate page layout after viewport resizing');
 if(!html.includes("saveEpubPosition(epubPositionStorageKey,loc)"))throw new Error('EPUB position must be persisted after relocation, including layout changes');
 
@@ -679,3 +685,55 @@ const paginationSource=html.slice(paginationStart,paginationEnd);
 if(!paginationSource.includes('Math.max(1,textViewer.clientWidth||'))throw new Error('Reader page width must use the actual narrow viewport instead of forcing a 240px minimum');
 if(!paginationSource.includes('Math.max(1,textViewer.clientHeight||'))throw new Error('Reader page height must use the actual short viewport instead of forcing a 320px minimum');
 if(paginationSource.includes('Math.max(240,textViewer.clientWidth')||paginationSource.includes('Math.max(320,textViewer.clientHeight'))throw new Error('Reader pagination must not measure against dimensions larger than the visible page on small screens');
+
+const spreadsheetExtractorStart=html.indexOf('async function extractSpreadsheetText(file,report,isCurrent=()=>true){');
+const spreadsheetExtractorEnd=html.indexOf('let tesseractLoadingPromise=',spreadsheetExtractorStart);
+if(spreadsheetExtractorStart<0||spreadsheetExtractorEnd<0)throw new Error('Cancellable spreadsheet extraction helper missing');
+const spreadsheetExtractor=html.slice(spreadsheetExtractorStart,spreadsheetExtractorEnd);
+for(const guard of ['await ensureXlsxLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()', "XLSX.read(buffer,{type:'array',cellDates:true});ensureCurrent()", 'for(let i=0;i<workbook.SheetNames.length;i++){\n  ensureCurrent();'])if(!spreadsheetExtractor.includes(guard))throw new Error('XLSX cancellation boundary missing: '+guard);
+if(!html.includes('extractSpreadsheetText(file,report,isCurrent)'))throw new Error('XLSX extraction must receive the active reader cancellation guard');
+const odtExtractorStart=html.indexOf('async function extractOdtText(file,isCurrent=()=>true){');
+const odtExtractorEnd=html.indexOf('\n\nlet readerFullText=',odtExtractorStart);
+if(odtExtractorStart<0||odtExtractorEnd<0)throw new Error('Cancellable ODT extraction helper missing');
+const odtExtractor=html.slice(odtExtractorStart,odtExtractorEnd);
+for(const guard of ['await ensureZipLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await JSZip.loadAsync(buffer);ensureCurrent()', "await entry.async('text');ensureCurrent()", 'ensureCurrent();return blocks'])if(!odtExtractor.includes(guard))throw new Error('ODT cancellation boundary missing: '+guard);
+if(!html.includes('extractOdtText(file,isCurrent)'))throw new Error('ODT extraction must receive the active reader cancellation guard');
+const pptxExtractorStart=html.indexOf("if(name.endsWith('.pptx')||type.includes('presentationml')){");
+const pptxExtractorEnd=html.indexOf("if(name.endsWith('.docx')",pptxExtractorStart);
+if(pptxExtractorStart<0||pptxExtractorEnd<0)throw new Error('PPTX extraction branch missing');
+const pptxExtractor=html.slice(pptxExtractorStart,pptxExtractorEnd);
+for(const guard of ['await ensureZipLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await JSZip.loadAsync(buffer);ensureCurrent()','for(let i=0;i<slides.length;i++){ensureCurrent();', "await entry.async('text');ensureCurrent()", 'ensureCurrent();return out.join'])if(!pptxExtractor.includes(guard))throw new Error('PPTX cancellation boundary missing: '+guard);
+
+const cancellationDocumentExtractorStart=html.indexOf('async function extractDocumentText(file,progressId,openToken,isCurrentOverride){');
+const cancellationDocumentExtractorEnd=html.indexOf('\nfunction bindDocumentUpload(',cancellationDocumentExtractorStart);
+if(cancellationDocumentExtractorStart<0||cancellationDocumentExtractorEnd<0)throw new Error('Document extraction dispatcher missing');
+const cancellationDocumentExtractor=html.slice(cancellationDocumentExtractorStart,cancellationDocumentExtractorEnd);
+const cancellationDocxStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.docx')||type.includes('wordprocessingml')){");
+const cancellationDocxEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.odt')",cancellationDocxStart);
+if(cancellationDocxStart<0||cancellationDocxEnd<0)throw new Error('DOCX extraction branch missing');
+const cancellationDocxBranch=cancellationDocumentExtractor.slice(cancellationDocxStart,cancellationDocxEnd);
+for(const guard of ['await ensureMammothLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await mammoth.extractRawText({arrayBuffer:buffer});ensureCurrent()'])if(!cancellationDocxBranch.includes(guard))throw new Error('DOCX cancellation boundary missing: '+guard);
+const cancellationEpubStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.epub')||type.includes('epub')){");
+const cancellationEpubEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.png')",cancellationEpubStart);
+if(cancellationEpubStart<0||cancellationEpubEnd<0)throw new Error('EPUB extraction branch missing');
+const cancellationEpubBranch=cancellationDocumentExtractor.slice(cancellationEpubStart,cancellationEpubEnd);
+for(const guard of ['await ensureEpubLibrary();ensureCurrent()','await readFileBuffer(file);ensureCurrent()','await epub.ready;ensureCurrent()','for(const item of epub.spine.items){ensureCurrent();','await epub.load(item.href);ensureCurrent()','if(!isCurrent())throw err','ensureCurrent();if(!sections.length)'])if(!cancellationEpubBranch.includes(guard))throw new Error('EPUB cancellation boundary missing: '+guard);
+
+const cancellationPlainTextBranch=cancellationDocumentExtractor.slice(cancellationDocumentExtractor.indexOf("if(name.endsWith('.rtf')"),cancellationDocumentExtractor.indexOf("if(name.endsWith('.fb2')"));
+for(const guard of ['await readFileText(file);ensureCurrent()','const html=await readFileText(file);ensureCurrent()'])if(!cancellationPlainTextBranch.includes(guard))throw new Error('Text document cancellation boundary missing: '+guard);
+const cancellationImageBranchStart=cancellationDocumentExtractor.indexOf("if(name.endsWith('.png')||name.endsWith('.jpg')");
+const cancellationImageBranchEnd=cancellationDocumentExtractor.indexOf("if(name.endsWith('.xml')",cancellationImageBranchStart);
+if(cancellationImageBranchStart<0||cancellationImageBranchEnd<0)throw new Error('Image OCR extraction branch missing');
+const cancellationImageBranch=cancellationDocumentExtractor.slice(cancellationImageBranchStart,cancellationImageBranchEnd);
+for(const guard of ['await imageFileToCanvas(file);ensureCurrent()','null,isCurrent);ensureCurrent()','finally{canvas.width=canvas.height=0;}'])if(!cancellationImageBranch.includes(guard))throw new Error('Image OCR cancellation or cleanup missing: '+guard);
+
+const officeWriterStart=html.indexOf('async function translatePreservingFile(file,from,target,statusId){');
+const officeWriterEnd=html.indexOf("\n$('standaloneTranslate').addEventListener",officeWriterStart);
+if(officeWriterStart<0||officeWriterEnd<0)throw new Error('Office document export writer missing');
+const officeWriter=html.slice(officeWriterStart,officeWriterEnd);
+if(!officeWriter.includes('const chartPaths=Object.keys(zip.files)')||!officeWriter.includes("translateXmlParagraphs(doc,'p'"))throw new Error('XLSX chart rich-text titles and labels must be included in translation');
+if(!officeWriter.includes('getPptxTranslatableContentPaths(Object.keys(zip.files))'))throw new Error('PPTX export must use the shared slide and auxiliary-content path selector');
+if(!officeWriter.includes('const contentPaths=getPptxTranslatableContentPaths(Object.keys(zip.files))'))throw new Error('PPTX slide and auxiliary text parts must be processed together');
+
+for(const notice of ['ВНИМАНИЕ ПО ОФОРМЛЕНИЮ: переведены текстовые ячейки','заметки докладчика','подписи из кэшей диаграмм','встроенные объекты и редкие элементы Word'])if(!officeWriter.includes(notice))throw new Error('Office export must disclose incomplete text/layout coverage: '+notice);
+if(!officeWriter.includes(String.raw`layoutNotice?'\n\n'+layoutNotice`))throw new Error('Office export coverage notice must be separated from translated text');

@@ -49,8 +49,8 @@
   };
   try{
    window.speechSynthesis.speak(utterance);
-   setTimeout(()=>{try{window.speechSynthesis.resume()}catch(e){}},250);
-   setTimeout(()=>{try{if(window.speechSynthesis.paused)window.speechSynthesis.resume()}catch(e){}},800);
+   setTimeout(()=>{if(token!==generation||paused)return;try{window.speechSynthesis.resume()}catch(e){}},250);
+   setTimeout(()=>{if(token!==generation||paused)return;try{if(window.speechSynthesis.paused)window.speechSynthesis.resume()}catch(e){}},800);
   }catch(error){say('Системная озвучка недоступна. Проверьте службу TTS на устройстве.')}
  }
  function pause(){
