@@ -11,8 +11,8 @@ const helpers=vm.runInNewContext('(()=>{'+match[0]+';return {parseTranslationGlo
 const input='I live in New York. OpenAI uses C++ and a new york office.';
 const protectedValue=helpers.protectGlossaryTerms(input);
 if(protectedValue.text===input||protectedValue.tokens.length!==4)throw new Error('Glossary terms were not protected');
-const restored=helpers.restoreGlossaryTerms(protectedValue.text,protectedValue.tokens);
-if(restored!=='I live in Нью-Йорк. OpenAI uses Си-плюс-плюс and a Нью-Йорк office.')throw new Error('Glossary terms were not restored exactly: '+restored);
+const deskewRestored=helpers.restoreGlossaryTerms(protectedValue.text,protectedValue.tokens);
+if(deskewRestored!=='I live in Нью-Йорк. OpenAI uses Си-плюс-плюс and a Нью-Йорк office.')throw new Error('Glossary terms were not deskewRestored exactly: '+deskewRestored);
 const sorted=helpers.parseTranslationGlossary();
 if(sorted[0].source!=='New York')throw new Error('Longer glossary phrases must be matched first');
 if(!helpers.isRetryableTranslationError(new Error('MyMemory недоступен (HTTP 503).')))throw new Error('HTTP 503 should be retried');
@@ -56,7 +56,7 @@ const boxStart=html.indexOf('function restoreOcrBox(');
 const boxEnd=html.indexOf('\n',boxStart);
 if(boxStart<0||boxEnd<0)throw new Error('OCR bounding-box transform not found');
 const restoreBox=vm.runInNewContext(html.slice(boxStart,boxEnd)+'; restoreOcrBox');
-const originalBox={x0:10,y0:20,x1:30,y1:40};
+const deskewOriginalBox={x0:10,y0:20,x1:30,y1:40};
 const expectedBoxes=[
  [0,{x0:10,y0:20,x1:30,y1:40}],
  [90,{x0:20,y0:170,x1:40,y1:190}],
@@ -64,7 +64,7 @@ const expectedBoxes=[
  [270,{x0:60,y0:10,x1:80,y1:30}]
 ];
 for(const [angle,expected] of expectedBoxes){
- const actual=restoreBox(originalBox,angle,100,200);
+ const actual=restoreBox(deskewOriginalBox,angle,100,200);
  if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('OCR box rotation '+angle+'° incorrect: '+JSON.stringify(actual));
 }
 if(!html.includes('image\\/(png|jpeg|webp|gif)')||!html.includes("file.type==='image/gif'?'image/png'"))throw new Error('GIF first-frame OCR and PNG output support missing');
@@ -174,11 +174,11 @@ const deskewEnd=html.indexOf('function restoreOcrBox(',deskewStart);
 if(deskewStart<0||deskewEnd<0)throw new Error('Fine-angle deskew helpers not found');
 const deskewSource=html.slice(deskewStart,deskewEnd)+html.slice(html.indexOf('function restoreDeskewBox(',deskewEnd),html.indexOf('\nfunction scaleOcrBox',deskewEnd));
 const deskewHelpers=vm.runInNewContext(deskewSource+'; ({createDeskewCanvas,restoreDeskewBox})');
-const originalBox={x0:30,y0:40,x1:130,y1:70},angle=3*Math.PI/180,rotW=Math.ceil(200*Math.cos(angle)+100*Math.sin(angle)),rotH=Math.ceil(200*Math.sin(angle)+100*Math.cos(angle));
-const rotatedCorners=[[30,40],[130,40],[30,70],[130,70]].map(([x,y])=>{const dx=x-100,dy=y-50;return[dx*Math.cos(angle)-dy*Math.sin(angle)+rotW/2,dx*Math.sin(angle)+dy*Math.cos(angle)+rotH/2]});
-const rotatedBox={x0:Math.min(...rotatedCorners.map(p=>p[0])),y0:Math.min(...rotatedCorners.map(p=>p[1])),x1:Math.max(...rotatedCorners.map(p=>p[0])),y1:Math.max(...rotatedCorners.map(p=>p[1]))};
-const restored=deskewHelpers.restoreDeskewBox(rotatedBox,3,200,100,rotW,rotH);
-if(Math.abs(restored.x0-originalBox.x0)>2||Math.abs(restored.y0-originalBox.y0)>2||Math.abs(restored.x1-originalBox.x1)>2||Math.abs(restored.y1-originalBox.y1)>2)throw new Error('Deskew bounding-box coordinates were not restored to the source image');
+const deskewOriginalBox={x0:30,y0:40,x1:130,y1:70},angle=3*Math.PI/180,deskewRotW=Math.ceil(200*Math.cos(angle)+100*Math.sin(angle)),deskewRotH=Math.ceil(200*Math.sin(angle)+100*Math.cos(angle));
+const deskewRotatedCorners=[[30,40],[130,40],[30,70],[130,70]].map(([x,y])=>{const dx=x-100,dy=y-50;return[dx*Math.cos(angle)-dy*Math.sin(angle)+deskewRotW/2,dx*Math.sin(angle)+dy*Math.cos(angle)+deskewRotH/2]});
+const deskewRotatedBox={x0:Math.min(...deskewRotatedCorners.map(p=>p[0])),y0:Math.min(...deskewRotatedCorners.map(p=>p[1])),x1:Math.max(...deskewRotatedCorners.map(p=>p[0])),y1:Math.max(...deskewRotatedCorners.map(p=>p[1]))};
+const deskewRestored=deskewHelpers.restoreDeskewBox(deskewRotatedBox,3,200,100,deskewRotW,deskewRotH);
+if(Math.abs(deskewRestored.x0-deskewOriginalBox.x0)>2||Math.abs(deskewRestored.y0-deskewOriginalBox.y0)>2||Math.abs(deskewRestored.x1-deskewOriginalBox.x1)>2||Math.abs(deskewRestored.y1-deskewOriginalBox.y1)>2)throw new Error('Deskew bounding-box coordinates were not deskewRestored to the source image');
 if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
 
 
