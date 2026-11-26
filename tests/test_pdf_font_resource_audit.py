@@ -115,3 +115,59 @@ class PdfFontResourceAuditTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+from pdf_tounicode_cmap import parse_tounicode_cmap
+
+
+class PdfToUnicodeCMapTests(unittest.TestCase):
+    def test_bfchar_decodes_basic_and_surrogate_pair_destinations(self):
+        cmap = b"""
+        2 beginbfchar
+        <01> <0041>
+        <02> <D83DDE00>
+        endbfchar
+        """
+        report = parse_tounicode_cmap(cmap)
+        self.assertEqual(report["status"], "parsed")
+        self.assertEqual(report["mappings"], {"01": "A", "02": "\U0001F600"})
+
+    def test_bfrange_scalar_destination_increments_unicode_code_units(self):
+        cmap = b"1 beginbfrange <10> <12> <0061> endbfrange"
+        report = parse_tounicode_cmap(cmap)
+        self.assertEqual(report["status"], "parsed")
+        self.assertEqual(report["mappings"], {"10": "a", "11": "b", "12": "c"})
+
+    def test_bfrange_array_destination_maps_each_entry(self):
+        cmap = b"1 beginbfrange <20> <22> [<0041> <03A9> <4E2D>] endbfrange"
+        report = parse_tounicode_cmap(cmap)
+        self.assertEqual(report["status"], "parsed")
+        self.assertEqual(report["mappings"], {"20": "A", "21": "\\u03A9", "22": "\\u4E2D"})
+
+    def test_comments_whitespace_and_odd_hex_nibble_are_handled(self):
+        cmap = b"1 beginbfchar % mapping follows\\n <A> <0042> endbfchar"
+        report = parse_tounicode_cmap(cmap)
+        self.assertEqual(report["status"], "parsed")
+        self.assertEqual(report["mappings"], {"A0": "B"})
+
+    def test_malformed_utf16_and_duplicate_source_fail_closed(self):
+        malformed = parse_tounicode_cmap(b"1 beginbfchar <01> <D800> endbfchar")
+        duplicate = parse_tounicode_cmap(
+            b"2 beginbfchar <01> <0041> <01> <0042> endbfchar"
+        )
+        self.assertEqual(malformed["status"], "malformed")
+        self.assertEqual(duplicate["status"], "malformed")
+
+    def test_unsupported_and_oversized_ranges_are_not_expanded(self):
+        unsupported = parse_tounicode_cmap(b"1 beginnotdefchar <01> <0000> endnotdefchar")
+        oversized = parse_tounicode_cmap(
+            b"1 beginbfrange <00> <10> <0041> endbfrange", max_range=4
+        )
+        self.assertEqual(unsupported["status"], "malformed")
+        self.assertEqual(oversized["status"], "malformed")
+        self.assertEqual(oversized["mapping_count"], 0)
+
+    def test_invalid_input_and_non_hex_tokens_are_reported(self):
+        self.assertEqual(parse_tounicode_cmap("not bytes")["status"], "invalid-input")
+        malformed = parse_tounicode_cmap(b"1 beginbfchar /Name <0041> endbfchar")
+        self.assertEqual(malformed["status"], "malformed")
