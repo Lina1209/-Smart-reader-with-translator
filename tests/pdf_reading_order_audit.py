@@ -53,7 +53,8 @@ def audit_reading_order(items, regions=None, row_tolerance=3.0, column_gap=12.0)
     # Detect source sequence moving from a right column back to a left column
     # within a similar vertical band, indicating likely column interleaving.
     anomalies=[]
-    for a,b in zip(valid,valid[1:]):
+    sequenced=sorted((x for x in valid if x["sequence_explicit"]),key=lambda z:z["sequence"])
+    for a,b in zip(sequenced,sequenced[1:]):
         if a["center_x"]>b["center_x"]+column_gap and abs(a["center_y"]-b["center_y"])<=row_tolerance*2:
             anomalies.append({"from_item":a["item_index"],"to_item":b["item_index"],"reason":"possible-right-to-left-sequence-jump"})
     return {"status":"incomplete" if unknown else ("review" if anomalies else "ok"),
