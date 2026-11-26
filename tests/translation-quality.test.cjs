@@ -282,6 +282,10 @@ const mappedCenter=rectification.mapPageHomography(plan.sourceToOutput,{x:(sourc
 if(!mappedCenter||!Number.isFinite(mappedCenter.x)||!Number.isFinite(mappedCenter.y))throw new Error('Source-to-output coordinate mapping failed');
 const mappedBox=rectification.mapRectifiedOcrBox({x0:200,y0:200,x1:400,y1:300},plan.sourceToOutput);
 if(!mappedBox||!(mappedBox.x1>mappedBox.x0)||!(mappedBox.y1>mappedBox.y0))throw new Error('OCR box was not remapped using all four perspective-transformed corners');
+const identityPlan=rectification.createPageRectificationPlan([{x:0,y:0},{x:1000,y:0},{x:1000,y:1400},{x:0,y:1400}]);
+if(!identityPlan.accepted)throw new Error('A rectangular source page should produce a valid rectification plan');
+const identityBack=rectification.mapRectifiedOcrBox({x0:200,y0:300,x1:400,y1:500},identityPlan.outputToSource);
+if(!identityBack||Math.abs(identityBack.x0-200)>2||Math.abs(identityBack.y0-300)>2||Math.abs(identityBack.x1-400)>2||Math.abs(identityBack.y1-500)>2)throw new Error('OCR box mapping must return to the original page coordinate space accurately');
 const mappedBack=rectification.mapRectifiedOcrBox({x0:260,y0:260,x1:360,y1:330},plan.outputToSource);
 if(!mappedBack||!(mappedBack.x1>mappedBack.x0)||!(mappedBack.y1>mappedBack.y0))throw new Error('Rectified OCR coordinates could not be mapped back to the source page');
 const restoredData=rectification.mapRectifiedOcrDataToSource({lines:[{text:'sample',confidence:92,bbox:{x0:260,y0:260,x1:360,y1:330}},{text:'bad',confidence:10,bbox:{x0:NaN,y0:0,x1:1,y1:1}}]},plan.outputToSource);
