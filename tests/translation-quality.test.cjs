@@ -210,7 +210,7 @@ console.log('Translation quality tests passed: glossary parsing, longest-first m
   {text:'Invalid box',confidence:99,bbox:{x0:10,y0:140,x1:10,y1:160}}
  ]};
  const acceptedReplacementLines=replacementHelpers.ocrLinesForReplacement(confidenceSample,35);
- if(acceptedReplacementLines.length!==2||acceptedReplacementLines[0].text!=='Reliable heading'||acceptedReplacementLines[1].text!=='Invalid box')throw new Error('OCR reconstruction confidence filter did not preserve its configured threshold and valid-box rules');
+ if(acceptedReplacementLines.length!==1||acceptedReplacementLines[0].text!=='Reliable heading')throw new Error('OCR reconstruction confidence filter did not preserve its configured threshold and valid-box rules');
  if(!html.includes('replacementLines=ocrLinesForReplacement(ocr,35)')||!html.includes('for(let lineNo=0;safeToTranslate&&lineNo<replacementLines.length;lineNo++)')||!html.includes('for(let i=0;safeToTranslate&&i<replacementLines.length;i++)'))throw new Error('PDF/image reconstruction does not consistently skip low-confidence OCR lines');
 
 
