@@ -87,7 +87,7 @@ if(scaleStart<0||scaleEnd<0)throw new Error('OCR coordinate scaling helper not f
 const scaleBox=vm.runInNewContext(html.slice(scaleStart,scaleEnd)+'; scaleOcrBox');
 const scaledBack=scaleBox({x0:15,y0:30,x1:90,y1:120},1.5);
 if(JSON.stringify(scaledBack)!==JSON.stringify({x0:10,y0:20,x1:60,y1:80}))throw new Error('Enhanced OCR coordinates were not mapped to original image size');
-if(!html.includes('createEnhancedOcrCanvas(canvas,1.5)'))throw new Error('Enhanced OCR fallback is not wired into recognition');
+if(!html.includes('createEnhancedOcrCanvas(ocrCanvas,1.5)'))throw new Error('Enhanced OCR fallback is not wired into recognition');
 const qualityStart=html.indexOf('function ocrQualitySummary(');
 const qualityEnd=html.indexOf('\n',qualityStart);
 if(qualityStart<0||qualityEnd<0)throw new Error('OCR quality summary helper not found');
@@ -181,7 +181,7 @@ const fineAngleRestored=deskewHelpers.restoreDeskewBox(fineAngleRotatedBox,3,200
 const sourceCenterX=(fineAngleOriginalBox.x0+fineAngleOriginalBox.x1)/2,sourceCenterY=(fineAngleOriginalBox.y0+fineAngleOriginalBox.y1)/2,restoredCenterX=(fineAngleRestored.x0+fineAngleRestored.x1)/2,restoredCenterY=(fineAngleRestored.y0+fineAngleRestored.y1)/2;if(Math.abs(restoredCenterX-sourceCenterX)>1||Math.abs(restoredCenterY-sourceCenterY)>1||fineAngleRestored.x0>fineAngleOriginalBox.x0+1||fineAngleRestored.y0>fineAngleOriginalBox.y0+1||fineAngleRestored.x1<fineAngleOriginalBox.x1-1||fineAngleRestored.y1<fineAngleOriginalBox.y1-1)throw new Error('Deskew bounding-box center or coverage was not restored to the source image');
 if(!html.includes('if(bestScore<65)')||!html.includes('for(const angle of [-3,-1.5,1.5,3])'))throw new Error('Fine-angle deskew fallback is not confidence-gated');
 
-if(!html.includes('function createThresholdOcrCanvas(')||!html.includes('createThresholdOcrCanvas(canvas,1.5)'))throw new Error('Adaptive threshold OCR fallback is missing');
+if(!html.includes('function createThresholdOcrCanvas(')||!html.includes('createThresholdOcrCanvas(ocrCanvas,1.5)'))throw new Error('Adaptive threshold OCR fallback is missing');
 if(!html.includes('enhancedScale=enhanced.width/canvas.width')||!html.includes('scaleOcrBox(line.bbox,enhancedScale)'))throw new Error('Enhanced OCR boxes do not use the actual bounded preprocessing scale');
 
 const languageHelperStart=html.indexOf('function ocrLanguageForCode('),languageHelperEnd=html.indexOf('\nfunction rotateCanvasForOcr',languageHelperStart);
