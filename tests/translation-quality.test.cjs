@@ -56,7 +56,8 @@ if(xmlRuns.map(x=>x.nodeValue).join('')!=='  translated phrase  ')throw new Erro
 if(xmlRuns[0].parentElement.attrs['xml:space']!=='preserve'||xmlRuns[1].parentElement.attrs['xml:space']!=='preserve')throw new Error('DOCX boundary whitespace must set xml:space="preserve" on affected text runs');
 const docxParagraphHelper=html.slice(html.indexOf('function translateXmlParagraphs('),html.indexOf('async function translatePreservingFile('));
 if(!docxParagraphHelper.includes('if(n.nodeValue)texts.push(n)')||!docxParagraphHelper.includes('texts.some(n=>String(n.nodeValue||\'\').trim())'))throw new Error('DOCX paragraph extraction must retain whitespace-only separators while skipping empty paragraphs');
-if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd']"))throw new Error('EPUB block coverage missing');
+if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th']"))throw new Error('EPUB block coverage missing for div-based, semantic and table content');
+if(!html.includes("['p','h1','h2','h3','h4','h5','h6','li','blockquote','figcaption','caption','dt','dd','div','section','article','pre','address','td','th'].includes(String(node.localName||node.nodeName).toLowerCase())"))throw new Error('EPUB nested block guard must prevent translating wrapper content twice');
 const epubOpenStart=html.indexOf('async function openEpub(file)');
 const epubOpenEnd=html.indexOf("\n$('prevBtn').onclick",epubOpenStart);
 if(epubOpenStart<0||epubOpenEnd<0)throw new Error('EPUB open workflow not found');
