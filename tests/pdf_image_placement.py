@@ -123,6 +123,10 @@ def inspect_page_image_placements(page, max_depth=12, max_forms=512):
                     clip_pending = True
                 elif operator in _PATH_ENDING:
                     if clip_pending:
+                        local_clips.append({
+                            "form_path": list(form_path), "operator_index": index,
+                            "reason": "arbitrary-clipping-path-not-evaluated",
+                        })
                         unknown.append({
                             "form_path": list(form_path), "operator_index": index,
                             "reason": "arbitrary-clipping-path-not-evaluated",
@@ -183,7 +187,7 @@ def inspect_page_image_placements(page, max_depth=12, max_forms=512):
                         from pypdf.generic import ContentStream
                         child_stream = ContentStream(target, page.pdf)
                         walk(child_stream.operations, child_resources, child_ctm, current_path,
-                             active_forms | {marker}, depth + 1, inherited_clips + ([clip] if clip else []))
+                             active_forms | {marker}, depth + 1, local_clips + ([clip] if clip else []))
                     else:
                         unknown.append({"form_path": list(form_path), "operator_index": index,
                                         "resource": name, "reason": "unsupported-xobject-subtype"})
