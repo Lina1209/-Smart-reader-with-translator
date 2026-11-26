@@ -93,7 +93,7 @@ const cases=[
  assert.throws(()=>context.validatePdf(new Uint8Array([])),/сигнатуру/);
  await assert.rejects(context.validateArchive(new Blob([]),'docx',fakeZip(makeArchive([]))),/пуст/);
  await assert.rejects(context.validateArchive(new Blob(['bad']),'docx',fakeZip(null,{fail:true})),/повторно открыть/);
- await assert.rejects(context.validateArchive(new Blob(['zip']),'docx',fakeZip(makeArchive(['[Content_Types].xml']))),/word\/document\.xml/);
+ await assert.rejects(context.validateArchive(new Blob(['zip']),'docx',fakeZip(makeArchive(['[Content_Types].xml']))),/_rels\/\.rels/);
  await assert.rejects(context.validateArchive(new Blob(['zip']),'epub',fakeZip(makeArchive(['mimetype','META-INF/container.xml','OEBPS/content.opf','OEBPS/ch.xhtml'],'wrong/type'))),/неверный MIME/);
  await assert.rejects(context.validateArchive(new Blob(['zip']),'pptx',fakeZip(makeArchive(['[Content_Types].xml','ppt/presentation.xml']))),/ни один слайд/);
  assert.ok(safetyChecks>=cases.length+3,'Every loaded archive must pass the archive safety gate');
